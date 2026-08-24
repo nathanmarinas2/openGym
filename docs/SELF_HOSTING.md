@@ -16,7 +16,7 @@ docker compose up -d
 ```
 
 - First start downloads the exercise images/GIFs (~140 MB) once into `media/img` and `media/gif`.
-- Open **http://localhost:8080** and create a profile with a passkey.
+- Open **http://localhost:8080** and create an account with a username and password.
 - Rather build from source than pull prebuilt images? Skip `docker compose pull` and run
   `docker compose up -d --build` instead — no Node needed locally either way.
 
@@ -29,18 +29,14 @@ curl http://localhost:8080/api/health      # {"ok":true,...}
 
 Logs: `docker compose logs -f`. Stop: `docker compose down`.
 
-## 2. Understand the passkey requirement (important)
+## 2. Understand account access
 
-LiftNex signs you in with **passkeys** (WebAuthn). Browsers enforce two rules:
+LiftNex uses a normal username and password for new accounts. There is no QR code, biometric
+prompt or passkey setup required. Passwords are salted and hashed by the API; the browser only
+receives a signed session cookie.
 
-1. Passkeys are bound to an exact **hostname** (`RP_ID`).
-2. They only work over **HTTPS** — with one exception: `http://localhost`.
-
-So `http://localhost:8080` works on the machine running Docker, but **another device (your
-phone) cannot use `http://<your-LAN-ip>:8080`** — that's neither localhost nor HTTPS, so the
-passkey prompt won't appear. To use LiftNex from your phone you need a real HTTPS hostname.
-
-(You can still open it over LAN in **guest mode**, which stores data only in that browser.)
+For an internet-facing deployment, use HTTPS and a real domain as usual. Existing legacy
+passkey routes remain available for older profiles, but they are not required for new users.
 
 ## 3. Expose it over HTTPS on your own domain
 
@@ -79,7 +75,7 @@ RP_NAME=LiftNex
 docker compose up -d
 ```
 
-Visit `https://gym.example.com`, create your profile, and add it to your home screen
+Visit `https://gym.example.com`, create your account, and add it to your home screen
 (iOS: Share → Add to Home Screen · Android: ⋮ → Add to Home screen).
 
 > Changing `RP_ID` later invalidates existing passkeys (they were bound to the old hostname).
@@ -95,16 +91,16 @@ If you'd rather control who gets in, two optional settings in `.env` turn that a
 ```bash
 ADMIN_UIDS=youruserid      # comma-separated; these users get the admin dashboard
 INVITE_ONLY=1              # new profiles need an invite code
-REQUIRE_USER_VERIFICATION=1 # require the passkey's biometric/PIN verification
+REQUIRE_USER_VERIFICATION=1 # only affects legacy passkey credentials
 SESSION_DAYS=90             # lifetime of newly issued session cookies
 ```
 
-Register your own passkey profile first, then find your id in `./data/db.json` under `users[].id`
+Register your own account first, then find your id in `./data/db.json` under `users[].id`
 and put it in `ADMIN_UIDS`. You'll get an **Admin dashboard** link in Settings: who's training
 right now, each user's workout history and body weight, the ability to disable an account (signed
 out and locked out everywhere until you re-enable it), and — with `INVITE_ONLY=1` — generating and
 revoking invite codes. Existing accounts keep working when you switch invite-only on. Admin access
-is gated by your passkey and enforced server-side, so it needs no separate login.
+is gated by the signed account session and enforced server-side, so it needs no separate login.
 
 Prefer to keep the whole thing off the open internet? A VPN or an auth proxy (Authelia, Cloudflare
 Access…) in front still works, and composes with the above.
@@ -173,8 +169,8 @@ downloaded media are untouched.
 
 | Symptom | Fix |
 |---|---|
-| No passkey prompt on my phone | You're on `http://` or an IP, not HTTPS. Set up a domain (section 3). |
-| "verification failed" on login | `RP_ID`/`ORIGIN` don't match the URL in the address bar. Make them exact, restart. |
+| Login does not work | Check the username and password, then recreate the API container after changing `.env`. |
+| Legacy passkey verification failed | `RP_ID`/`ORIGIN` don't match the URL in the address bar. Make them exact, restart. |
 | Media didn't download | `docker compose logs media`. Re-run `docker compose up -d`, or run `./scripts/fetch-media.sh`. |
 | Port 8080 already used | Set `WEB_PORT=9090` in `.env` (and update `ORIGIN` for local testing). |
 | No "Notifications" option in Settings | Requires a signed-in profile and HTTPS (or `localhost`) — guest mode and plain HTTP over LAN can't subscribe. |

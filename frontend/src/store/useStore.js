@@ -18,6 +18,11 @@ export const DEF = {
   // keeps the column it had. See effortOf.
   reminder: { on: false, time: '08:00', tz: null }, effort: null,
   bodyMeasurements: [], bodyPhotos: [],
+  nutritionEntries: [],
+  nutritionGoal: { calories: 2200, protein: 150, carbs: 250, fat: 70 },
+  recipes: [],
+  waterEntries: [], waterGoal: 2000,
+  fasting: { goalHours: 16, active: false, startedAt: null, history: [] },
   equipmentProfiles: [{ id: 'home', name: 'Home', items: ['body weight'] }],
   activeEquipmentProfile: 'home'
 }
@@ -34,7 +39,7 @@ const mergeArray = (local = [], remote = []) => {
 }
 const mergeStates = (local, remote) => {
   const merged = Object.assign(clone(DEF), remote, local)
-  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'equipmentProfiles']) {
+  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'nutritionEntries', 'recipes', 'waterEntries', 'equipmentProfiles']) {
     if (Array.isArray(local?.[key]) || Array.isArray(remote?.[key])) merged[key] = mergeArray(local?.[key], remote?.[key])
   }
   for (const key of ['exWeights', 'week', 'dayPlan']) merged[key] = { ...(remote?.[key] || {}), ...(local?.[key] || {}) }
@@ -49,7 +54,7 @@ function loadState() {
   return clone(DEF)
 }
 
-const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.bodyMeasurements || []).length || (st.equipmentProfiles || []).some(p => p.name !== 'Home' || (p.items || []).length > 1))
+const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.bodyMeasurements || []).length || (st.nutritionEntries || []).length || (st.recipes || []).length || (st.waterEntries || []).length || (st.fasting?.history || []).length || st.fasting?.active || (st.equipmentProfiles || []).some(p => p.name !== 'Home' || (p.items || []).length > 1))
 
 export const useStore = create((set, get) => {
   let pushTm = null

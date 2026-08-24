@@ -1,0 +1,52 @@
+import { describe, expect, it } from 'vitest'
+import { dailyTotals, filterFoods, localCoachInsights, normalizeFood, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
+
+describe('nutrition helpers', () => {
+  const food = normalizeFood({
+    code: '123', product_name: 'Oats', brands: 'Example', nutrition_grade_fr: 'a',
+    categories_tags: ['en:breakfast-cereals'], labels_tags: ['en:vegan'],
+    nutriments: {
+      'energy-kcal_100g': 380, proteins_100g: 13, carbohydrates_100g: 68,
+      fat_100g: 7, fiber_100g: 10, sugars_100g: 1, salt_100g: .1
+    }
+  })
+
+  it('normalizes a product and scales nutrients by grams', () => {
+    expect(food.name).toBe('Oats')
+    expect(food.grade).toBe('a')
+    expect(scaleNutrients(food, 50)).toMatchObject({ calories: 190, protein: 6.5, carbs: 34 })
+  })
+
+  it('sums only entries from the selected day', () => {
+    const totals = dailyTotals([
+      { date: '2026-08-24', grams: 50, food },
+      { date: '2026-08-23', grams: 100, food }
+    ], '2026-08-24')
+    expect(totals.calories).toBe(190)
+    expect(totals.protein).toBe(6.5)
+  })
+
+  it('filters by grade, protein and sugar', () => {
+    const highProtein = { ...food, id: 'protein', name: 'Protein yogurt', grade: 'b', categories: ['dairy'], per100: { ...food.per100, protein: 10, sugar: 4 } }
+    expect(filterFoods([food, highProtein], { grade: 'b', minProtein: 8, maxSugar: 5 })).toHaveLength(1)
+    expect(filterFoods([food, highProtein], { category: 'breakfast cereals' })).toHaveLength(1)
+  })
+
+  it('searches the built-in catalogue without a network request', () => {
+    expect(searchFoods({ query: 'banana' }).some(item => item.name === 'Banana')).toBe(true)
+    expect(searchFoods({ query: 'plátano' }).some(item => item.name === 'Banana')).toBe(true)
+    expect(searchFoods({ query: 'my bowl', foods: [{ ...food, id: 'manual:bowl', name: 'My bowl' }] })).toHaveLength(1)
+  })
+
+  it('calculates recipe servings and hydration independently', () => {
+    const recipe = { servings: 2, ingredients: [{ grams: 100, food }, { grams: 50, food }] }
+    expect(recipeTotals(recipe).calories).toBe(570)
+    expect(recipePerServing(recipe).protein).toBe(9.75)
+    expect(waterTotal([{ date: '2026-08-24', ml: 500 }, { date: '2026-08-23', ml: 1000 }], '2026-08-24')).toBe(500)
+  })
+
+  it('returns local coach signals without a provider', () => {
+    const insights = localCoachInsights({ totals: { calories: 1000, protein: 40 }, goal: { calories: 2200, protein: 150 }, water: 300, waterGoal: 2000 })
+    expect(insights.map(item => item.key)).toEqual(expect.arrayContaining(['proteinLow', 'waterLow']))
+  })
+})

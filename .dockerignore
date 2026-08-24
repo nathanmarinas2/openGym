@@ -1,0 +1,14 @@
+.git
+.github
+.gitignore
+**/node_modules
+**/dist
+**/*.log
+.env
+.env.*
+data/*
+!data/.gitkeep
+media/*
+!media/.gitkeep
+frontend/android
+frontend/ios

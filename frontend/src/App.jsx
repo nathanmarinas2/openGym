@@ -25,6 +25,7 @@ const Library = lazy(() => import('./views/Library.jsx'))
 const Settings = lazy(() => import('./views/Settings.jsx'))
 const Admin = lazy(() => import('./views/Admin.jsx'))
 const Share = lazy(() => import('./views/Share.jsx'))
+const Nutrition = lazy(() => import('./views/Nutrition.jsx'))
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
 
@@ -79,6 +80,7 @@ function Shell() {
                 <Route path="/plan/r/:id" element={<RoutineEdit />} />
                 <Route path="/workout" element={<Workout />} />
                 <Route path="/stats" element={<Stats />} />
+                <Route path="/nutrition" element={<Nutrition />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/library" element={<Library />} />
                 <Route path="/settings" element={<Settings />} />

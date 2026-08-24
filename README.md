@@ -7,7 +7,7 @@
 **A self-hosted gym & body-weight tracker you actually own.**
 
 Plan your week, run guided workouts, track every set and your body weight over time —
-on your phone, synced across devices, behind your own passkey login.
+on your phone, synced across devices, behind your own account login.
 No account on someone else's server, no subscription, no ads. Just `docker compose up`.
 
 <br>
@@ -42,7 +42,7 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 ### [🌐 LiftNex website](https://nathanmarinas2.github.io/openGym/) · [▶ Try the live demo](https://nathanmarinas2.github.io/openGym/app/)
 
 No signup, nothing to install — it runs entirely in your browser on example data.<br>
-<sub>There's no server behind the demo, so passkey sign-in, sync across devices and the
+<sub>There's no server behind the demo, so account sign-in, sync across devices and the
 admin dashboard only exist in a self-hosted instance.</sub>
 
 </div>
@@ -52,7 +52,7 @@ admin dashboard only exist in a self-hosted instance.</sub>
 Most workout apps lock your data behind a login on their servers, nag you to upgrade, or
 disappear when the startup does. LiftNex is the opposite: **it runs on your box, your data
 stays in a folder you control, and it's yours to fork.** It still feels modern — installable
-as a home-screen app, passkey sign-in, offline support, sync across your phone and laptop.
+as a home-screen app, simple account sign-in, offline support, sync across your phone and laptop.
 
 ## Features
 
@@ -73,11 +73,12 @@ as a home-screen app, passkey sign-in, offline support, sync across your phone a
 - 🔧 **Gym profiles and substitutions** — keep separate Home, Gym and Travel equipment profiles, filter the library to what is available, and get movement alternatives when a routine uses unavailable equipment
 - 🔗 **Read-only plan links** — share a compact preview link that contains routines only; history, weigh-ins and private settings never leave the device
 - 📏 **Body progress beyond weight** — log waist, chest, arm, thigh and body-fat measurements, plus optional progress photos kept in local IndexedDB storage
+- 🍎 **Nutrition search** — search a large Open Food Facts catalogue automatically, fall back to common foods offline, re-add recent foods in one tap, scan or look up barcodes, log meals and recipes, inspect fibre/sugar/salt, and track water and fasting
 - ✨ **Your own exercises** — a name and a body part is enough; they behave like built-in ones everywhere, with an optional description instead of an animation
 - 🟩 **Activity heatmap** — a GitHub-style year view, shaded by time spent training
 - 💪 **Muscle map** — a front-and-back body diagram shaded by how much work each muscle got, over a week, a month or all time. It names the muscles you *haven't* trained in that period, previews what a routine hits while you build it, and shows what you just trained when you finish. Male or female figure, your pick
 - 🔔 **Push notifications** — rest-timer alerts even with the app closed, plus an optional reminder on days you have a workout planned but haven't logged one. Opt in per profile; keys are generated on first run, nothing to configure
-- 🔑 **Passkeys, not passwords** — Face ID / Touch ID / fingerprint login; each profile keeps its own data, synced across devices
+- 🔑 **Simple accounts** — choose a username and password; each profile keeps its own data, synced across devices
 - 🛠️ **Admin dashboard** (optional) — for whoever runs the instance: who's training right now, per-user history, disable accounts, and invite-only signup. Off by default, so a fresh instance stays open with no admin
 - 🎨 **Designed, not assembled** — light/dark themes and 8 accent colors saved to your profile, over a hand-drawn icon set instead of emoji, so it looks the same on every phone
 - 🌍 **12 languages** — full UI translation (EN, DE, ES, FR, IT, PT, PL, TR, RU, ZH, KO, HI); exercise instructions localized in 10 of them, loaded on demand so the app stays fast
@@ -98,13 +99,13 @@ docker compose pull   # grab prebuilt images (amd64 + arm64) — skip to build f
 docker compose up -d
 ```
 
-Open **http://localhost:8080**, tap **Create profile**, and you're in. First launch downloads
+Open **http://localhost:8080**, create an account with a username and password, and you're in. First launch downloads
 the exercise media (~140 MB) once. Prefer building the images yourself instead of pulling from
 `ghcr.io`? Drop the `pull` step and run `docker compose up -d --build` — you don't need Node or
 a build step locally either way.
 
-> Want it reachable from your phone over the internet with passkeys? You'll need an HTTPS
-> domain — a two-line change in `.env`. See **[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md)**.
+> Want it reachable from your phone over the internet? Put it behind an HTTPS domain before
+> sharing it publicly. See **[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md)**.
 
 ## Mobile app (no server at all)
 
@@ -136,14 +137,14 @@ mobile app is the install-and-done flavor.
 
 - **frontend/** — React + Vite (React Router + Zustand), built to static files **inside Docker**
 - **api/** — Node with no framework, two runtime dependencies (WebAuthn + Web Push), storing everything as plain JSON files under `./data`
-- **Dockerfile + web/nginx.conf** — a multi-stage image that builds the frontend and serves it with nginx, proxying `/api` to the backend so it's all on **one origin** (passkeys require this)
+- **Dockerfile + web/nginx.conf** — a multi-stage image that builds the frontend and serves it with nginx, proxying `/api` to the backend so it's all on **one origin**
 
 ## Your data
 
-Lives in `./data` on your host: `db.json` (profiles + public passkeys), `state-<user>.json`
+Lives in `./data` on your host: `db.json` (profiles + password hashes), `state-<user>.json`
 (each user's plan, workouts, body weight, settings), and `secret` (the session-cookie key).
-**Back up `./data` and you've backed up everything.** Passkey private keys never touch the
-server — they stay in your phone's secure hardware / your password manager.
+**Back up `./data` and you've backed up everything.** Passwords never touch the server — only
+their salted hashes are stored.
 
 ## Configuration
 
@@ -151,14 +152,13 @@ All via `.env` (see `.env.example`):
 
 | Variable      | What it is                                           | Default                 |
 |---------------|------------------------------------------------------|-------------------------|
-| `RP_ID`       | Hostname passkeys are bound to                       | `localhost`             |
-| `ORIGIN`      | Full URL the app is served from                      | `http://localhost:8080` |
 | `WEB_PORT`    | Host port for the web UI                             | `8080`                  |
-| `RP_NAME`     | Name shown in the passkey prompt                     | `LiftNex`               |
-| `REQUIRE_USER_VERIFICATION` | Require biometric/PIN verification for passkeys | `1` |
 | `SESSION_DAYS`| Lifetime of newly issued session cookies              | `90`                    |
 | `ADMIN_UIDS`  | User ids that get the admin dashboard (comma-separated) | *(none)*             |
 | `INVITE_ONLY` | Require an invite code to create a profile           | *(off)*                 |
+
+`RP_ID`, `ORIGIN`, `RP_NAME` and `REQUIRE_USER_VERIFICATION` remain available only for
+legacy passkey credentials; new accounts use the normal username/password form.
 
 Push notification keys are generated on first run and saved to `./data/vapid.json` — nothing to set.
 

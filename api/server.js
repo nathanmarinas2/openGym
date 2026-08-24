@@ -1,4 +1,4 @@
-/* liftnex-api — passkey (WebAuthn) auth + per-user state storage for LiftNex
+/* liftnex-api — account/password + optional passkey auth + per-user state storage for LiftNex
    No framework, JSON-file storage, signed session cookies.               */
 import http from 'node:http';
 import crypto from 'node:crypto';
@@ -17,6 +17,19 @@ const ORIGIN = process.env.ORIGIN || 'http://localhost:8080';
 const RP_NAME = process.env.RP_NAME || 'LiftNex';
 const REQUIRE_USER_VERIFICATION = /^(1|true|yes|on)$/i.test(process.env.REQUIRE_USER_VERIFICATION ?? '1');
 const USER_VERIFICATION = REQUIRE_USER_VERIFICATION ? 'required' : 'preferred';
+// Optional nutrition providers. Keys stay server-side; the browser only sees normalized food data.
+const USDA_API_KEY = String(process.env.USDA_API_KEY || '').trim();
+const GEMINI_API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
+const GEMINI_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite').trim();
+const AI_BASE_URL = String(process.env.AI_BASE_URL || '').replace(/\/$/, '');
+const AI_API_KEY = String(process.env.AI_API_KEY || '').trim();
+const AI_MODEL = String(process.env.AI_MODEL || 'gpt-4o-mini').trim();
+const OFF_FIELDS = [
+  'code', 'product_name', 'generic_name', 'product_name_en', 'brands', 'image_front_small_url',
+  'image_front_url', 'nutriments', 'serving_size', 'nutrition_grades', 'nutrition_grade_fr',
+  'categories_tags', 'labels_tags'
+].join(',');
+const OFF_BASE_URLS = ['https://world.openfoodfacts.net', 'https://world.openfoodfacts.org'];
 // Admin dashboard (issue): admins are matched by uid; INVITE_ONLY gates new signups behind a
 // code the admin generates. Both default off so a fresh self-hosted instance stays open.
 const ADMIN_UIDS = (process.env.ADMIN_UIDS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -60,7 +73,7 @@ function stateRevision(state) {
 }
 function validateState(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) return 'state must be an object';
-  const arrayLimits = { routines: 500, workouts: 10000, bodyweight: 10000, customEx: 2000, bodyMeasurements: 10000, bodyPhotos: 2000, equipmentProfiles: 100 };
+  const arrayLimits = { routines: 500, workouts: 10000, bodyweight: 10000, customEx: 2000, bodyMeasurements: 10000, bodyPhotos: 2000, nutritionEntries: 100000, recipes: 2000, waterEntries: 50000, equipmentProfiles: 100 };
   for (const [key, limit] of Object.entries(arrayLimits)) {
     if (state[key] !== undefined && !Array.isArray(state[key])) return `${key} must be an array`;
     if (Array.isArray(state[key]) && state[key].length > limit) return `${key} is too large`;
@@ -85,6 +98,65 @@ function workoutsCsv(state) {
     }
   }
   return rows.map(row => row.map(csvCell).join(',')).join('\n') + '\n';
+}
+
+function usdaNutrient(food, numbers, names) {
+  const list = food?.foodNutrients || [];
+  const item = list.find(n => numbers.includes(String(n.nutrientNumber)) || names.some(name => String(n.nutrientName || '').toLowerCase() === name));
+  return Number.isFinite(+item?.value) ? Math.max(0, +item.value) : 0;
+}
+function normalizeUsdaFood(food) {
+  if (!food?.fdcId) return null;
+  const sodiumMg = usdaNutrient(food, ['1093'], ['sodium, na']);
+  return {
+    id: `usda:${food.fdcId}`, code: String(food.fdcId), source: 'USDA FoodData Central',
+    name: String(food.description || 'Unnamed USDA food'), brand: String(food.brandOwner || food.brandName || ''),
+    image: '', serving: '', grade: '', categories: [], labels: [],
+    per100: {
+      calories: usdaNutrient(food, ['1008'], ['energy']),
+      protein: usdaNutrient(food, ['1003'], ['protein']),
+      carbs: usdaNutrient(food, ['1005'], ['carbohydrate, by difference']),
+      fat: usdaNutrient(food, ['1004'], ['total lipid (fat)']),
+      fiber: usdaNutrient(food, ['1079'], ['fiber, total dietary']),
+      sugar: usdaNutrient(food, ['2000'], ['sugars, total including nlea']),
+      salt: sodiumMg * 2.5 / 1000
+    }
+  };
+}
+
+async function fetchOpenFoodFacts(pathname, params) {
+  let lastError = null;
+  for (const baseUrl of OFF_BASE_URLS) {
+    const url = new URL(pathname, baseUrl);
+    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json', 'User-Agent': 'LiftNex/1.0 nutrition search' }
+      });
+      if (response.ok) return response;
+      lastError = new Error(`Open Food Facts returned ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('Open Food Facts unavailable');
+}
+
+async function callGeminiCoach(prompt) {
+  const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: 'You are a careful fitness nutrition assistant for LiftNex. Give general guidance only, never diagnose or prescribe.' }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 500 }
+    })
+  });
+  if (!upstream.ok) throw new Error(`Gemini request failed (${upstream.status})`);
+  const answer = (await upstream.json())?.candidates?.[0]?.content?.parts
+    ?.map(part => part.text || '').join('').trim();
+  if (!answer) throw new Error('Gemini returned no advice');
+  return answer;
 }
 
 /* ---------- push notifications (Web Push / VAPID) ---------- */
@@ -248,6 +320,27 @@ function sessionCookie(user) {
 }
 const clearCookie = `gymsid=; Path=/; Max-Age=0; HttpOnly;${SECURE} SameSite=Lax`;
 
+function accountName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+}
+function accountUsername(value) {
+  return accountName(value).toLocaleLowerCase();
+}
+function passwordRecord(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('base64url');
+  return { passwordSalt: salt, passwordHash: hash };
+}
+function passwordMatches(password, user) {
+  if (!user?.passwordSalt || !user?.passwordHash) return false;
+  const actual = crypto.scryptSync(password, user.passwordSalt, 64);
+  const expected = Buffer.from(user.passwordHash, 'base64url');
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+function publicUser(user) {
+  return { id: user.id, name: user.name, username: user.username || null, admin: isAdmin(user) };
+}
+
 /* ---------- challenge store (in-memory, 5 min TTL) ---------- */
 const challenges = new Map(); // cid -> {challenge, name?, uid?, exp}
 function putChallenge(data) {
@@ -305,6 +398,42 @@ const routes = {
 
   // Public config the login screen needs before anyone is signed in.
   'GET /api/config': async (req, res) => json(res, 200, { invite_only: INVITE_ONLY }),
+
+  // Simple account auth for people who do not want a passkey. Passwords are salted and
+  // scrypt-hashed; only the signed session cookie is returned to the browser.
+  'POST /api/account/register': async (req, res) => {
+    const body = await readBody(req);
+    const name = accountName(body.name);
+    const username = accountUsername(body.username || name);
+    const password = String(body.password || '');
+    if (name.length < 2) return json(res, 400, { error: 'choose a name with at least 2 characters' });
+    if (password.length < 6) return json(res, 400, { error: 'password must have at least 6 characters' });
+    if (password.length > 128) return json(res, 400, { error: 'password is too long' });
+    if (db.users.some(u => u.username === username)) return json(res, 409, { error: 'that username is already in use' });
+    let invite = null;
+    if (INVITE_ONLY) {
+      const code = String(body.code || '').trim().toUpperCase();
+      invite = db.invites.find(i => i.code === code && !i.usedBy && !i.revoked);
+      if (!invite) return json(res, 403, { error: 'a valid invite code is required' });
+    }
+    const user = {
+      id: crypto.randomBytes(12).toString('base64url'), name, username,
+      ...passwordRecord(password), created: new Date().toISOString()
+    };
+    if (invite) { user.invitedBy = invite.code; invite.usedBy = user.id; invite.usedAt = user.created; }
+    db.users.push(user); saveDb();
+    json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
+  },
+
+  'POST /api/account/login': async (req, res) => {
+    const body = await readBody(req);
+    const username = accountUsername(body.username || body.name);
+    const password = String(body.password || '');
+    const user = db.users.find(u => u.username === username && u.passwordHash);
+    if (!user || user.disabled || !passwordMatches(password, user))
+      return json(res, 401, { error: 'incorrect username or password' });
+    json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
+  },
 
   'GET /api/me': async (req, res) => {
     const user = readSession(req);
@@ -427,6 +556,102 @@ const routes = {
       const state = JSON.parse(fs.readFileSync(stateFile(user.id), 'utf8'));
       json(res, 200, { state, revision: stateRevision(state) });
     } catch { json(res, 200, { state: null }); }
+  },
+
+  // USDA is intentionally proxied: its API key must never be shipped to the browser.
+  'GET /api/nutrition/usda/search': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    if (!USDA_API_KEY) return json(res, 503, { error: 'USDA is not configured on this server' });
+    const query = String(new URL(req.url, 'http://x').searchParams.get('q') || '').trim().slice(0, 100);
+    if (query.length < 2) return json(res, 200, { foods: [] });
+    const upstreamUrl = new URL('https://api.nal.usda.gov/fdc/v1/foods/search');
+    upstreamUrl.searchParams.set('api_key', USDA_API_KEY);
+    upstreamUrl.searchParams.set('query', query);
+    upstreamUrl.searchParams.set('pageSize', '32');
+    upstreamUrl.searchParams.set('dataType', 'Foundation,SR Legacy,Branded');
+    const upstream = await fetch(upstreamUrl);
+    if (!upstream.ok) return json(res, 502, { error: 'USDA search is temporarily unavailable' });
+    const body = await upstream.json();
+    json(res, 200, { foods: (body.foods || []).map(normalizeUsdaFood).filter(Boolean) });
+  },
+
+  // Open Food Facts is public, but the browser cannot call it directly because the standalone
+  // web server deliberately restricts connect-src to this origin. Keep this proxy public so
+  // guest users retain the same food-search experience without exposing any server secret.
+  'GET /api/nutrition/off/search': async (req, res) => {
+    const query = String(new URL(req.url, 'http://x').searchParams.get('q') || '').trim().slice(0, 100);
+    if (query.length < 2) return json(res, 200, { products: [] });
+    try {
+      // The v2 endpoint is structured/tag-based and ignores full-text search_terms.
+      // The legacy JSON endpoint is still the Open Food Facts endpoint that supports
+      // the free-text food search used by this screen.
+      const upstream = await fetchOpenFoodFacts('/cgi/search.pl', {
+        json: '1', search_terms: query, page_size: '32', page: '1', fields: OFF_FIELDS
+      });
+      const body = await upstream.json();
+      json(res, 200, { products: body.products || [] });
+    } catch (error) {
+      console.error('Open Food Facts search failed', error.message);
+      json(res, 502, { error: 'Open Food Facts is temporarily unavailable' });
+    }
+  },
+
+  'GET /api/nutrition/off/barcode': async (req, res) => {
+    const barcode = String(new URL(req.url, 'http://x').searchParams.get('code') || '').replace(/\D/g, '').slice(0, 32);
+    if (barcode.length < 6) return json(res, 400, { error: 'Enter a valid barcode' });
+    try {
+      const upstream = await fetchOpenFoodFacts(`/api/v3/product/${encodeURIComponent(barcode)}`, {
+        fields: OFF_FIELDS
+      });
+      const body = await upstream.json();
+      const found = body.status === 1 || body.status === 'success';
+      json(res, 200, { status: found ? 1 : 0, product: body.product || null });
+    } catch (error) {
+      console.error('Open Food Facts barcode lookup failed', error.message);
+      json(res, 502, { error: 'Open Food Facts is temporarily unavailable' });
+    }
+  },
+
+  // Gemini is the primary provider. The client never receives an AI key and only sends a
+  // compact nutrition context after the user explicitly asks the coach.
+  'POST /api/nutrition/coach': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const body = await readBody(req);
+    const context = JSON.stringify(body.context || {}).slice(0, 12000);
+    const prompt = [
+      'You are the LiftNex training nutrition coach.',
+      'Give concise, practical suggestions based only on the supplied diary summary.',
+      'Do not diagnose, prescribe, shame, or give medical advice. Mention a dietitian for medical goals.',
+      'Use the user language when possible. Return plain text with at most 4 short bullets.',
+      `Diary summary: ${context}`
+    ].join('\n');
+
+    if (GEMINI_API_KEY) {
+      try {
+        const answer = await callGeminiCoach(prompt);
+        return json(res, 200, { source: 'gemini', configured: true, model: GEMINI_MODEL, answer: String(answer).slice(0, 4000) });
+      } catch (error) {
+        console.error('Gemini coach failed', error.message);
+        return json(res, 502, { error: 'Gemini coach is temporarily unavailable' });
+      }
+    }
+
+    // Optional OpenAI-compatible fallback for existing self-hosted installations.
+    if (!AI_BASE_URL || !AI_API_KEY) return json(res, 200, { source: 'local', configured: false, answer: null });
+    const upstream = await fetch(`${AI_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${AI_API_KEY}` },
+      body: JSON.stringify({ model: AI_MODEL, temperature: 0.2, max_tokens: 500, messages: [
+        { role: 'system', content: 'You are a careful fitness nutrition assistant.' },
+        { role: 'user', content: prompt }
+      ] })
+    });
+    if (!upstream.ok) return json(res, 502, { error: 'AI coach is temporarily unavailable' });
+    const answer = (await upstream.json())?.choices?.[0]?.message?.content;
+    if (!answer) return json(res, 502, { error: 'AI coach returned no advice' });
+    json(res, 200, { source: 'provider', configured: true, answer: String(answer).slice(0, 4000) });
   },
 
   'GET /api/tokens': async (req, res) => {

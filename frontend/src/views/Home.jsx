@@ -9,6 +9,7 @@ import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Tappable } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
+import { DEFAULT_NUTRITION_GOAL, dailyTotals, roundNutrition } from '../lib/nutrition.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -41,6 +42,8 @@ export default function Home() {
   const wThisWeek = S.workouts.filter(w => weekKey(w.d) === weekKey(todayISO())).length
   const plannedPerWeek = Object.keys(S.week).filter(k => S.week[k]).length
   const bwPoints = S.bodyweight.slice(-30).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
+  const nutrition = dailyTotals(S.nutritionEntries || [], todayISO())
+  const nutritionGoal = { ...DEFAULT_NUTRITION_GOAL, ...(S.nutritionGoal || {}) }
 
   // today's session shown right under the week strip
   const onToday = () => { if (S.active) nav('/workout'); else if (routine) startFlow(routine.id); else dayOverrideSheet(todayISO()) }
@@ -115,6 +118,18 @@ export default function Home() {
         <div className="chart" style={{ marginTop: 8 }}><LineChart points={bwPoints} h={130} unit={S.unit} goal={S.targetW} /></div>
       </> : <div className="muted small">{t("No entries yet — log your weight to start the curve. It's also asked before every workout.")}</div>}
     </div>
+
+    <Tappable className="card tappable nutrition-home-card" onClick={() => nav('/nutrition')}>
+      <div className="row between">
+        <div className="row" style={{ gap: 9, minWidth: 0 }}>
+          <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="plate" /></span>
+          <div><div className="lbl2">{S.lang === 'es' ? 'Nutrición' : t('Nutrition')}</div><div className="ttl">{roundNutrition(nutrition.calories)} / {roundNutrition(nutritionGoal.calories)} kcal</div></div>
+        </div>
+        <Icon name="chevronRight" className="chev" />
+      </div>
+      <div className="nutrition-track" style={{ marginTop: 12 }}><span style={{ width: `${Math.min(100, nutritionGoal.calories ? nutrition.calories / nutritionGoal.calories * 100 : 0)}%` }} /></div>
+      <div className="small muted" style={{ marginTop: 7 }}>{roundNutrition(nutrition.protein)}g {S.lang === 'es' ? 'proteína' : t('protein')} · {S.lang === 'es' ? 'Abrir diario' : t('Open food diary')}</div>
+    </Tappable>
 
     <Tappable className="card tappable" style={{ cursor: 'pointer' }} onClick={() => calendarSheet()}>
       <div className="row between">

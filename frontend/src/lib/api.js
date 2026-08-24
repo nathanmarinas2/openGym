@@ -24,6 +24,8 @@ export async function fetchExport(format = 'json') {
 export const listApiTokens = () => api('/api/tokens')
 export const createApiToken = label => api('/api/tokens', { method: 'POST', body: JSON.stringify({ label }) })
 export const revokeApiToken = id => api('/api/tokens', { method: 'DELETE', body: JSON.stringify({ id }) })
+export const accountRegister = (name, password, code = '') => api('/api/account/register', { method: 'POST', body: JSON.stringify({ name, password, code }) })
+export const accountLogin = (name, password) => api('/api/account/login', { method: 'POST', body: JSON.stringify({ name, password }) })
 
 const bufToB64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 const b64uToBuf = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)).buffer
