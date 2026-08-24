@@ -5,8 +5,8 @@ import { getLang, useLang } from '../lib/i18n.js'
 import { todayISO } from '../lib/format.js'
 import {
   DEFAULT_NUTRITION_GOAL, MEALS, compactNutritionContext, dailyTotals, entryNutrients,
-  localCoachInsights, lookupBarcode, recipeAsFood, recipePerServing, recipeTotals,
-  roundNutrition, searchFoodSources, waterTotal
+  localCoachInsights, lookupBarcode, nutritionPeriod, nutritionPeriodSummary, recipeAsFood,
+  recipePerServing, recipeTotals, roundNutrition, searchFoodSources, waterTotal
 } from '../lib/nutrition.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField, SearchField, TextField } from '../components/ui.jsx'
@@ -28,7 +28,12 @@ const EN = {
   recentFoods: 'Recent foods', localDatabase: 'Food catalogue', localDatabaseHint: 'Search thousands of foods and brands; common foods remain available offline.',
   barcodeHint: 'Barcode lookup needs an internet connection.', localSource: 'Values can vary by product; check the product label.',
   micros: 'Micronutrients', microsHint: 'Daily fibre, sugar and salt', showMicros: 'Show details', hideMicros: 'Hide details',
-  diary: 'Diary', recipes: 'Recipes', wellness: 'Water & fast', coach: 'Coach', provider: 'Food source',
+  diary: 'Diary', recipes: 'Recipes', wellness: 'Water & fast', insights: 'Trends', coach: 'Coach', provider: 'Food source',
+  calendar: 'Calendar', month: 'Month', previousMonth: 'Previous month', nextMonth: 'Next month',
+  trackedDays: 'tracked days', average: 'Average', targetDays: 'target days', trainingDays: 'training days',
+  noTrendData: 'Log a few meals to unlock useful trends.', nutritionTrend: 'Nutrition trend',
+  period7: '7 days', period30: '30 days', exportData: 'Export data', exportHint: 'Download this nutrition period for your own records or analysis.',
+  exportCsv: 'CSV', exportJson: 'JSON', exported: 'Nutrition export downloaded', selectedDay: 'Selected day',
   openFoodFacts: 'Open Food Facts', usda: 'USDA', usdaHint: 'USDA is available when the server has a USDA API key.',
   createRecipe: 'Create recipe', recipeHint: 'Build a recipe from foods and save it as one serving entry.',
   servings: 'Servings', ingredients: 'Ingredients', addIngredient: 'Add ingredient', noRecipes: 'No recipes yet.',
@@ -63,7 +68,12 @@ const ES = {
   recentFoods: 'Alimentos recientes', localDatabase: 'Catálogo de alimentos', localDatabaseHint: 'Busca miles de alimentos y marcas; los alimentos comunes siguen disponibles sin conexión.',
   barcodeHint: 'Consultar un código de barras necesita conexión a Internet.', localSource: 'Los valores pueden variar según el producto; comprueba la etiqueta.',
   micros: 'Micronutrientes', microsHint: 'Fibra, azúcar y sal del día', showMicros: 'Ver detalles', hideMicros: 'Ocultar detalles',
-  diary: 'Diario', recipes: 'Recetas', wellness: 'Agua y ayuno', coach: 'Coach', provider: 'Fuente de alimentos',
+  diary: 'Diario', recipes: 'Recetas', wellness: 'Agua y ayuno', insights: 'Tendencias', coach: 'Coach', provider: 'Fuente de alimentos',
+  calendar: 'Calendario', month: 'Mes', previousMonth: 'Mes anterior', nextMonth: 'Mes siguiente',
+  trackedDays: 'días registrados', average: 'Media', targetDays: 'días en objetivo', trainingDays: 'días de entrenamiento',
+  noTrendData: 'Registra varias comidas para desbloquear tendencias útiles.', nutritionTrend: 'Tendencia nutricional',
+  period7: '7 días', period30: '30 días', exportData: 'Exportar datos', exportHint: 'Descarga este periodo nutricional para guardarlo o analizarlo.',
+  exportCsv: 'CSV', exportJson: 'JSON', exported: 'Exportación nutricional descargada', selectedDay: 'Día seleccionado',
   openFoodFacts: 'Open Food Facts', usda: 'USDA', usdaHint: 'USDA está disponible cuando el servidor tiene una clave configurada.',
   createRecipe: 'Crear receta', recipeHint: 'Construye una receta con alimentos y guárdala como una ración.',
   servings: 'Raciones', ingredients: 'Ingredientes', addIngredient: 'Añadir ingrediente', noRecipes: 'Todavía no hay recetas.',
@@ -87,6 +97,15 @@ const percent = (value, goal) => goal > 0 ? Math.min(100, Math.max(0, value / go
 const idOf = prefix => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 const mealName = (meal, C) => C[meal]
 const formatDuration = ms => `${Math.floor(ms / 3600000)}h ${Math.floor(ms / 60000) % 60}m`
+const isoDay = date => date.toISOString().slice(0, 10)
+const dateFromISO = value => new Date(`${String(value).slice(0, 10)}T00:00:00Z`)
+const shiftDay = (value, amount) => { const date = dateFromISO(value); date.setUTCDate(date.getUTCDate() + amount); return isoDay(date) }
+const trainingSnapshot = (workouts = [], date) => workouts.filter(workout => workout?.d === date).map(workout => {
+  const entries = workout.entries || []
+  const sets = entries.reduce((sum, entry) => sum + (entry.sets || []).filter(set => set.done !== false).length, 0)
+  const volume = entries.reduce((sum, entry) => sum + (entry.sets || []).reduce((inner, set) => inner + (+set.w || 0) * (+set.r || 0), 0), 0)
+  return { date: workout.d, name: workout.name || '', exercises: entries.length, sets, volume: roundNutrition(volume) }
+})
 
 function LocalCatalogNote({ C }) {
   return <div className="nutrition-provider nutrition-local-source" role="status"><Icon name="folder" /><div><strong>{C.localDatabase}</strong><span>{C.localDatabaseHint}</span></div></div>
@@ -234,10 +253,96 @@ function NutritionWellness({ C, S, date, update }) {
   </>
 }
 
+function NutritionInsights({ C, S, date, setDate, entries, goal }) {
+  const [periodDays, setPeriodDays] = useState(7)
+  const [monthStart, setMonthStart] = useState(`${date.slice(0, 7)}-01`)
+  const rows = useMemo(() => nutritionPeriod({ entries, waterEntries: S.waterEntries || [], goal, endDate: date, days: periodDays }), [entries, S.waterEntries, goal, date, periodDays])
+  const summary = useMemo(() => nutritionPeriodSummary(rows, goal), [rows, goal])
+  const training = useMemo(() => trainingSnapshot(S.workouts || [], date), [S.workouts, date])
+  const trainingDays = useMemo(() => new Set((S.workouts || []).map(workout => workout.d).filter(Boolean)), [S.workouts])
+  const monthDate = dateFromISO(monthStart)
+  const year = monthDate.getUTCFullYear()
+  const month = monthDate.getUTCMonth()
+  const monthLength = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+  const leading = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7
+  const monthLabel = monthDate.toLocaleDateString(getLang() === 'es' ? 'es-ES' : 'en-GB', { month: 'long', year: 'numeric' })
+  const weekdays = getLang() === 'es' ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+  const monthDays = Array.from({ length: leading + monthLength }, (_, index) => {
+    if (index < leading) return null
+    const day = index - leading + 1
+    return isoDay(new Date(Date.UTC(year, month, day)))
+  })
+  const rowsByDate = new Map(rows.map(row => [row.date, row]))
+  const moveMonth = amount => {
+    const next = new Date(Date.UTC(year, month + amount, 1))
+    setMonthStart(isoDay(next))
+  }
+  useEffect(() => setMonthStart(`${date.slice(0, 7)}-01`), [date])
+
+  const download = (body, type, name) => {
+    const blob = new Blob([body], { type })
+    const anchor = document.createElement('a')
+    anchor.href = URL.createObjectURL(blob)
+    anchor.download = name
+    anchor.click()
+    URL.revokeObjectURL(anchor.href)
+  }
+  const exportPeriod = format => {
+    const start = rows[0]?.date || date
+    const end = rows.at(-1)?.date || date
+    const selectedEntries = entries.filter(entry => entry.date >= start && entry.date <= end)
+    if (format === 'json') {
+      download(JSON.stringify({
+        exportedAt: new Date().toISOString(),
+        range: { start, end },
+        goal,
+        summary,
+        nutritionEntries: selectedEntries,
+        waterEntries: (S.waterEntries || []).filter(entry => entry.date >= start && entry.date <= end),
+        workouts: (S.workouts || []).filter(workout => workout.d >= start && workout.d <= end),
+        recipes: S.recipes || []
+      }, null, 2), 'application/json', `liftnex-nutrition-${start}-${end}.json`)
+      return
+    }
+    const escape = value => `"${String(value ?? '').replaceAll('"', '""')}"`
+    const header = ['date', 'meal', 'food', 'grams', 'calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g', 'salt_g']
+    const lines = selectedEntries.map(entry => {
+      const nutrients = entryNutrients(entry)
+      return [entry.date, entry.meal, entry.food?.name, entry.grams, nutrients.calories, nutrients.protein, nutrients.carbs, nutrients.fat, nutrients.fiber, nutrients.sugar, nutrients.salt].map(escape).join(',')
+    })
+    download([header.map(escape).join(','), ...lines].join('\n'), 'text/csv;charset=utf-8', `liftnex-nutrition-${start}-${end}.csv`)
+  }
+  const selectCalendarDay = day => { if (day) setDate(day) }
+  const monthTotals = day => dailyTotals(entries, day)
+
+  return <>
+    <section className="nutrition-insights-head"><div><h2>{C.insights}</h2><p className="muted small">{C.calendar} · {C.nutritionTrend}</p></div><Icon name="chartLine" className="nutrition-card-icon" /></section>
+    <section className="card nutrition-calendar" aria-labelledby="nutrition-calendar-title">
+      <div className="row between"><h2 id="nutrition-calendar-title">{C.calendar}</h2><div className="nutrition-calendar-nav"><button className="iconbtn" onClick={() => moveMonth(-1)} aria-label={C.previousMonth}><Icon name="chevronLeft" /></button><strong>{monthLabel}</strong><button className="iconbtn" onClick={() => moveMonth(1)} aria-label={C.nextMonth}><Icon name="chevronRight" /></button></div></div>
+      <div className="nutrition-calendar-grid nutrition-calendar-weekdays">{weekdays.map((weekday, index) => <span key={`${weekday}-${index}`}>{weekday}</span>)}</div>
+      <div className="nutrition-calendar-grid">{monthDays.map((day, index) => {
+        if (!day) return <span className="nutrition-calendar-blank" key={`blank-${index}`} />
+        const totals = monthTotals(day)
+        const row = rowsByDate.get(day)
+        const logged = entries.some(entry => entry.date === day)
+        const trained = trainingDays.has(day)
+        return <button key={day} className={`nutrition-calendar-day${date === day ? ' selected' : ''}${logged ? ' logged' : ''}${trained ? ' trained' : ''}`} onClick={() => selectCalendarDay(day)} aria-label={`${C.selectedDay} ${day}`}><span>{Number(day.slice(-2))}</span>{(logged || trained) && <i style={{ '--day-fill': `${Math.min(100, Math.max(0, totals.calories / (goal.calories || 1) * 100))}%` }} />}</button>
+      })}</div>
+      <div className="nutrition-calendar-legend"><span><i className="logged" />{C.logged || (getLang() === 'es' ? 'comida registrada' : 'food logged')}</span><span><i className="trained" />{C.trainingDays}</span></div>
+    </section>
+    <section className="nutrition-period-switch"><div><h2>{C.nutritionTrend}</h2><p className="muted small">{summary.trackedDays} {C.trackedDays}</p></div><div className="segmented"><button className={periodDays === 7 ? 'on' : ''} onClick={() => setPeriodDays(7)}>{C.period7}</button><button className={periodDays === 30 ? 'on' : ''} onClick={() => setPeriodDays(30)}>{C.period30}</button></div></section>
+    <section className="nutrition-trend-chart card" aria-label={C.nutritionTrend}><div className="nutrition-trend-bars">{rows.map(row => <button key={row.date} className={`nutrition-trend-day${row.date === date ? ' selected' : ''}`} onClick={() => setDate(row.date)} aria-label={row.date}><span className="nutrition-trend-bar" style={{ height: `${Math.max(4, Math.min(100, row.caloriesPct))}%` }} /><small>{row.date.slice(8)}</small></button>)}</div><div className="nutrition-trend-axis"><span>0</span><span>{nice(goal.calories)} {C.caloriesShort}</span></div></section>
+    <div className="nutrition-insight-metrics"><div className="card"><span>{C.average} {C.calories}</span><strong>{nice(summary.avgCalories)} <i>{C.caloriesShort}</i></strong><small>{summary.trackedDays ? `${summary.calorieTargetDays}/${summary.trackedDays} ${C.targetDays}` : C.noTrendData}</small></div><div className="card"><span>{C.average} {C.protein}</span><strong>{nice(summary.avgProtein)} <i>g</i></strong><small>{summary.trackedDays ? `${summary.proteinTargetDays}/${summary.trackedDays} ${C.targetDays}` : C.noTrendData}</small></div><div className="card"><span>{C.average} {C.water}</span><strong>{nice(summary.avgWater)} <i>ml</i></strong><small>{training.length ? `${training.length} ${C.trainingDays}` : C.noTrendData}</small></div></div>
+    <section className="card nutrition-export-card"><div className="row"><Icon name="download" className="nutrition-card-icon" /><div><h2>{C.exportData}</h2><p className="muted small">{C.exportHint}</p></div></div><div className="nutrition-export-actions"><Button size="sm" variant="tinted" onClick={() => exportPeriod('csv')}>{C.exportCsv}</Button><Button size="sm" variant="primary" onClick={() => exportPeriod('json')}>{C.exportJson}</Button></div></section>
+  </>
+}
+
 function NutritionCoach({ C, S, date, entries, totals, goal }) {
   const water = waterTotal(S.waterEntries || [], date)
   const waterGoal = S.waterGoal || 2000
   const fasting = S.fasting || {}
+  const training = useMemo(() => trainingSnapshot(S.workouts || [], date), [S.workouts, date])
+  const period = useMemo(() => nutritionPeriodSummary(nutritionPeriod({ entries: S.nutritionEntries || [], waterEntries: S.waterEntries || [], goal, endDate: date, days: 7 }), goal), [S.nutritionEntries, S.waterEntries, goal, date])
   const local = localCoachInsights({ totals, goal, water, waterGoal, fasting })
   const [consent, setConsent] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -246,7 +351,7 @@ function NutritionCoach({ C, S, date, entries, totals, goal }) {
   const ask = async () => {
     if (!consent) return
     setLoading(true)
-    try { const response = await api('/api/nutrition/coach', { method: 'POST', body: JSON.stringify({ context: compactNutritionContext({ date, totals, goal, entries, water, waterGoal, fasting }) }) }); setAnswer(response.answer || ''); setSource(response.source || 'local') }
+    try { const response = await api('/api/nutrition/coach', { method: 'POST', body: JSON.stringify({ context: compactNutritionContext({ date, totals, goal, entries, water, waterGoal, fasting, training, period }) }) }); setAnswer(response.answer || ''); setSource(response.source || 'local') }
     catch { setAnswer(C.coachFallback); setSource('local') }
     finally { setLoading(false) }
   }
@@ -281,5 +386,5 @@ export default function Nutrition() {
   const goal = { ...DEFAULT_NUTRITION_GOAL, ...(S.nutritionGoal || {}) }
   const addFood = (food, selectedMeal = meal, selectedGrams = 100) => update(s => { s.nutritionEntries = [...(s.nutritionEntries || []), { id: idOf('nutrition'), date, meal: selectedMeal, grams: Math.max(1, roundNutrition(selectedGrams) || 100), food }] })
   const removeEntry = id => update(s => { s.nutritionEntries = (s.nutritionEntries || []).filter(entry => entry.id !== id) })
-  return <div className="narrow nutrition-view"><div className="hdr"><div><h1>{C.title}</h1><div className="sub">{C.subtitle}</div></div><Icon name="plate" className="nutrition-head-icon" /></div><div className="nutrition-tabs" role="tablist" aria-label={C.title}>{[['diary', C.diary, 'list'], ['recipes', C.recipes, 'plate'], ['wellness', C.wellness, 'droplet'], ['coach', C.coach, 'sparkles']].map(([value, label, icon]) => <button key={value} role="tab" aria-selected={section === value} className={section === value ? 'on' : ''} onClick={() => setSection(value)}><Icon name={icon} /><span>{label}</span></button>)}</div>{section === 'diary' && <NutritionDiary C={C} S={S} date={date} setDate={setDate} meal={meal} setMeal={setMeal} dayEntries={dayEntries} totals={totals} goal={goal} update={update} addFood={addFood} removeEntry={removeEntry} personalFoods={personalFoods} recentFoods={recentFoods} />}{section === 'recipes' && <NutritionRecipes C={C} S={S} personalFoods={personalFoods} meal={meal} addFood={addFood} update={update} />}{section === 'wellness' && <NutritionWellness C={C} S={S} date={date} update={update} />}{section === 'coach' && <NutritionCoach C={C} S={S} date={date} entries={dayEntries} totals={totals} goal={goal} />}</div>
+  return <div className="narrow nutrition-view"><div className="hdr"><div><h1>{C.title}</h1><div className="sub">{C.subtitle}</div></div><Icon name="plate" className="nutrition-head-icon" /></div><div className="nutrition-tabs" role="tablist" aria-label={C.title}>{[['diary', C.diary, 'list'], ['recipes', C.recipes, 'plate'], ['wellness', C.wellness, 'droplet'], ['insights', C.insights, 'chartLine'], ['coach', C.coach, 'sparkles']].map(([value, label, icon]) => <button key={value} role="tab" aria-selected={section === value} className={section === value ? 'on' : ''} onClick={() => setSection(value)}><Icon name={icon} /><span>{label}</span></button>)}</div>{section === 'diary' && <NutritionDiary C={C} S={S} date={date} setDate={setDate} meal={meal} setMeal={setMeal} dayEntries={dayEntries} totals={totals} goal={goal} update={update} addFood={addFood} removeEntry={removeEntry} personalFoods={personalFoods} recentFoods={recentFoods} />}{section === 'recipes' && <NutritionRecipes C={C} S={S} personalFoods={personalFoods} meal={meal} addFood={addFood} update={update} />}{section === 'wellness' && <NutritionWellness C={C} S={S} date={date} update={update} />}{section === 'insights' && <NutritionInsights C={C} S={S} date={date} setDate={setDate} entries={entries} goal={goal} />}{section === 'coach' && <NutritionCoach C={C} S={S} date={date} entries={dayEntries} totals={totals} goal={goal} />}</div>
 }

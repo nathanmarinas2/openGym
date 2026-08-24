@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dailyTotals, filterFoods, localCoachInsights, normalizeFood, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
+import { dailyTotals, filterFoods, localCoachInsights, normalizeFood, nutritionPeriod, nutritionPeriodSummary, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
 
 describe('nutrition helpers', () => {
   const food = normalizeFood({
@@ -43,6 +43,18 @@ describe('nutrition helpers', () => {
     expect(recipeTotals(recipe).calories).toBe(570)
     expect(recipePerServing(recipe).protein).toBe(9.75)
     expect(waterTotal([{ date: '2026-08-24', ml: 500 }, { date: '2026-08-23', ml: 1000 }], '2026-08-24')).toBe(500)
+  })
+
+  it('builds a period oldest-first and ignores unlogged days in averages', () => {
+    const entries = [
+      { date: '2026-08-23', grams: 100, food },
+      { date: '2026-08-24', grams: 50, food }
+    ]
+    const rows = nutritionPeriod({ entries, goal: { calories: 200, protein: 10 }, endDate: '2026-08-24', days: 3 })
+    expect(rows.map(row => row.date)).toEqual(['2026-08-22', '2026-08-23', '2026-08-24'])
+    expect(rows[0].logged).toBe(false)
+    expect(nutritionPeriodSummary(rows, { calories: 200, protein: 10 }).trackedDays).toBe(2)
+    expect(nutritionPeriodSummary(rows, { calories: 200, protein: 10 }).avgCalories).toBe(285)
   })
 
   it('returns local coach signals without a provider', () => {

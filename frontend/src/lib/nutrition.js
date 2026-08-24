@@ -233,6 +233,54 @@ export function waterTotal(entries = [], date) {
   return entries.filter(entry => !date || entry?.date === date).reduce((sum, entry) => sum + number(entry?.ml), 0)
 }
 
+const isoDate = value => {
+  const date = value instanceof Date ? new Date(value) : new Date(`${String(value || '').slice(0, 10)}T00:00:00Z`)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const isoDay = date => date.toISOString().slice(0, 10)
+
+/** Return daily nutrition/hydration rows, oldest first, for trend cards and exports. */
+export function nutritionPeriod({ entries = [], waterEntries = [], goal = DEFAULT_NUTRITION_GOAL, endDate, days = 7 } = {}) {
+  const end = isoDate(endDate) || isoDate(new Date())
+  const count = Math.max(1, Math.min(366, Math.round(number(days) || 7)))
+  const rows = []
+  for (let offset = count - 1; offset >= 0; offset--) {
+    const date = new Date(end)
+    date.setUTCDate(date.getUTCDate() - offset)
+    const day = isoDay(date)
+    const totals = dailyTotals(entries, day)
+    const water = waterTotal(waterEntries, day)
+    rows.push({
+      date: day,
+      totals,
+      water,
+      logged: entries.some(entry => entry?.date === day),
+      caloriesPct: goal.calories > 0 ? totals.calories / goal.calories * 100 : 0,
+      proteinPct: goal.protein > 0 ? totals.protein / goal.protein * 100 : 0
+    })
+  }
+  return rows
+}
+
+/** Summarise a period without treating unlogged days as zero-calorie days. */
+export function nutritionPeriodSummary(rows = [], goal = DEFAULT_NUTRITION_GOAL) {
+  const tracked = rows.filter(row => row.logged)
+  const avg = key => tracked.length ? tracked.reduce((sum, row) => sum + number(row.totals?.[key]), 0) / tracked.length : 0
+  return {
+    days: rows.length,
+    trackedDays: tracked.length,
+    avgCalories: avg('calories'),
+    avgProtein: avg('protein'),
+    avgCarbs: avg('carbs'),
+    avgFat: avg('fat'),
+    avgFiber: avg('fiber'),
+    avgWater: rows.length ? rows.reduce((sum, row) => sum + number(row.water), 0) / rows.length : 0,
+    proteinTargetDays: tracked.filter(row => goal.protein > 0 && row.totals.protein >= goal.protein * .8).length,
+    calorieTargetDays: tracked.filter(row => goal.calories > 0 && row.totals.calories >= goal.calories * .8 && row.totals.calories <= goal.calories * 1.15).length
+  }
+}
+
 export function localCoachInsights({ totals = {}, goal = {}, water = 0, waterGoal = 2000, fasting = {} } = {}) {
   const insights = []
   const hasNutrition = !!(totals.calories || totals.protein || totals.carbs || totals.fat)
@@ -245,11 +293,23 @@ export function localCoachInsights({ totals = {}, goal = {}, water = 0, waterGoa
   return insights.slice(0, 4)
 }
 
-export function compactNutritionContext({ date, totals, goal, entries = [], water, waterGoal, fasting } = {}) {
+export function compactNutritionContext({ date, totals, goal, entries = [], water, waterGoal, fasting, training = [], period = null } = {}) {
   return {
     date, totals, goal, water, waterGoal,
     fasting: fasting ? { active: !!fasting.active, goalHours: fasting.goalHours || 16, startedAt: fasting.startedAt || null } : null,
-    foods: entries.slice(-30).map(entry => ({ meal: entry.meal, name: entry.food?.name, grams: entry.grams, nutrients: entryNutrients(entry) }))
+    foods: entries.slice(-30).map(entry => ({ meal: entry.meal, name: entry.food?.name, grams: entry.grams, nutrients: entryNutrients(entry) })),
+    training: training.slice(-12).map(session => ({ date: session.date || session.d, name: session.name || '', exercises: session.exercises || 0, sets: session.sets || 0, volume: session.volume || 0 })),
+    period: period ? {
+      days: period.days,
+      trackedDays: period.trackedDays,
+      avgCalories: roundNutrition(period.avgCalories),
+      avgProtein: roundNutrition(period.avgProtein),
+      avgCarbs: roundNutrition(period.avgCarbs),
+      avgFat: roundNutrition(period.avgFat),
+      avgWater: roundNutrition(period.avgWater),
+      proteinTargetDays: period.proteinTargetDays,
+      calorieTargetDays: period.calorieTargetDays
+    } : null
   }
 }
 
