@@ -984,7 +984,7 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-remove{width:36px;height:36px;min-width:44px;min-height:44px;background:none;color:var(--label-3);font-size:17px}
 .nutrition-empty-meal{margin:10px 0 1px}
 .nutrition-home-card .nutrition-track{height:5px}
-.nutrition-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border-radius:var(--r-card);padding:5px;margin-bottom:14px}
+.nutrition-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:var(--surface);border-radius:var(--r-card);padding:5px;margin-bottom:14px}
 .nutrition-tabs button{min-height:52px;border-radius:10px;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;line-height:1.15}
 .nutrition-tabs button .icn{font-size:19px}
 .nutrition-tabs button.on{background:var(--acc-soft);color:var(--acc-text);font-weight:600}
@@ -1073,6 +1073,48 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-consent .chk{flex:none;margin-top:-5px}
 .nutrition-ai-answer{background:var(--surface-2);border-radius:var(--r);padding:12px 13px;margin-top:12px;line-height:1.48;font-size:15px}
 .nutrition-ai-answer p{white-space:pre-wrap;margin:7px 0 0}
+.nutrition-insights-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:8px 0 14px}
+.nutrition-insights-head h2,.nutrition-period-switch h2{font-size:24px;line-height:1.15;margin:0}
+.nutrition-insights-head p,.nutrition-period-switch p{margin:4px 0 0}
+.nutrition-calendar{padding:14px 15px}
+.nutrition-calendar h2{margin:0}
+.nutrition-calendar-nav{display:flex;align-items:center;gap:4px}
+.nutrition-calendar-nav strong{font-size:13px;text-transform:capitalize;min-width:116px;text-align:center}
+.nutrition-calendar-nav .iconbtn{width:36px;height:36px;min-width:36px;min-height:36px}
+.nutrition-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:13px}
+.nutrition-calendar-weekdays{margin-top:15px}
+.nutrition-calendar-weekdays span{text-align:center;color:var(--label-3);font-size:11px;font-weight:600}
+.nutrition-calendar-day,.nutrition-calendar-blank{min-height:42px;border-radius:10px}
+.nutrition-calendar-day{position:relative;display:flex;align-items:center;justify-content:center;color:var(--label-2);background:var(--surface-2);font-size:13px;overflow:hidden}
+.nutrition-calendar-day span{position:relative;z-index:1}
+.nutrition-calendar-day i{position:absolute;left:0;bottom:0;width:var(--day-fill);height:3px;background:var(--acc);border-radius:0 3px 3px 0}
+.nutrition-calendar-day.logged{color:var(--label)}
+.nutrition-calendar-day.trained{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--blue) 55%,transparent)}
+.nutrition-calendar-day.selected{background:var(--acc-soft);color:var(--acc-text);box-shadow:inset 0 0 0 1px var(--acc)}
+.nutrition-calendar-legend{display:flex;gap:14px;margin-top:12px;color:var(--label-3);font-size:11px}
+.nutrition-calendar-legend span{display:flex;align-items:center;gap:5px}
+.nutrition-calendar-legend i{display:block;width:8px;height:8px;border-radius:50%;background:var(--acc)}
+.nutrition-calendar-legend i.trained{background:var(--blue)}
+.nutrition-period-switch{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 2px 10px}
+.nutrition-period-switch .segmented{flex:none}
+.nutrition-trend-chart{padding:16px 14px 11px}
+.nutrition-trend-bars{height:150px;display:flex;align-items:flex-end;gap:5px;border-bottom:var(--hair) solid var(--sep);padding:0 3px}
+.nutrition-trend-day{position:relative;display:flex;align-items:center;justify-content:flex-end;flex-direction:column;gap:5px;height:100%;flex:1;min-width:0;color:var(--label-3)}
+.nutrition-trend-bar{display:block;width:min(24px,72%);min-height:4px;border-radius:5px 5px 0 0;background:var(--acc);opacity:.58;transition:height var(--med) var(--ease),opacity var(--fast)}
+.nutrition-trend-day.selected .nutrition-trend-bar,.nutrition-trend-day:hover .nutrition-trend-bar{opacity:1}
+.nutrition-trend-day small{font-size:10px;line-height:1}
+.nutrition-trend-axis{display:flex;justify-content:space-between;color:var(--label-3);font-size:10px;margin-top:7px}
+.nutrition-insight-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.nutrition-insight-metrics .card{padding:13px 12px;min-width:0}
+.nutrition-insight-metrics span,.nutrition-insight-metrics small{display:block;color:var(--label-2);font-size:11px;line-height:1.3}
+.nutrition-insight-metrics strong{display:block;font-size:21px;letter-spacing:-.03em;margin:8px 0 4px}
+.nutrition-insight-metrics strong i{font-size:11px;font-style:normal;font-weight:500;color:var(--label-2);letter-spacing:0}
+.nutrition-export-card{margin-top:8px}
+.nutrition-export-card .row{align-items:flex-start}
+.nutrition-export-card h2{margin:0 0 3px}
+.nutrition-export-card p{margin:0}
+.nutrition-export-actions{display:flex;gap:8px;margin-top:13px;border-top:var(--hair) solid var(--sep);padding-top:11px}
+.nutrition-export-actions .btn{flex:1}
 
 @media (max-width:430px){
   .nutrition-goal-grid{gap:6px}
@@ -1087,6 +1129,16 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
   .nutrition-recipe-total strong{text-align:left}
   .nutrition-fast-controls{align-items:stretch;flex-direction:column}
   .nutrition-fast-controls>.btn{width:100%}
+  .nutrition-tabs{gap:3px;padding:4px}
+  .nutrition-tabs button{min-height:49px;font-size:10px}
+  .nutrition-tabs button .icn{font-size:17px}
+  .nutrition-calendar-day,.nutrition-calendar-blank{min-height:38px}
+  .nutrition-calendar-nav strong{min-width:98px;font-size:12px}
+  .nutrition-insight-metrics{grid-template-columns:1fr 1fr}
+  .nutrition-insight-metrics .card:last-child{grid-column:1 / -1}
+  .nutrition-period-switch{align-items:flex-start;flex-direction:column}
+  .nutrition-period-switch .segmented{width:100%}
+  .nutrition-period-switch .segmented button{flex:1}
 }
 
 /* --------------------------------------------------- desktop (≥1000px) --- */
