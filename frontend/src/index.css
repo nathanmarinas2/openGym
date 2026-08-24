@@ -962,22 +962,46 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-results{margin-top:16px}
 .nutrition-results-title{margin:0 2px 6px}
 .nutrition-food{display:flex;align-items:center;gap:9px;padding:10px 0;border-top:var(--hair) solid var(--sep)}
-.nutrition-food-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:var(--acc-soft);color:var(--acc);font-size:19px;flex:none}
+.nutrition-food-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:var(--acc-soft);color:var(--acc);font-size:19px;flex:none;overflow:hidden}
+.nutrition-food-icon img{width:100%;height:100%;object-fit:contain;background:var(--surface);border-radius:inherit}
 .nutrition-food-main{min-width:0;flex:1}
 .nutrition-food-name{font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nutrition-score-detail{margin-top:6px;color:var(--label-2);font-size:11px}
 .nutrition-score-detail summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;max-width:100%;min-height:28px}
 .nutrition-score-detail summary::-webkit-details-marker{display:none}
-.nutrition-score-detail summary>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nutrition-score-detail summary>span:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nutrition-score-chevron{width:13px;height:13px;color:var(--label-3);transition:transform .2s var(--ease);flex:none}
+.nutrition-score-detail[open] .nutrition-score-chevron{transform:rotate(180deg)}
 .nutrition-score-pill{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:24px;padding:0 6px;border-radius:7px;background:var(--surface-3);font-size:12px;font-weight:700;color:var(--label)}
 .nutrition-score-detail.good .nutrition-score-pill{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)}
 .nutrition-score-detail.moderate .nutrition-score-pill{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange)}
 .nutrition-score-detail.low .nutrition-score-pill{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
 .nutrition-score-detail[open] summary{color:var(--label)}
-.nutrition-score-popover{margin:3px 0 6px;padding:9px 10px;border-left:2px solid var(--acc);border-radius:0 8px 8px 0;background:var(--surface-2);line-height:1.35}
-.nutrition-score-popover strong{font-size:12px;color:var(--label)}
-.nutrition-score-popover p{margin:4px 0 0;color:var(--label-2)}
-.nutrition-score-popover ul{margin:6px 0 0;padding-left:17px;color:var(--label-2)}
+.nutrition-score-popover{margin:5px 0 7px;padding:11px 10px;border-left:2px solid var(--acc);border-radius:0 10px 10px 0;background:var(--surface-2);line-height:1.35}
+.nutrition-score-panel-head{display:flex;flex-direction:column;gap:3px;padding-bottom:8px;border-bottom:var(--hair) solid var(--sep)}
+.nutrition-score-panel-head strong{font-size:13px;color:var(--label)}
+.nutrition-score-panel-head span{font-size:11px;color:var(--label-2)}
+.nutrition-score-group{margin-top:11px}
+.nutrition-score-group h4{margin:0 0 5px;color:var(--label);font-size:12px;font-weight:650}
+.nutrition-score-list{border:var(--hair) solid var(--sep);border-radius:9px;overflow:hidden;background:var(--surface)}
+.nutrition-score-row{display:flex;align-items:center;gap:8px;min-height:54px;padding:7px 8px;border-bottom:var(--hair) solid var(--sep)}
+.nutrition-score-row:last-child{border-bottom:0}
+.nutrition-score-row-icon{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--surface-2);font-size:15px;flex:none}
+.nutrition-score-row-icon.good{color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)}
+.nutrition-score-row-icon.moderate{color:var(--orange);background:color-mix(in srgb,var(--orange) 12%,transparent)}
+.nutrition-score-row-icon.low{color:var(--red);background:color-mix(in srgb,var(--red) 12%,transparent)}
+.nutrition-score-row-icon.neutral{color:var(--label-2)}
+.nutrition-score-row-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.nutrition-score-row-copy strong{font-size:12px;font-weight:600;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nutrition-score-row-copy small{font-size:10px;line-height:1.25;color:var(--label-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nutrition-score-row-value{display:flex;align-items:baseline;gap:3px;font-size:12px;font-weight:600;color:var(--label);white-space:nowrap}
+.nutrition-score-row-value small{font-size:10px;font-weight:500;color:var(--label-2)}
+.nutrition-score-dot{width:10px;height:10px;border-radius:50%;background:var(--label-3);flex:none}
+.nutrition-score-dot.good{background:var(--green)}
+.nutrition-score-dot.moderate{background:var(--orange)}
+.nutrition-score-dot.low{background:var(--red)}
+.nutrition-score-info{width:15px;height:15px;color:var(--label-3);flex:none}
+.nutrition-score-empty{margin:0;padding:10px;color:var(--label-2);font-size:11px;border:var(--hair) solid var(--sep);border-radius:9px;background:var(--surface)}
 .nutrition-score-unknown{display:block;margin-top:6px;color:var(--label-3)}
 .nutrition-add-controls{display:flex;align-items:center;gap:3px;flex:none}
 .nutrition-add-controls .num{width:48px;padding:7px 5px;text-align:right;font-size:14px}

@@ -53,6 +53,8 @@ describe('nutrition helpers', () => {
     expect(processed.additiveCount).toBe(2)
     expect(processed.novaGroup).toBe(4)
     expect(['good', 'moderate', 'low']).toContain(processed.tone)
+    expect(processed.breakdown.negative.map(item => item.key)).toEqual(['additives', 'salt', 'saturatedFat', 'sugar'])
+    expect(processed.breakdown.positive.map(item => item.key)).toEqual(['protein', 'fiber', 'energy'])
   })
 
   it('calculates recipe servings and hydration independently', () => {

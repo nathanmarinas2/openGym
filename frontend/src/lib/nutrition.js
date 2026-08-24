@@ -134,6 +134,24 @@ const queryVariants = query => {
   return [...new Set(variants)].filter(Boolean).slice(0, 4)
 }
 
+const SEARCH_CACHE_TTL = 5 * 60 * 1000
+const FOOD_SEARCH_CACHE = new Map()
+
+const searchCacheKey = (query, filters = {}) => JSON.stringify([
+  searchable(query),
+  filters.grade || '',
+  filters.maxSugar ?? '',
+  filters.minProtein ?? '',
+  searchable(filters.category || '')
+])
+
+const rememberSearch = (key, foods) => {
+  FOOD_SEARCH_CACHE.set(key, { at: Date.now(), foods })
+  if (FOOD_SEARCH_CACHE.size <= 80) return
+  const oldest = [...FOOD_SEARCH_CACHE.entries()].sort((a, b) => a[1].at - b[1].at)[0]
+  if (oldest) FOOD_SEARCH_CACHE.delete(oldest[0])
+}
+
 const nutrientsFrom = nutriments => ({
   calories: number(first(nutriments?.['energy-kcal_100g'], nutriments?.['energy-kcal_value'], nutriments?.['energy-kcal'])),
   protein: number(first(nutriments?.proteins_100g, nutriments?.protein_100g)),
@@ -179,6 +197,24 @@ export function normalizeFood(product, source = 'Open Food Facts') {
 
 const SCORE_GRADE_BASE = { a: 84, b: 73, c: 61, d: 47, e: 32 }
 
+const splitIngredients = value => {
+  const parts = []
+  let current = ''
+  let depth = 0
+  for (const character of String(value || '')) {
+    if (character === '(') depth += 1
+    if (character === ')') depth = Math.max(0, depth - 1)
+    if ((character === ',' || character === ';') && depth === 0) {
+      if (current.trim()) parts.push(current.trim())
+      current = ''
+      continue
+    }
+    current += character
+  }
+  if (current.trim()) parts.push(current.trim())
+  return parts.filter(Boolean).slice(0, 40)
+}
+
 /**
  * A transparent LiftNex composition score, not a medical judgement or a copy of Yuka's
  * proprietary rating. It uses the public product snapshot: Nutri-Score when available,
@@ -189,6 +225,7 @@ export function healthScore(food) {
   const hasData = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt'].some(key => number(values[key]) > 0) || /^[a-e]$/.test(food?.grade || '')
   if (!hasData) return null
   let score = SCORE_GRADE_BASE[food.grade] ?? 58
+  const calories = number(values.calories)
   const sugar = number(values.sugar)
   const salt = number(values.salt)
   const saturatedFat = number(values.saturatedFat)
@@ -209,18 +246,57 @@ export function healthScore(food) {
   if (food.novaGroup === 4) score -= 10
   else if (food.novaGroup === 3) score -= 5
   score = Math.max(0, Math.min(100, Math.round(score)))
+  const additives = Array.isArray(food.additives) ? food.additives : []
+  const additiveTone = additiveCount > 5 ? 'low' : additiveCount > 0 ? 'moderate' : 'good'
+  const nutrientTone = (value, warning, high) => value >= high ? 'good' : value >= warning ? 'moderate' : 'neutral'
+  const lowerIsBetter = (value, warning, high) => value > high ? 'low' : value > warning ? 'moderate' : 'good'
+  const ingredientList = splitIngredients(food.ingredientsText)
+  const ingredientSignals = ingredientList.map(name => {
+    const normalized = searchable(name)
+    const isAdditive = additives.some(additive => {
+      const tag = searchable(additive)
+      return tag && (normalized.includes(tag) || tag.includes(normalized))
+    })
+    const isWatch = /(azucar|sugar|jarabe|syrup|glucosa|glucose|fructosa|fructose|sal|salt|grasas? hidrogenadas|hydrogenated)/.test(normalized)
+    return {
+      name,
+      kind: 'ingredient',
+      tone: isAdditive ? 'low' : isWatch ? 'moderate' : 'good',
+      key: isAdditive ? 'additiveIngredient' : isWatch ? 'watchIngredient' : 'listedIngredient'
+    }
+  })
+  const breakdown = {
+    negative: [
+      { key: 'additives', kind: 'negative', icon: 'sparkles', tone: additiveTone, value: additiveCount, unit: '', detail: additives.join(', ') },
+      { key: 'salt', kind: 'negative', icon: 'droplet', tone: lowerIsBetter(salt, .8, 1.5), value: salt, unit: 'g / 100g' },
+      { key: 'saturatedFat', kind: 'negative', icon: 'droplet', tone: lowerIsBetter(saturatedFat, 5, 10), value: saturatedFat, unit: 'g / 100g' },
+      { key: 'sugar', kind: 'negative', icon: 'flame', tone: lowerIsBetter(sugar, 12, 22), value: sugar, unit: 'g / 100g' }
+    ],
+    positive: [
+      { key: 'protein', kind: 'positive', icon: 'dumbbell', tone: nutrientTone(protein, 8, 15), value: protein, unit: 'g / 100g' },
+      { key: 'fiber', kind: 'positive', icon: 'heart', tone: nutrientTone(fiber, 3, 6), value: fiber, unit: 'g / 100g' },
+      { key: 'energy', kind: 'positive', icon: 'flame', tone: calories <= 400 ? 'good' : calories <= 600 ? 'moderate' : 'low', value: number(values.calories), unit: 'kcal / 100g' }
+    ],
+    context: [
+      { key: 'nutriScore', kind: 'context', icon: 'scale', tone: food.grade === 'a' || food.grade === 'b' ? 'good' : food.grade ? 'moderate' : 'neutral', value: food.grade ? food.grade.toUpperCase() : '—', unit: '' },
+      { key: 'processing', kind: 'context', icon: 'plate', tone: food.novaGroup === 4 ? 'low' : food.novaGroup === 3 ? 'moderate' : food.novaGroup ? 'good' : 'neutral', value: food.novaGroup ? `NOVA ${food.novaGroup}/4` : '—', unit: '' }
+    ],
+    ingredients: ingredientSignals
+  }
   return {
     score,
     tone: score >= 75 ? 'good' : score >= 55 ? 'moderate' : 'low',
     grade: food.grade || '',
-    additives: Array.isArray(food.additives) ? food.additives : [],
+    additives,
     additiveCount,
     novaGroup: food.novaGroup || null,
     sugar,
     salt,
     saturatedFat,
     fiber,
-    protein
+    protein,
+    calories: number(values.calories),
+    breakdown
   }
 }
 
@@ -284,18 +360,31 @@ export function searchFoods({ query, filters = {}, foods = [] } = {}) {
 export async function searchFoodSources({ query, filters = {}, signal } = {}) {
   const q = String(query || '').trim()
   if (q.length < 2) return []
-  const results = await Promise.allSettled(queryVariants(q).map(async searchTerm => {
-    const response = await fetch(foodSearchUrl(searchTerm), {
-      signal,
-      cache: 'no-store',
-      headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }
-    })
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data.error || `Open Food Facts returned ${response.status}`)
-    return (data.products || []).map(product => normalizeFood(product)).filter(Boolean)
-  }))
-  const remote = results.filter(result => result.status === 'fulfilled').flatMap(result => result.value)
-  const failed = results.filter(result => result.status === 'rejected')
+  const cacheKey = searchCacheKey(q, filters)
+  const cached = FOOD_SEARCH_CACHE.get(cacheKey)
+  if (cached && Date.now() - cached.at < SEARCH_CACHE_TTL) return cached.foods
+
+  const variants = queryVariants(q)
+  const remote = []
+  const failed = []
+  const hasFilters = Object.values(filters).some(value => value !== '' && value != null)
+  for (const searchTerm of variants) {
+    try {
+      const response = await fetch(foodSearchUrl(searchTerm), {
+        signal,
+        cache: 'no-store',
+        headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || `Open Food Facts returned ${response.status}`)
+      remote.push(...(data.products || []).map(product => normalizeFood(product)).filter(Boolean))
+    } catch (error) {
+      if (signal?.aborted) throw error
+      failed.push(error)
+    }
+    const filteredSoFar = filterFoods(remote, filters)
+    if (remote.length >= 32 && (!hasFilters || filteredSoFar.length)) break
+  }
   const remoteFiltered = filterFoods(remote, filters)
   const seen = new Set()
   const combined = remoteFiltered.filter(food => {
@@ -303,9 +392,14 @@ export async function searchFoodSources({ query, filters = {}, signal } = {}) {
     seen.add(food.id)
     return true
   })
-  if (combined.length) return combined.slice(0, 32)
-  if (failed.length === results.length) throw failed[0].reason
-  return []
+  const output = combined.slice(0, 32)
+  if (output.length) {
+    rememberSearch(cacheKey, output)
+    return output
+  }
+  if (failed.length === variants.length) throw failed[0]
+  rememberSearch(cacheKey, output)
+  return output
 }
 
 /** Look up one product by barcode. The API version is explicit so it is easy to migrate later. */

@@ -20,6 +20,7 @@ const EN = {
   grade: 'Nutrition grade', all: 'All', maxSugar: 'Max sugar / 100g', minProtein: 'Min protein / 100g', category: 'Category',
   healthScore: 'LiftNex score', scoreGood: 'Good', scoreModerate: 'Moderate', scoreLow: 'Low', scoreNoData: 'Not enough data', scoreWhy: 'Why this score',
   scoreExplainer: 'Orientative composition score based on nutrition, declared additives and processing signals. Not medical advice.', scoreNutri: 'Nutri-Score', additiveCount: 'declared additives', novaGroup: 'processing group', scoreNoFlags: 'No major signals detected in the available data.',
+  scoreBreakdown: 'Full breakdown', scoreNegative: 'Worth checking', scorePositive: 'What helps', scoreContext: 'At a glance', scoreIngredients: 'Ingredients', scoreNoIngredients: 'No ingredient list available.', scoreNoAdditives: 'No declared additives', additives: 'Additives', saturatedFat: 'Saturated fat', energy: 'Energy density', processing: 'Processing', scorePer100: 'Per 100g', scoreNeutral: 'Informative', scoreRiskHigh: 'High signal', scoreRiskMedium: 'Moderate signal', scoreNoRisk: 'No significant signal', additiveIngredient: 'Declared additive', watchIngredient: 'Ingredient to watch', listedIngredient: 'Listed ingredient',
   apply: 'Apply filters', results: 'Results', grams: 'grams', add: 'Add', noResults: 'Search for a food to see results.',
   noEntries: 'Nothing logged yet.', breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack',
   quickAdd: 'Add manually', quickAddHint: 'Useful for recipes or when the database has no match.', name: 'Food name',
@@ -62,6 +63,7 @@ const ES = {
   grade: 'Calidad nutricional', all: 'Todos', maxSugar: 'Máx. azúcar / 100g', minProtein: 'Mín. proteína / 100g', category: 'Categoría',
   healthScore: 'Puntuación LiftNex', scoreGood: 'Buena', scoreModerate: 'Moderada', scoreLow: 'Baja', scoreNoData: 'Datos insuficientes', scoreWhy: 'Por qué esta puntuación',
   scoreExplainer: 'Puntuación orientativa de composición basada en nutrición, aditivos declarados y señales de procesado. No es consejo médico.', scoreNutri: 'Nutri-Score', additiveCount: 'aditivos declarados', novaGroup: 'grupo de procesado', scoreNoFlags: 'No se detectan señales relevantes en los datos disponibles.',
+  scoreBreakdown: 'Desglose completo', scoreNegative: 'A tener en cuenta', scorePositive: 'Lo que suma', scoreContext: 'Resumen del producto', scoreIngredients: 'Ingredientes', scoreNoIngredients: 'No hay lista de ingredientes disponible.', scoreNoAdditives: 'No hay aditivos declarados', additives: 'Aditivos', saturatedFat: 'Grasas saturadas', energy: 'Densidad energética', processing: 'Procesado', scorePer100: 'Por 100g', scoreNeutral: 'Informativa', scoreRiskHigh: 'Señal alta', scoreRiskMedium: 'Señal moderada', scoreNoRisk: 'Sin señal relevante', additiveIngredient: 'Aditivo declarado', watchIngredient: 'Ingrediente a revisar', listedIngredient: 'Ingrediente declarado',
   apply: 'Aplicar filtros', results: 'Resultados', grams: 'gramos', add: 'Añadir', noResults: 'Busca un alimento para ver resultados.',
   noEntries: 'Todavía no hay registros.', breakfast: 'Desayuno', lunch: 'Comida', dinner: 'Cena', snack: 'Snack',
   quickAdd: 'Añadir manualmente', quickAddHint: 'Útil para recetas o cuando la base de datos no tiene coincidencias.', name: 'Nombre del alimento',
@@ -119,24 +121,50 @@ function MacroLine({ entry, C }) {
   return <span className="small muted">{amount} · {nice(n.calories)} {C.caloriesShort} · {nice(n.protein)}g {C.proteinShort} · {nice(n.carbs)}g {C.carbsShort} · {nice(n.fat)}g {C.fatShort}</span>
 }
 
+function scoreMetricLabel(C, key) {
+  return ({ additives: C.additives, salt: C.salt, saturatedFat: C.saturatedFat, sugar: C.sugar, protein: C.protein, fiber: C.fiber, energy: C.energy, nutriScore: C.scoreNutri, processing: C.processing }[key] || key)
+}
+
+function scoreToneLabel(C, tone, kind) {
+  if (kind === 'negative' || kind === 'ingredient') return tone === 'low' ? C.scoreRiskHigh : tone === 'moderate' ? C.scoreRiskMedium : tone === 'good' ? C.scoreNoRisk : C.scoreNeutral
+  return tone === 'good' ? C.scoreGood : tone === 'moderate' ? C.scoreModerate : tone === 'low' ? C.scoreLow : C.scoreNeutral
+}
+
+function ScoreMetric({ C, item }) {
+  const value = typeof item.value === 'number' ? nice(item.value) : item.value
+  const note = item.key === 'additives' ? (item.value ? item.detail : C.scoreNoAdditives) : item.key === 'energy' ? C.scorePer100 : ['nutriScore', 'processing'].includes(item.key) ? C.scoreContext : C.scorePer100
+  return <div className="nutrition-score-row"><span className={`nutrition-score-row-icon ${item.tone}`}><Icon name={item.icon} /></span><span className="nutrition-score-row-copy"><strong>{scoreMetricLabel(C, item.key)}</strong><small>{scoreToneLabel(C, item.tone, item.kind)} · {note}</small></span><span className="nutrition-score-row-value">{value}{item.unit && <small>{item.unit}</small>}</span><span className={`nutrition-score-dot ${item.tone}`} /><Icon name="info" className="nutrition-score-info" /></div>
+}
+
+function ScoreGroup({ C, title, items }) {
+  return <section className="nutrition-score-group"><h4>{title}</h4><div className="nutrition-score-list">{items.map(item => <ScoreMetric C={C} item={item} key={item.key} />)}</div></section>
+}
+
+function ScoreIngredients({ C, ingredients }) {
+  if (!ingredients.length) return <section className="nutrition-score-group"><h4>{C.scoreIngredients}</h4><p className="nutrition-score-empty">{C.scoreNoIngredients}</p></section>
+  return <section className="nutrition-score-group"><h4>{C.scoreIngredients}</h4><div className="nutrition-score-list">{ingredients.map(item => <div className="nutrition-score-row nutrition-score-ingredient" key={item.name}><span className={`nutrition-score-row-icon ${item.tone}`}><Icon name="plate" /></span><span className="nutrition-score-row-copy"><strong>{item.name}</strong><small>{scoreToneLabel(C, item.tone, item.kind)} · {C[item.key]}</small></span><span className={`nutrition-score-dot ${item.tone}`} /><Icon name="info" className="nutrition-score-info" /></div>)}</div></section>
+}
+
 function FoodScore({ C, food }) {
   const score = healthScore(food)
   if (!score) return <span className="nutrition-score nutrition-score-unknown">{C.scoreNoData}</span>
   const label = score.tone === 'good' ? C.scoreGood : score.tone === 'moderate' ? C.scoreModerate : C.scoreLow
-  const signals = []
-  if (score.grade) signals.push(`${C.scoreNutri}: ${score.grade.toUpperCase()}`)
-  if (score.additiveCount) signals.push(`${score.additiveCount} ${C.additiveCount}: ${score.additives.slice(0, 3).join(', ')}`)
-  if (score.novaGroup) signals.push(`${C.novaGroup}: ${score.novaGroup}/4`)
-  if (score.sugar > 12) signals.push(`${C.sugar}: ${nice(score.sugar)}g / 100g`)
-  if (score.salt > .8) signals.push(`${C.salt}: ${nice(score.salt)}g / 100g`)
-  if (score.fiber >= 3) signals.push(`${C.fiber}: ${nice(score.fiber)}g / 100g`)
-  if (score.protein >= 8) signals.push(`${C.protein}: ${nice(score.protein)}g / 100g`)
-  return <details className={`nutrition-score-detail ${score.tone}`}><summary><span className="nutrition-score-pill">{score.score}</span><span>{C.healthScore} · {label}</span></summary><div className="nutrition-score-popover"><strong>{C.scoreWhy}</strong><p>{C.scoreExplainer}</p>{signals.length ? <ul>{signals.slice(0, 5).map(signal => <li key={signal}>{signal}</li>)}</ul> : <p>{C.scoreNoFlags}</p>}</div></details>
+  const breakdown = score.breakdown || { negative: [], positive: [], context: [], ingredients: [] }
+  return <details className={`nutrition-score-detail ${score.tone}`}>
+    <summary><span className="nutrition-score-pill">{score.score}</span><span>{C.healthScore} · {label}</span><Icon name="chevronDown" className="nutrition-score-chevron" /></summary>
+    <div className="nutrition-score-popover">
+      <div className="nutrition-score-panel-head"><strong>{C.scoreBreakdown}</strong><span>{C.scoreExplainer}</span></div>
+      <ScoreGroup C={C} title={C.scoreNegative} items={breakdown.negative} />
+      <ScoreGroup C={C} title={C.scorePositive} items={breakdown.positive} />
+      <ScoreGroup C={C} title={C.scoreContext} items={breakdown.context} />
+      <ScoreIngredients C={C} ingredients={breakdown.ingredients} />
+    </div>
+  </details>
 }
 
 function FoodResults({ C, results, grams, setGrams, addFood }) {
   if (!results.length) return null
-  return <div className="nutrition-results" aria-live="polite"><div className="small muted nutrition-results-title">{C.results}</div>{results.map(food => <div className="nutrition-food" key={food.id}><span className="nutrition-food-icon"><Icon name="plate" /></span><div className="nutrition-food-main"><div className="nutrition-food-name">{food.name}</div><div className="small muted">{food.brand ? `${food.brand} · ` : ''}{nice(food.per100.calories)} {C.caloriesShort} · {nice(food.per100.protein)}g {C.proteinShort}{food.grade ? ` · ${food.grade.toUpperCase()}` : ''}</div><FoodScore C={C} food={food} /></div><div className="nutrition-add-controls"><NumberField value={grams[food.id] || 100} decimal={false} aria-label={`${C.grams} ${food.name}`} onChange={value => setGrams(g => ({ ...g, [food.id]: value }))} /><span>g</span><Button size="xs" variant="primary" icon="plus" onClick={() => addFood(food)}>{C.add}</Button></div></div>)}</div>
+  return <div className="nutrition-results" aria-live="polite"><div className="small muted nutrition-results-title">{C.results}</div>{results.map(food => <div className="nutrition-food" key={food.id}><span className="nutrition-food-icon">{food.image ? <img src={food.image} alt="" loading="lazy" /> : <Icon name="plate" />}</span><div className="nutrition-food-main"><div className="nutrition-food-name">{food.name}</div><div className="small muted">{food.brand ? `${food.brand} · ` : ''}{nice(food.per100.calories)} {C.caloriesShort} · {nice(food.per100.protein)}g {C.proteinShort}{food.grade ? ` · ${food.grade.toUpperCase()}` : ''}</div><FoodScore C={C} food={food} /></div><div className="nutrition-add-controls"><NumberField value={grams[food.id] || 100} decimal={false} aria-label={`${C.grams} ${food.name}`} onChange={value => setGrams(g => ({ ...g, [food.id]: value }))} /><span>g</span><Button size="xs" variant="primary" icon="plus" onClick={() => addFood(food)}>{C.add}</Button></div></div>)}</div>
 }
 
 function BarcodeScanner({ C, onDetected, onClose }) {
