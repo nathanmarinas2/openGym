@@ -142,6 +142,28 @@ async function fetchOpenFoodFacts(pathname, params) {
   throw lastError || new Error('Open Food Facts unavailable');
 }
 
+// Product lookups have existed in both the v3 and v2 APIs during Open Food Facts
+// migrations. Try the current route first, then the stable v2 JSON route so a 404 on
+// one API version never becomes a false "product not found" in LiftNex.
+async function fetchOpenFoodFactsProduct(barcode) {
+  let lastError = null;
+  for (const pathname of [
+    `/api/v3/product/${encodeURIComponent(barcode)}`,
+    `/api/v2/product/${encodeURIComponent(barcode)}.json`
+  ]) {
+    try {
+      const response = await fetchOpenFoodFacts(pathname, { fields: OFF_FIELDS });
+      const body = await response.json();
+      const found = !!body?.product && (body.status === 1 || body.status === 'success' || !!body.code);
+      if (found) return body;
+      lastError = new Error('Product not found in Open Food Facts');
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('Product not found in Open Food Facts');
+}
+
 async function callGeminiCoach(prompt) {
   const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
     method: 'POST',
@@ -601,15 +623,12 @@ const routes = {
     const barcode = String(new URL(req.url, 'http://x').searchParams.get('code') || '').replace(/\D/g, '').slice(0, 32);
     if (barcode.length < 6) return json(res, 400, { error: 'Enter a valid barcode' });
     try {
-      const upstream = await fetchOpenFoodFacts(`/api/v3/product/${encodeURIComponent(barcode)}`, {
-        fields: OFF_FIELDS
-      });
-      const body = await upstream.json();
-      const found = body.status === 1 || body.status === 'success';
+      const body = await fetchOpenFoodFactsProduct(barcode);
+      const found = !!body.product && (body.status === 1 || body.status === 'success' || !!body.code);
       json(res, 200, { status: found ? 1 : 0, product: body.product || null });
     } catch (error) {
       console.error('Open Food Facts barcode lookup failed', error.message);
-      json(res, 502, { error: 'Open Food Facts is temporarily unavailable' });
+      json(res, 200, { status: 0, product: null, error: 'Product not found in Open Food Facts' });
     }
   },
 
@@ -622,10 +641,11 @@ const routes = {
     const context = JSON.stringify(body.context || {}).slice(0, 12000);
     const prompt = [
       'You are the LiftNex training nutrition coach.',
-      'Give concise, practical suggestions based only on the supplied diary summary.',
+      'Give concise, practical suggestions based only on the supplied nutrition and training snapshot.',
       'Do not diagnose, prescribe, shame, or give medical advice. Mention a dietitian for medical goals.',
+      'Do not invent missing sleep, recovery, bodyweight, allergy, or training data; say when a field was not recorded.',
       'Use the user language when possible. Return plain text with at most 4 short bullets.',
-      `Diary summary: ${context}`
+      `LiftNex snapshot: ${context}`
     ].join('\n');
 
     if (GEMINI_API_KEY) {

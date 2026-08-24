@@ -12,8 +12,8 @@ export const DEFAULT_NUTRITION_GOAL = {
 
 export const NUTRIENT_KEYS = ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'salt']
 
-const localFood = (id, name, values, categories = [], aliases = []) => ({
-  id: `local:${id}`, code: '', source: 'LiftNex local catalog', name, brand: '', image: '', serving: '100g',
+const localFood = (id, name, values, categories = [], aliases = [], code = '') => ({
+  id: `local:${id}`, code, source: 'LiftNex local catalog', name, brand: '', image: '', serving: '100g',
   grade: '', categories, labels: [], aliases, per100: values
 })
 
@@ -32,6 +32,7 @@ export const LOCAL_FOODS = [
   localFood('pasta cooked', 'Pasta, cooked', { calories: 158, protein: 5.8, carbs: 30.9, fat: .9, fiber: 1.8, sugar: .6, salt: 0 }, ['grains', 'side dish']),
   localFood('pizza margherita', 'Pizza Margherita', { calories: 250, protein: 11, carbs: 31, fat: 9, fiber: 2, sugar: 3.5, salt: 1.1 }, ['ready meals', 'grains'], ['pizza', 'pizza margarita', 'margherita']),
   localFood('pizza pepperoni', 'Pizza Pepperoni', { calories: 298, protein: 12, carbs: 30, fat: 13, fiber: 2, sugar: 3, salt: 1.4 }, ['ready meals', 'grains'], ['pizza', 'pepperoni']),
+  localFood('pizza fresca four cheese', 'Pizza fresca 4 quesos', { calories: 266, protein: 15, carbs: 26, fat: 11, fiber: 0, sugar: 1.2, salt: 1.6 }, ['ready meals', 'pizza'], ['pizza cuatro quesos', 'pizza 4 quesos', 'four cheese pizza'], '8480012010648'),
   localFood('hamburger', 'Hamburger with bun', { calories: 250, protein: 13, carbs: 24, fat: 11, fiber: 1.5, sugar: 4, salt: 1.1 }, ['ready meals', 'protein'], ['burger', 'hamburguesa']),
   localFood('french fries', 'French fries', { calories: 312, protein: 3.4, carbs: 41, fat: 15, fiber: 3.8, sugar: .3, salt: .6 }, ['ready meals', 'side dish'], ['chips', 'patatas fritas']),
   localFood('corn flakes', 'Corn flakes', { calories: 357, protein: 7.5, carbs: 84, fat: .4, fiber: 3.3, sugar: 8, salt: .9 }, ['grains', 'breakfast'], ['cereal', 'cereales']),

@@ -73,7 +73,7 @@ as a home-screen app, simple account sign-in, offline support, sync across your 
 - 🔧 **Gym profiles and substitutions** — keep separate Home, Gym and Travel equipment profiles, filter the library to what is available, and get movement alternatives when a routine uses unavailable equipment
 - 🔗 **Read-only plan links** — share a compact preview link that contains routines only; history, weigh-ins and private settings never leave the device
 - 📏 **Body progress beyond weight** — log waist, chest, arm, thigh and body-fat measurements, plus optional progress photos kept in local IndexedDB storage
-- 🍎 **Nutrition search** — search a large Open Food Facts catalogue automatically, fall back to common foods offline, re-add recent foods in one tap, scan or look up barcodes, log meals and recipes, inspect fibre/sugar/salt, and track water and fasting
+- 🍎 **Nutrition search** — search a large Open Food Facts catalogue automatically, fall back to common foods offline, re-add recent foods in one tap, scan or look up barcodes, log meals and recipes, inspect fibre/sugar/salt, track water and fasting, review a monthly calendar and 7/30-day trends, and export nutrition periods as CSV/JSON
 - ✨ **Your own exercises** — a name and a body part is enough; they behave like built-in ones everywhere, with an optional description instead of an animation
 - 🟩 **Activity heatmap** — a GitHub-style year view, shaded by time spent training
 - 💪 **Muscle map** — a front-and-back body diagram shaded by how much work each muscle got, over a week, a month or all time. It names the muscles you *haven't* trained in that period, previews what a routine hits while you build it, and shows what you just trained when you finish. Male or female figure, your pick

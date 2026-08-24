@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dailyTotals, filterFoods, localCoachInsights, normalizeFood, nutritionPeriod, nutritionPeriodSummary, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
+import { dailyTotals, filterFoods, LOCAL_FOODS, localCoachInsights, normalizeFood, nutritionPeriod, nutritionPeriodSummary, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
 
 describe('nutrition helpers', () => {
   const food = normalizeFood({
@@ -36,6 +36,12 @@ describe('nutrition helpers', () => {
     expect(searchFoods({ query: 'banana' }).some(item => item.name === 'Banana')).toBe(true)
     expect(searchFoods({ query: 'plátano' }).some(item => item.name === 'Banana')).toBe(true)
     expect(searchFoods({ query: 'my bowl', foods: [{ ...food, id: 'manual:bowl', name: 'My bowl' }] })).toHaveLength(1)
+  })
+
+  it('keeps the photographed product available as an offline barcode fallback', () => {
+    const food = LOCAL_FOODS.find(item => item.code === '8480012010648')
+    expect(food).toMatchObject({ name: 'Pizza fresca 4 quesos', brand: '' })
+    expect(food.per100).toMatchObject({ calories: 266, protein: 15, carbs: 26, fat: 11, salt: 1.6 })
   })
 
   it('calculates recipe servings and hydration independently', () => {
