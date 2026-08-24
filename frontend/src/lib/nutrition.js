@@ -78,6 +78,7 @@ const nutrientsFrom = nutriments => ({
   protein: number(first(nutriments?.proteins_100g, nutriments?.protein_100g)),
   carbs: number(first(nutriments?.carbohydrates_100g, nutriments?.carbohydrate_100g)),
   fat: number(first(nutriments?.fat_100g, nutriments?.fats_100g)),
+  saturatedFat: number(first(nutriments?.['saturated-fat_100g'], nutriments?.saturated_fat_100g)),
   fiber: number(first(nutriments?.fiber_100g, nutriments?.fibers_100g)),
   sugar: number(first(nutriments?.sugars_100g, nutriments?.sugar_100g)),
   salt: number(first(nutriments?.salt_100g))
@@ -94,7 +95,7 @@ export function normalizeFood(product, source = 'Open Food Facts') {
   const name = String(first(product.product_name, product.generic_name, product.product_name_en, 'Unnamed food')).trim()
   const categories = Array.isArray(product.categories_tags) ? product.categories_tags.map(tagName).filter(Boolean) : []
   const labels = Array.isArray(product.labels_tags) ? product.labels_tags.map(tagName).filter(Boolean) : []
-  const grade = String(first(product.nutrition_grade_fr, product.nutrition_grades, '')).toLowerCase().slice(0, 1)
+  const grade = String(first(product.nutriscore_grade, product.nutrition_grade_fr, product.nutrition_grades, '')).toLowerCase().slice(0, 1)
   return {
     id: canonicalId(source, product.code, name),
     code: product.code ? String(product.code) : '',
@@ -104,10 +105,61 @@ export function normalizeFood(product, source = 'Open Food Facts') {
     image: product.image_front_small_url || product.image_front_url || '',
     serving: String(product.serving_size || '').trim(),
     grade: /^[a-e]$/.test(grade) ? grade : '',
+    novaGroup: Number.isFinite(+product.nova_group) && +product.nova_group > 0 ? +product.nova_group : null,
+    additives: Array.isArray(product.additives_tags) ? product.additives_tags.map(tagName).filter(Boolean) : [],
+    allergens: Array.isArray(product.allergens_tags) ? product.allergens_tags.map(tagName).filter(Boolean) : [],
+    ingredientsText: String(product.ingredients_text || '').trim(),
     categories,
     aliases: [],
     labels,
     per100: nutrientsFrom(product.nutriments || {})
+  }
+}
+
+const SCORE_GRADE_BASE = { a: 84, b: 73, c: 61, d: 47, e: 32 }
+
+/**
+ * A transparent LiftNex composition score, not a medical judgement or a copy of Yuka's
+ * proprietary rating. It uses the public product snapshot: Nutri-Score when available,
+ * sugar/salt/saturated fat, fibre/protein, declared additive count and NOVA group.
+ */
+export function healthScore(food) {
+  const values = food?.per100 || {}
+  const hasData = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt'].some(key => number(values[key]) > 0) || /^[a-e]$/.test(food?.grade || '')
+  if (!hasData) return null
+  let score = SCORE_GRADE_BASE[food.grade] ?? 58
+  const sugar = number(values.sugar)
+  const salt = number(values.salt)
+  const saturatedFat = number(values.saturatedFat)
+  const fiber = number(values.fiber)
+  const protein = number(values.protein)
+  if (sugar > 22) score -= 14
+  else if (sugar > 12) score -= 7
+  if (salt > 1.5) score -= 14
+  else if (salt > .8) score -= 7
+  if (saturatedFat > 10) score -= 10
+  else if (saturatedFat > 5) score -= 5
+  if (fiber >= 6) score += 7
+  else if (fiber >= 3) score += 3
+  if (protein >= 15) score += 5
+  else if (protein >= 8) score += 2
+  const additiveCount = Array.isArray(food.additives) ? food.additives.length : 0
+  score -= Math.min(15, additiveCount * 2)
+  if (food.novaGroup === 4) score -= 10
+  else if (food.novaGroup === 3) score -= 5
+  score = Math.max(0, Math.min(100, Math.round(score)))
+  return {
+    score,
+    tone: score >= 75 ? 'good' : score >= 55 ? 'moderate' : 'low',
+    grade: food.grade || '',
+    additives: Array.isArray(food.additives) ? food.additives : [],
+    additiveCount,
+    novaGroup: food.novaGroup || null,
+    sugar,
+    salt,
+    saturatedFat,
+    fiber,
+    protein
   }
 }
 

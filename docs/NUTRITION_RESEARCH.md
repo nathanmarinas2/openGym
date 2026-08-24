@@ -71,6 +71,10 @@ GitHub stars when checked, except where noted as a product/licensing caveat):
 - The AI context now combines the selected day's nutrition, water and fasting state with a
   compact training snapshot and a seven-day nutrition summary. This makes the coach capable of
   discussing recovery and adherence without uploading the entire raw history.
+- An explainable LiftNex Health Score from 0 to 100 is shown on search and barcode results. It
+  uses Nutri-Score when available, nutrition thresholds, fibre/protein, declared additive count
+  and NOVA processing group; it explicitly does not claim to diagnose health or classify an
+  additive's toxicity.
 - Existing LiftNex offline storage and account sync now include nutrition entries, while the
   five-item bottom navigation remains unchanged.
 

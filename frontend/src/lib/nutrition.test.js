@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dailyTotals, filterFoods, LOCAL_FOODS, localCoachInsights, normalizeFood, nutritionPeriod, nutritionPeriodSummary, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
+import { dailyTotals, filterFoods, healthScore, LOCAL_FOODS, localCoachInsights, normalizeFood, nutritionPeriod, nutritionPeriodSummary, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
 
 describe('nutrition helpers', () => {
   const food = normalizeFood({
@@ -42,6 +42,15 @@ describe('nutrition helpers', () => {
     const food = LOCAL_FOODS.find(item => item.code === '8480012010648')
     expect(food).toMatchObject({ name: 'Pizza fresca 4 quesos', brand: '' })
     expect(food.per100).toMatchObject({ calories: 266, protein: 15, carbs: 26, fat: 11, salt: 1.6 })
+  })
+
+  it('explains a transparent composition score without claiming medical certainty', () => {
+    const clean = healthScore(food)
+    const processed = healthScore({ ...food, additives: ['citric acid', 'stabilizer'], novaGroup: 4, per100: { ...food.per100, sugar: 24, salt: 1.8 } })
+    expect(clean.score).toBeGreaterThan(processed.score)
+    expect(processed.additiveCount).toBe(2)
+    expect(processed.novaGroup).toBe(4)
+    expect(['good', 'moderate', 'low']).toContain(processed.tone)
   })
 
   it('calculates recipe servings and hydration independently', () => {

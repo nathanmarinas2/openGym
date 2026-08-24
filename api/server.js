@@ -27,6 +27,7 @@ const AI_MODEL = String(process.env.AI_MODEL || 'gpt-4o-mini').trim();
 const OFF_FIELDS = [
   'code', 'product_name', 'generic_name', 'product_name_en', 'brands', 'image_front_small_url',
   'image_front_url', 'nutriments', 'serving_size', 'nutrition_grades', 'nutrition_grade_fr',
+  'nutriscore_grade', 'nova_group', 'ingredients_text', 'additives_tags', 'allergens_tags',
   'categories_tags', 'labels_tags'
 ].join(',');
 const OFF_BASE_URLS = ['https://world.openfoodfacts.net', 'https://world.openfoodfacts.org'];
