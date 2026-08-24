@@ -73,6 +73,24 @@ const first = (...values) => values.find(value => value != null && value !== '')
 
 const tagName = tag => String(tag || '').replace(/^[a-z]{2}:/i, '').replace(/-/g, ' ').trim()
 const searchable = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const OFF_DIRECT_BASE = 'https://world.openfoodfacts.net'
+const OFF_FIELDS = [
+  'code', 'product_name', 'generic_name', 'product_name_en', 'brands', 'image_front_small_url',
+  'image_front_url', 'nutriments', 'serving_size', 'nutrition_grades', 'nutrition_grade_fr',
+  'nutriscore_grade', 'nova_group', 'ingredients_text', 'additives_tags', 'allergens_tags',
+  'categories_tags', 'labels_tags'
+].join(',')
+const isStaticDemo = () => import.meta.env.VITE_DEMO === '1' || (typeof window !== 'undefined' && /\.github\.io$/i.test(window.location.hostname))
+const foodSearchUrl = query => {
+  if (!isStaticDemo()) return `/api/nutrition/off/search?${new URLSearchParams({ q: query })}`
+  const params = new URLSearchParams({ json: '1', search_terms: query, page_size: '32', page: '1', fields: OFF_FIELDS })
+  return `${OFF_DIRECT_BASE}/cgi/search.pl?${params}`
+}
+const foodBarcodeUrl = code => {
+  if (!isStaticDemo()) return `/api/nutrition/off/barcode?${new URLSearchParams({ code })}`
+  const params = new URLSearchParams({ fields: OFF_FIELDS })
+  return `${OFF_DIRECT_BASE}/api/v2/product/${encodeURIComponent(code)}.json?${params}`
+}
 
 // Open Food Facts contains products in many languages. Keep the interface in the
 // user's language, but broaden common Spanish food terms for the remote search too.
@@ -267,8 +285,7 @@ export async function searchFoodSources({ query, filters = {}, signal } = {}) {
   const q = String(query || '').trim()
   if (q.length < 2) return []
   const results = await Promise.allSettled(queryVariants(q).map(async searchTerm => {
-    const params = new URLSearchParams({ q: searchTerm })
-    const response = await fetch(`/api/nutrition/off/search?${params}`, {
+    const response = await fetch(foodSearchUrl(searchTerm), {
       signal,
       cache: 'no-store',
       headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }
@@ -295,15 +312,14 @@ export async function searchFoodSources({ query, filters = {}, signal } = {}) {
 export async function lookupBarcode(code, { signal, foods = [] } = {}) {
   const barcode = String(code || '').replace(/\D/g, '')
   if (barcode.length < 6) throw new Error('Enter a valid barcode')
-  const params = new URLSearchParams({ code: barcode })
-  const response = await fetch(`/api/nutrition/off/barcode?${params}`, {
+  const response = await fetch(foodBarcodeUrl(barcode), {
     signal,
     cache: 'no-store',
     headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }
   })
   const data = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(data.error || `Open Food Facts returned ${response.status}`)
-  if (data.status !== 1 || !data.product) throw new Error('Food not found in Open Food Facts')
+  if (!data.product || (data.status !== 1 && data.status !== 'success' && !data.code)) throw new Error('Food not found in Open Food Facts')
   return normalizeFood({ ...data.product, code: data.product.code || barcode })
 }
 
