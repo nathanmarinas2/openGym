@@ -27,8 +27,7 @@ const EN = {
   notFound: 'No match found. Try another search or add it manually.', remove: 'Remove', target: 'Target',
   caloriesShort: 'kcal', proteinShort: 'P', carbsShort: 'C', fatShort: 'F',
   goalsHint: 'Tap a value to adjust your daily target.', enterFood: 'Enter at least a name and one nutrient value.',
-  recentFoods: 'Recent foods', localDatabase: 'Food catalogue', localDatabaseHint: 'Search thousands of foods and brands; common foods remain available offline.',
-  barcodeHint: 'Barcode lookup needs an internet connection.', localSource: 'Values can vary by product; check the product label.',
+  recentFoods: 'Recent foods', barcodeHint: 'Barcode lookup needs an internet connection.', localSource: 'Values can vary by product; check the product label.',
   micros: 'Micronutrients', microsHint: 'Daily fibre, sugar and salt', showMicros: 'Show details', hideMicros: 'Hide details',
   diary: 'Diary', recipes: 'Recipes', wellness: 'Water & fast', insights: 'Trends', coach: 'Coach', provider: 'Food source',
   calendar: 'Calendar', month: 'Month', previousMonth: 'Previous month', nextMonth: 'Next month',
@@ -70,8 +69,7 @@ const ES = {
   notFound: 'No hay coincidencias. Prueba otra búsqueda o añádelo manualmente.', remove: 'Eliminar', target: 'Objetivo',
   caloriesShort: 'kcal', proteinShort: 'P', carbsShort: 'C', fatShort: 'G',
   goalsHint: 'Toca un valor para ajustar tu objetivo diario.', enterFood: 'Introduce al menos un nombre y un nutriente.',
-  recentFoods: 'Alimentos recientes', localDatabase: 'Catálogo de alimentos', localDatabaseHint: 'Busca miles de alimentos y marcas; los alimentos comunes siguen disponibles sin conexión.',
-  barcodeHint: 'Consultar un código de barras necesita conexión a Internet.', localSource: 'Los valores pueden variar según el producto; comprueba la etiqueta.',
+  recentFoods: 'Alimentos recientes', barcodeHint: 'Consultar un código de barras necesita conexión a Internet.', localSource: 'Los valores pueden variar según el producto; comprueba la etiqueta.',
   micros: 'Micronutrientes', microsHint: 'Fibra, azúcar y sal del día', showMicros: 'Ver detalles', hideMicros: 'Ocultar detalles',
   diary: 'Diario', recipes: 'Recetas', wellness: 'Agua y ayuno', insights: 'Tendencias', coach: 'Coach', provider: 'Fuente de alimentos',
   calendar: 'Calendario', month: 'Mes', previousMonth: 'Mes anterior', nextMonth: 'Mes siguiente',
@@ -113,9 +111,7 @@ const trainingSnapshot = (workouts = [], date) => workouts.filter(workout => wor
   return { date: workout.d, name: workout.name || '', exercises: entries.length, sets, volume: roundNutrition(volume) }
 })
 
-function LocalCatalogNote({ C }) {
-  return <div className="nutrition-provider nutrition-local-source" role="status"><Icon name="folder" /><div><strong>{C.localDatabase}</strong><span>{C.localDatabaseHint}</span></div></div>
-}
+function LocalCatalogNote() { return null }
 
 function MacroLine({ entry, C }) {
   const n = entryNutrients(entry)
@@ -185,7 +181,7 @@ function BarcodeScanner({ C, onDetected, onClose }) {
   return <section className="nutrition-scanner" aria-label={C.barcode}><div className="nutrition-scanner-frame"><video ref={videoRef} muted playsInline /><span className="nutrition-scanner-guide" /></div>{error && <div className="nutrition-alert" role="alert"><Icon name="info" /> <span>{error}</span></div>}<Button size="sm" variant="plain" icon="xmark" onClick={onClose}>{C.stopScanner}</Button></section>
 }
 
-function NutritionDiary({ C, S, date, setDate, meal, setMeal, dayEntries, totals, goal, update, addFood, removeEntry, personalFoods, recentFoods }) {
+function NutritionDiary({ C, S, date, setDate, meal, setMeal, dayEntries, totals, goal, update, addFood, removeEntry, recentFoods }) {
   const [query, setQuery] = useState('')
   const [barcode, setBarcode] = useState('')
   const [filters, setFilters] = useState({ grade: '', maxSugar: '', minProtein: '', category: '' })
@@ -201,13 +197,13 @@ function NutritionDiary({ C, S, date, setDate, meal, setMeal, dayEntries, totals
   const runSearch = async () => {
     if (query.trim().length < 2) return
     setLoading(true); setError('')
-    try { const found = await searchFoodSources({ query, filters, foods: personalFoods }); setResults(found); if (!found.length) setError(C.notFound) }
+    try { const found = await searchFoodSources({ query, filters }); setResults(found); if (!found.length) setError(C.notFound) }
     catch (e) { setError(e.message || C.notFound) }
     finally { setLoading(false) }
   }
   const runBarcode = async (value = barcode) => {
     setLoading(true); setError('')
-    try { const food = await lookupBarcode(value, { foods: personalFoods }); setResults([food]); setQuery(food.name) }
+    try { const food = await lookupBarcode(value); setResults([food]); setQuery(food.name) }
     catch (e) { setError(e.message || C.notFound) }
     finally { setLoading(false) }
   }

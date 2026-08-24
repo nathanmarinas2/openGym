@@ -260,13 +260,12 @@ export function searchFoods({ query, filters = {}, foods = [] } = {}) {
 
 /**
  * Search the broad public food database through LiftNex's same-origin proxy.
- * Open Food Facts does not require a USDA key; local foods remain a fallback
- * so the diary is still useful when the network is unavailable.
+ * Open Food Facts is the only source used here: results are real products and
+ * brands from its worldwide catalogue, not a local approximation.
  */
-export async function searchFoodSources({ query, filters = {}, foods = [], signal } = {}) {
+export async function searchFoodSources({ query, filters = {}, signal } = {}) {
   const q = String(query || '').trim()
   if (q.length < 2) return []
-  const local = searchFoods({ query: q, filters, foods })
   const results = await Promise.allSettled(queryVariants(q).map(async searchTerm => {
     const params = new URLSearchParams({ q: searchTerm })
     const response = await fetch(`/api/nutrition/off/search?${params}`, {
@@ -282,13 +281,13 @@ export async function searchFoodSources({ query, filters = {}, foods = [], signa
   const failed = results.filter(result => result.status === 'rejected')
   const remoteFiltered = filterFoods(remote, filters)
   const seen = new Set()
-  const combined = [...remoteFiltered, ...local].filter(food => {
+  const combined = remoteFiltered.filter(food => {
     if (!food?.id || seen.has(food.id)) return false
     seen.add(food.id)
     return true
   })
   if (combined.length) return combined.slice(0, 32)
-  if (failed.length === results.length && !local.length) throw failed[0].reason
+  if (failed.length === results.length) throw failed[0].reason
   return []
 }
 
@@ -296,8 +295,6 @@ export async function searchFoodSources({ query, filters = {}, foods = [], signa
 export async function lookupBarcode(code, { signal, foods = [] } = {}) {
   const barcode = String(code || '').replace(/\D/g, '')
   if (barcode.length < 6) throw new Error('Enter a valid barcode')
-  const localMatch = mergeFoodSources(foods).find(food => food.code === barcode)
-  if (localMatch) return localMatch
   const params = new URLSearchParams({ code: barcode })
   const response = await fetch(`/api/nutrition/off/barcode?${params}`, {
     signal,
