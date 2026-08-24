@@ -31,6 +31,7 @@ const EN = {
   diary: 'Diary', recipes: 'Recipes', wellness: 'Water & fast', insights: 'Trends', coach: 'Coach', provider: 'Food source',
   calendar: 'Calendar', month: 'Month', previousMonth: 'Previous month', nextMonth: 'Next month',
   trackedDays: 'tracked days', average: 'Average', targetDays: 'target days', trainingDays: 'training days',
+  logged: 'food logged',
   noTrendData: 'Log a few meals to unlock useful trends.', nutritionTrend: 'Nutrition trend',
   period7: '7 days', period30: '30 days', exportData: 'Export data', exportHint: 'Download this nutrition period for your own records or analysis.',
   exportCsv: 'CSV', exportJson: 'JSON', exported: 'Nutrition export downloaded', selectedDay: 'Selected day',
@@ -71,6 +72,7 @@ const ES = {
   diary: 'Diario', recipes: 'Recetas', wellness: 'Agua y ayuno', insights: 'Tendencias', coach: 'Coach', provider: 'Fuente de alimentos',
   calendar: 'Calendario', month: 'Mes', previousMonth: 'Mes anterior', nextMonth: 'Mes siguiente',
   trackedDays: 'días registrados', average: 'Media', targetDays: 'días en objetivo', trainingDays: 'días de entrenamiento',
+  logged: 'comida registrada',
   noTrendData: 'Registra varias comidas para desbloquear tendencias útiles.', nutritionTrend: 'Tendencia nutricional',
   period7: '7 días', period30: '30 días', exportData: 'Exportar datos', exportHint: 'Descarga este periodo nutricional para guardarlo o analizarlo.',
   exportCsv: 'CSV', exportJson: 'JSON', exported: 'Exportación nutricional descargada', selectedDay: 'Día seleccionado',
@@ -328,7 +330,7 @@ function NutritionInsights({ C, S, date, setDate, entries, goal }) {
         const trained = trainingDays.has(day)
         return <button key={day} className={`nutrition-calendar-day${date === day ? ' selected' : ''}${logged ? ' logged' : ''}${trained ? ' trained' : ''}`} onClick={() => selectCalendarDay(day)} aria-label={`${C.selectedDay} ${day}`}><span>{Number(day.slice(-2))}</span>{(logged || trained) && <i style={{ '--day-fill': `${Math.min(100, Math.max(0, totals.calories / (goal.calories || 1) * 100))}%` }} />}</button>
       })}</div>
-      <div className="nutrition-calendar-legend"><span><i className="logged" />{C.logged || (getLang() === 'es' ? 'comida registrada' : 'food logged')}</span><span><i className="trained" />{C.trainingDays}</span></div>
+      <div className="nutrition-calendar-legend"><span><i className="logged" />{C.logged}</span><span><i className="trained" />{C.trainingDays}</span></div>
     </section>
     <section className="nutrition-period-switch"><div><h2>{C.nutritionTrend}</h2><p className="muted small">{summary.trackedDays} {C.trackedDays}</p></div><div className="segmented"><button className={periodDays === 7 ? 'on' : ''} onClick={() => setPeriodDays(7)}>{C.period7}</button><button className={periodDays === 30 ? 'on' : ''} onClick={() => setPeriodDays(30)}>{C.period30}</button></div></section>
     <section className="nutrition-trend-chart card" aria-label={C.nutritionTrend}><div className="nutrition-trend-bars">{rows.map(row => <button key={row.date} className={`nutrition-trend-day${row.date === date ? ' selected' : ''}`} onClick={() => setDate(row.date)} aria-label={row.date}><span className="nutrition-trend-bar" style={{ height: `${Math.max(4, Math.min(100, row.caloriesPct))}%` }} /><small>{row.date.slice(8)}</small></button>)}</div><div className="nutrition-trend-axis"><span>0</span><span>{nice(goal.calories)} {C.caloriesShort}</span></div></section>
