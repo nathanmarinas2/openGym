@@ -1,6 +1,6 @@
 # Security policy
 
-openGym is a self-hosted app: you run the server, you hold the data. This file says which
+LiftNex is a self-hosted app: you run the server, you hold the data. This file says which
 versions get fixes, how to report something privately, and — the part most people actually
 need — what the app protects you from and what it doesn't.
 
@@ -20,7 +20,7 @@ git pull && docker compose pull && docker compose up -d
 
 Use GitHub's private vulnerability reporting — repo **Security** tab → **Report a vulnerability**:
 
-<https://github.com/DuarteSantos8/openGym/security/advisories/new>
+<https://github.com/nathanmarinas2/openGym/security/advisories/new>
 
 > Private reporting has to be switched on in the repository settings for that link to work
 > (Settings → Advanced Security → Private vulnerability reporting). If it 404s, open a normal
@@ -50,7 +50,7 @@ in the thread; there's no objection, and no request to sit on it indefinitely.
   change a signed-in user's data.
 - **Shipped deployment config** — `docker-compose.yml`, `web/nginx.conf`, the two Dockerfiles:
   a default that exposes something a self-hoster wouldn't expect to be exposed.
-- **The published images** `ghcr.io/duartesantos8/opengym-api` and `-web`.
+- **The published images** `ghcr.io/nathanmarinas2/opengym-api` and `-web`.
 
 ## Out of scope
 
@@ -58,12 +58,9 @@ in the thread; there's no objection, and no request to sit on it indefinitely.
   operator is trusted by design — see the security model below.
 - Admins reading their users' workout history. That is the documented purpose of the admin
   dashboard, not a leak.
-- **Missing rate limiting**, brute force, or "I sent 100k requests and it got slow". The app
-  has no rate limiting at all and doesn't pretend to; that belongs in the reverse proxy you put
-  in front of it. Genuine amplification (one small request causing unbounded work) *is* in scope.
-- **Missing security headers** (CSP, HSTS, X-Frame-Options) — `web/nginx.conf` sets none; TLS
-  and headers are the reverse proxy's job. A concrete attack that headers would have stopped is
-  still worth reporting.
+- Brute force or request floods that exceed the shipped nginx API limit are in scope; the limit
+  is deliberately a baseline, not a replacement for a WAF or an upstream rate limit.
+- Missing security headers that are absent from the shipped nginx configuration are in scope.
 - Instances served over plain `http://` on a LAN IP. Unsupported: passkeys don't work there and
   the session cookie isn't marked `Secure`.
 - Scanner output with no working exploit, and `npm audit` findings in build-time
@@ -73,7 +70,7 @@ in the thread; there's no objection, and no request to sit on it indefinitely.
 
 ## Security model
 
-Read this before hosting openGym for anyone other than yourself.
+Read this before hosting LiftNex for anyone other than yourself.
 
 ### What it does
 
@@ -96,6 +93,9 @@ Read this before hosting openGym for anyone other than yourself.
   another user.
 - **Disabling an account takes effect immediately.** Every authenticated request and every login
   is rejected for a disabled user (`api/server.js:184`, `api/server.js:357`).
+- **Personal export tokens are read-only and revocable.** They are accepted only by
+  `GET /api/export`, are stored as SHA-256 hashes, and are scoped to the profile that created
+  them. The raw token is returned once by `POST /api/tokens` and can be revoked from Settings.
 
 ### What it does not do
 
@@ -103,7 +103,7 @@ Read this before hosting openGym for anyone other than yourself.
   subscriptions, invite codes), one `state-<uid>.json` per user with their complete workout
   history and body-weight log, `secret`, and `vapid.json`. Anyone who can read that folder — you,
   whoever holds the backups, whoever gets into the host — can read every user's data, and with
-  `secret` can mint a valid session cookie for any account. **If you host openGym for other
+  `secret` can mint a valid session cookie for any account. **If you host LiftNex for other
   people, they are trusting you exactly as much as they'd trust any server operator.**
 - **Admins can read everything.** A user listed in `ADMIN_UIDS` (or flagged `admin: true` in
   `db.json`) gets every user's full history and body weight, can disable accounts, and can create
@@ -117,10 +117,9 @@ Read this before hosting openGym for anyone other than yourself.
   `./data/secret` and restarting still works as the instance-wide reset, and disabling an account
   still locks out one user completely.
 - **CSRF protection is `SameSite=Lax` and nothing else.** There are no CSRF tokens.
-- **User verification is preferred, not required.** Both handshakes pass
-  `requireUserVerification: false` (`api/server.js:297`, `api/server.js:343`), so a passkey
-  released without a biometric or PIN is still accepted. In practice: unlocked device ≈ account
-  access.
+- **User verification is required by default.** Registration and login request and verify a
+  biometric/PIN-backed passkey (`REQUIRE_USER_VERIFICATION=1`). Operators can set it to `0` for
+  compatibility with older authenticators, trading that protection for broader support.
 - **One passkey per profile, and no recovery.** Every successful registration creates a *new*
   profile (`api/server.js:309-319`); there is no route to attach a second passkey to an existing
   one, and no email or reset path. Lose the passkey and that profile is unreachable — only direct
@@ -131,10 +130,11 @@ Read this before hosting openGym for anyone other than yourself.
   nginx listens on `:80` (`web/nginx.conf`); TLS is your reverse proxy's job. Without it,
   browsers won't do passkeys at all (except on `http://localhost`) and the session cookie is sent
   in the clear.
-- **No rate limiting anywhere.** Nothing throttles logins, registrations or writes, and
-  `POST /api/register/options` still answers whether an invite code is valid
-  (`api/server.js:272`), so an invite-only instance on the open internet should have a rate limit
-  in front of it. New invite codes are 16 hex characters — 64 bits (`api/server.js:525`) — which
+- **Baseline rate limiting is provided by nginx.** `/api/` is limited to 20 requests/second per
+  client IP with a burst of 40; an upstream proxy should add stricter auth-specific limits for an
+  internet-facing instance. `POST /api/register/options` still answers whether an invite code is
+  valid, so invite-only deployments should add that upstream control. New invite codes are 16
+  hex characters — 64 bits (`api/server.js:525`) — which
   makes guessing one impractical even unthrottled; codes generated by earlier versions are 8
   characters / 32 bits and still work, so revoke and reissue any that are still unused. The only
   hard limit

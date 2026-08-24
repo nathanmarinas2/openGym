@@ -1,7 +1,7 @@
 // Share a weekly plan.
 //
 // Two jobs:
-//  1. A small, self-contained file a friend can import into THEIR openGym — just the
+//  1. A small, self-contained file a friend can import into THEIR LiftNex — just the
 //     routines + the week schedule + the custom exercises those routines use. It never
 //     carries workouts, weigh-ins or settings, and importing MERGES (adds routines with
 //     fresh ids) so nothing the friend already has is touched.
@@ -74,7 +74,7 @@ export function buildPlanBundle(S, name) {
 export function parsePlan(raw) {
   const data = typeof raw === 'string' ? JSON.parse(raw) : raw
   if (!data || !data.opengym_plan || !Array.isArray(data.routines)) {
-    throw new Error(t('this isn’t an openGym plan file'))
+    throw new Error(t('this isn’t a LiftNex plan file'))
   }
   const customEx = (Array.isArray(data.customEx) ? data.customEx : []).filter(c => c && c.id)
   const known = new Set(customEx.map(c => c.id))
@@ -97,6 +97,39 @@ export function parsePlan(raw) {
     exerciseCount: routines.reduce((n, r) => n + r.ex.length, 0),
     scheduledDays: WEEK_ORDER.filter(d => data.week?.[d]).length
   }
+}
+
+// Read-only links deliberately contain the plan only — never workouts, weigh-ins, settings,
+// credentials or profile data. Compression is not needed for the usual plan sizes and keeping
+// the payload as plain JSON makes the link portable between self-hosted instances.
+export function encodePlanToken(bundle) {
+  const bytes = new TextEncoder().encode(JSON.stringify(bundle))
+  let binary = ''
+  bytes.forEach(b => { binary += String.fromCharCode(b) })
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+export function decodePlanToken(token) {
+  const padded = String(token || '').replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((String(token || '').length + 3) % 4)
+  const binary = atob(padded)
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0))
+  return JSON.parse(new TextDecoder().decode(bytes))
+}
+
+export function planShareUrl(S, name) {
+  const token = encodePlanToken(buildPlanBundle(S, name))
+  return `${window.location.origin}${window.location.pathname}?plan=${encodeURIComponent(token)}#/share`
+}
+
+export async function copyPlanLink(S, name) {
+  const url = planShareUrl(S, name)
+  if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url)
+  else {
+    const input = document.createElement('textarea')
+    input.value = url; input.setAttribute('readonly', ''); input.style.position = 'fixed'; input.style.opacity = '0'
+    document.body.appendChild(input); input.select(); document.execCommand('copy'); input.remove()
+  }
+  return url
 }
 
 /**
@@ -251,7 +284,7 @@ export function planPrintHTML(S, owner) {
 </style></head>
 <body><div class="doc">
   <header>
-    <div class="kicker">openGym</div>
+    <div class="kicker">LiftNex</div>
     <h1>${esc(t('Weekly Training Plan'))}</h1>
     ${sub ? `<div class="sub">${sub}</div>` : ''}
   </header>
@@ -259,7 +292,7 @@ export function planPrintHTML(S, owner) {
   ${weekHTML(S)}
   <h3 class="block">${esc(t('Routines'))}</h3>
   ${body}
-  <footer>${esc(t('Made with openGym'))} · opengym.duarte-santos.ch</footer>
+  <footer>${esc(t('Made with LiftNex'))} · self-hosted</footer>
 </div></body></html>`
 }
 

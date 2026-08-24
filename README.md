@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="openGym" width="720">
+<img src="assets/banner.png" alt="LiftNex" width="720">
 
 <br>
 
@@ -19,9 +19,9 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![No tracking](https://img.shields.io/badge/telemetry-none-f472b6?style=flat-square)
 <br>
-![GitHub last commit](https://img.shields.io/github/last-commit/DuarteSantos8/openGym?style=flat-square)
-[![GitHub stars](https://img.shields.io/github/stars/DuarteSantos8/openGym?style=flat-square)](https://github.com/DuarteSantos8/openGym/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/DuarteSantos8/openGym?style=flat-square)](https://github.com/DuarteSantos8/openGym/issues)
+![GitHub last commit](https://img.shields.io/github/last-commit/nathanmarinas2/openGym?style=flat-square)
+[![GitHub stars](https://img.shields.io/github/stars/nathanmarinas2/openGym?style=flat-square)](https://github.com/nathanmarinas2/openGym/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/nathanmarinas2/openGym?style=flat-square)](https://github.com/nathanmarinas2/openGym/issues)
 
 </div>
 
@@ -39,7 +39,7 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 
 <div align="center">
 
-### [🌐 opengym.duarte-santos.ch](https://opengym.duarte-santos.ch) · [▶ Try the live demo](https://duartesantos8.github.io/openGym/)
+### [🌐 LiftNex website](https://opengym.duarte-santos.ch) · [▶ Try the live demo](https://duartesantos8.github.io/openGym/)
 
 No signup, nothing to install — it runs entirely in your browser on example data.<br>
 <sub>There's no server behind the demo, so passkey sign-in, sync across devices and the
@@ -50,7 +50,7 @@ admin dashboard only exist in a self-hosted instance.</sub>
 ## Why
 
 Most workout apps lock your data behind a login on their servers, nag you to upgrade, or
-disappear when the startup does. openGym is the opposite: **it runs on your box, your data
+disappear when the startup does. LiftNex is the opposite: **it runs on your box, your data
 stays in a folder you control, and it's yours to fork.** It still feels modern — installable
 as a home-screen app, passkey sign-in, offline support, sync across your phone and laptop.
 
@@ -70,7 +70,9 @@ as a home-screen app, passkey sign-in, offline support, sync across your phone a
 - ↔️ **Reps per side** — for lunges, single-arm rows and the rest. You log the total, the app shows the split ("8 per side"), and the target steps in twos so it never lands on a number one side can't have
 - 🏃 **Cardio** — log time + speed, not just weight × reps
 - 📤 **Share a plan** — send someone your routines and week schedule as a small file (no workouts, no weigh-ins), or print it as a clean PDF. Importing merges, so their plan is never overwritten
-- 🔧 **Filter by equipment** — narrow the library to what you actually own; the options adapt to what you've picked, so every combination on screen has results behind it
+- 🔧 **Gym profiles and substitutions** — keep separate Home, Gym and Travel equipment profiles, filter the library to what is available, and get movement alternatives when a routine uses unavailable equipment
+- 🔗 **Read-only plan links** — share a compact preview link that contains routines only; history, weigh-ins and private settings never leave the device
+- 📏 **Body progress beyond weight** — log waist, chest, arm, thigh and body-fat measurements, plus optional progress photos kept in local IndexedDB storage
 - ✨ **Your own exercises** — a name and a body part is enough; they behave like built-in ones everywhere, with an optional description instead of an animation
 - 🟩 **Activity heatmap** — a GitHub-style year view, shaded by time spent training
 - 💪 **Muscle map** — a front-and-back body diagram shaded by how much work each muscle got, over a week, a month or all time. It names the muscles you *haven't* trained in that period, previews what a routine hits while you build it, and shows what you just trained when you finish. Male or female figure, your pick
@@ -80,7 +82,8 @@ as a home-screen app, passkey sign-in, offline support, sync across your phone a
 - 🎨 **Designed, not assembled** — light/dark themes and 8 accent colors saved to your profile, over a hand-drawn icon set instead of emoji, so it looks the same on every phone
 - 🌍 **12 languages** — full UI translation (EN, DE, ES, FR, IT, PT, PL, TR, RU, ZH, KO, HI); exercise instructions localized in 10 of them, loaded on demand so the app stays fast
 - 📥 **Bring your history with you** — import from **FitNotes** (Android and iOS), **Strong** and **Hevy**, or body weight straight out of an **Apple Health** export. Exercise names are matched against the library and anything unrecognised becomes one of your own exercises, so nothing in the file is dropped
-- 📦 **Yours to keep** — one-tap JSON export/import, guest mode, **no telemetry**
+- 📦 **Yours to keep** — one-tap JSON export/import, guest mode, **no telemetry**, durable IndexedDB snapshots and offline-first recovery
+- 📊 **Personal exports** — signed-in profiles can download a flat CSV history or create revocable read-only API tokens for integrations
 - 📱 **Standalone Android app** — the whole tracker as a sideloadable APK: no account, no server, data on the phone, native workout reminders ([download](https://opengym.duarte-santos.ch))
 
 ## Quick start (self-host)
@@ -88,8 +91,8 @@ as a home-screen app, passkey sign-in, offline support, sync across your phone a
 You need [Docker](https://docs.docker.com/get-docker/) with Compose.
 
 ```bash
-git clone https://github.com/DuarteSantos8/openGym
-cd openGym
+git clone https://github.com/nathanmarinas2/openGym
+cd LiftNex
 cp .env.example .env
 docker compose pull   # grab prebuilt images (amd64 + arm64) — skip to build from source instead
 docker compose up -d
@@ -111,7 +114,7 @@ backups. Self-hosting gets you multi-device sync and profiles for friends & fami
 mobile app is the install-and-done flavor.
 
 - **Android:** [**download the APK**](https://opengym.duarte-santos.ch) and sideload it —
-  openGym is deliberately not on the Play Store. Or build it yourself: **[docs/MOBILE.md](docs/MOBILE.md)**.
+  LiftNex is deliberately not on the Play Store. Or build it yourself: **[docs/MOBILE.md](docs/MOBILE.md)**.
 - **iPhone:** Apple doesn't allow installing apps outside the App Store, so there is no iOS
   download. Self-host and add it to your home screen from Safari (it's a full PWA), or build
   the native app onto your own device from Xcode — see **[docs/MOBILE.md](docs/MOBILE.md)**.
@@ -132,8 +135,8 @@ mobile app is the install-and-done flavor.
 ```
 
 - **frontend/** — React + Vite (React Router + Zustand), built to static files **inside Docker**
-- **api/** — Node with no framework, one dependency (`@simplewebauthn/server`), storing everything as plain JSON files under `./data`
-- **web/** — a multi-stage image that builds the frontend and serves it with nginx, proxying `/api` to the backend so it's all on **one origin** (passkeys require this)
+- **api/** — Node with no framework, two runtime dependencies (WebAuthn + Web Push), storing everything as plain JSON files under `./data`
+- **Dockerfile + web/nginx.conf** — a multi-stage image that builds the frontend and serves it with nginx, proxying `/api` to the backend so it's all on **one origin** (passkeys require this)
 
 ## Your data
 
@@ -151,7 +154,9 @@ All via `.env` (see `.env.example`):
 | `RP_ID`       | Hostname passkeys are bound to                       | `localhost`             |
 | `ORIGIN`      | Full URL the app is served from                      | `http://localhost:8080` |
 | `WEB_PORT`    | Host port for the web UI                             | `8080`                  |
-| `RP_NAME`     | Name shown in the passkey prompt                     | `openGym`               |
+| `RP_NAME`     | Name shown in the passkey prompt                     | `LiftNex`               |
+| `REQUIRE_USER_VERIFICATION` | Require biometric/PIN verification for passkeys | `1` |
+| `SESSION_DAYS`| Lifetime of newly issued session cookies              | `90`                    |
 | `ADMIN_UIDS`  | User ids that get the admin dashboard (comma-separated) | *(none)*             |
 | `INVITE_ONLY` | Require an invite code to create a profile           | *(off)*                 |
 
@@ -186,14 +191,14 @@ React, the router and Zustand.
 
 ## Community
 
-- **[Q&A](https://github.com/DuarteSantos8/openGym/discussions/categories/q-a)** — self-hosting
+- **[Q&A](https://github.com/nathanmarinas2/openGym/discussions/categories/q-a)** — self-hosting
   help, passkey/login trouble, "how do I…". Most login problems turn out to be an `RP_ID`/`ORIGIN`
   mismatch.
-- **[Ideas](https://github.com/DuarteSantos8/openGym/discussions/categories/ideas)** — features
+- **[Ideas](https://github.com/nathanmarinas2/openGym/discussions/categories/ideas)** — features
   worth talking through before anyone writes code.
-- **[Show and tell](https://github.com/DuarteSantos8/openGym/discussions/categories/show-and-tell)**
+- **[Show and tell](https://github.com/nathanmarinas2/openGym/discussions/categories/show-and-tell)**
   — your setup, your plan templates, whatever you built on top.
-- **[Issues](https://github.com/DuarteSantos8/openGym/issues)** — bugs, and work that's already
+- **[Issues](https://github.com/nathanmarinas2/openGym/issues)** — bugs, and work that's already
   been agreed on.
 
 ## Contributing
@@ -201,7 +206,7 @@ React, the router and Zustand.
 Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Good first issues: more starter
 plans, exercise-data languages, import from other trackers. **A ⭐ helps more people find it.**
 
-openGym is free and stays free: AGPL, no subscription, no paid tier, nothing held back for
+LiftNex is free and stays free: AGPL, no subscription, no paid tier, nothing held back for
 sponsors. If it replaced a paid tracker for you and you want to chip in, the Sponsor button at the
 top of the page is there — a star, a bug report or a PR is worth just as much.
 
@@ -209,6 +214,6 @@ top of the page is there — a star, a bug report or a PR is worth just as much.
 
 [GNU AGPL v3.0](LICENSE) — free and open source. You can self-host, use, modify and share it;
 if you run a modified version as a network service, you must offer that version's source under
-the same license. Nobody can turn openGym into a closed, proprietary product.
+the same license. Nobody can turn LiftNex into a closed, proprietary product.
 
 Exercise images/GIFs are fetched from the upstream dataset and keep their own terms — see [NOTICE.md](NOTICE.md).

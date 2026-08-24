@@ -1,4 +1,4 @@
-// openGym icon set — hand-drawn on a 24×24 grid, stroke-based, single weight.
+// LiftNex icon set — hand-drawn on a 24×24 grid, stroke-based, single weight.
 //
 // Everything is one <svg> primitive with `currentColor`, so an icon inherits the
 // text colour and optical size of whatever it sits in. No emoji anywhere in the
@@ -67,6 +67,8 @@ const P = {
   stretch: <><circle cx="14.4" cy="5.4" r="1.9" /><path d="M14.4 8.2c-3 1.4-5 4-5.8 7.4" /><path d="M8.6 15.6 6.2 20M8.6 15.6l4.6 4.4" /><path d="M12.6 9.6 18 12" /></>,
 
   /* ---- actions ---- */
+  image: <><rect x="4" y="4.4" width="16" height="15.2" rx="2.4" /><circle cx="9" cy="9" r="1.4" /><path d="m5.6 17 4.2-4.1 3.1 2.7 2.2-2.1 3.3 3.5" /></>,
+  copy: <><rect x="8" y="7" width="11" height="13" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2" /></>,
   plus: <path d="M12 5.2v13.6M5.2 12h13.6" />,
   minus: <path d="M5.2 12h13.6" />,
   check: <path d="m4.8 12.6 4.8 4.8L19.2 6.8" />,

@@ -3,6 +3,7 @@ import { imgSrc, gifSrc } from '../lib/exercises.js'
 import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
+import { Tappable } from './ui.jsx'
 
 // Big autoplaying animation; tap toggles to the still frame. `compact` shrinks it (superset cards).
 // Custom exercises have no media — the animation stays blank by design (issue #11).
@@ -17,7 +18,7 @@ export default function Media({ ex, id, compact, minimizable }) {
   const mini = minimizable && gifSize === 'mini'
   const toggleSize = e => { e.stopPropagation(); update(s => { s.gifSize = mini ? 'full' : 'mini' }) }
   return (
-    <div className={'exmedia' + (compact ? ' compact' : '') + (mini ? ' mini' : '')} id={id} onClick={() => setPlaying(p => !p)}>
+    <Tappable className={'exmedia' + (compact ? ' compact' : '') + (mini ? ' mini' : '')} id={id} onClick={() => setPlaying(p => !p)}>
       <img decoding="async" src={playing ? gifSrc(ex) : imgSrc(ex)} alt={ex.n} />
       {minimizable && (
         <button className="giftoggle" onClick={toggleSize}>
@@ -29,7 +30,7 @@ export default function Media({ ex, id, compact, minimizable }) {
           <Icon name={playing ? 'pause' : 'play'} />{playing ? t('tap to pause') : t('tap to play')}
         </span>
       )}
-    </div>
+    </Tappable>
   )
 }
 

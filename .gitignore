@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+frontend/dist/
+dist/
+
+# Local configuration and runtime data
+.env
+.env.*
+!.env.example
+data/*
+!data/.gitkeep
+
+# Downloaded exercise media
+media/*
+!media/.gitkeep
+
+# Local tooling / OS files
+.DS_Store
+Thumbs.db
+*.log

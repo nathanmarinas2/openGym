@@ -1,4 +1,4 @@
-/* opengym-api — passkey (WebAuthn) auth + per-user state storage for openGym
+/* liftnex-api — passkey (WebAuthn) auth + per-user state storage for LiftNex
    No framework, JSON-file storage, signed session cookies.               */
 import http from 'node:http';
 import crypto from 'node:crypto';
@@ -14,7 +14,9 @@ const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
 const RP_ID = process.env.RP_ID || 'localhost';
 const ORIGIN = process.env.ORIGIN || 'http://localhost:8080';
-const RP_NAME = process.env.RP_NAME || 'openGym';
+const RP_NAME = process.env.RP_NAME || 'LiftNex';
+const REQUIRE_USER_VERIFICATION = /^(1|true|yes|on)$/i.test(process.env.REQUIRE_USER_VERIFICATION ?? '1');
+const USER_VERIFICATION = REQUIRE_USER_VERIFICATION ? 'required' : 'preferred';
 // Admin dashboard (issue): admins are matched by uid; INVITE_ONLY gates new signups behind a
 // code the admin generates. Both default off so a fresh self-hosted instance stays open.
 const ADMIN_UIDS = (process.env.ADMIN_UIDS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -25,6 +27,7 @@ const INVITE_ONLY = /^(1|true|yes|on)$/i.test(process.env.INVITE_ONLY || '');
 // baked into each cookie when it's issued, so lowering this never cuts an existing session short.
 const SESSION_DAYS = Math.max(1, +(process.env.SESSION_DAYS || 90) || 90);
 const MAX_BODY = 5 * 1024 * 1024;
+const MAX_STATE_BYTES = 4 * 1024 * 1024;
 // Secure cookies require HTTPS; over plain http://localhost the flag would drop the cookie
 const SECURE = /^https:/i.test(ORIGIN) ? ' Secure;' : '';
 
@@ -36,10 +39,11 @@ if (!fs.existsSync(secretFile)) fs.writeFileSync(secretFile, crypto.randomBytes(
 const SECRET = fs.readFileSync(secretFile, 'utf8').trim();
 
 const dbFile = path.join(DATA, 'db.json');
-let db = { users: [], creds: [], subs: [], invites: [] };
+let db = { users: [], creds: [], subs: [], invites: [], tokens: [] };
 try { db = JSON.parse(fs.readFileSync(dbFile, 'utf8')); } catch {}
 db.subs = db.subs || [];
 db.invites = db.invites || [];
+db.tokens = db.tokens || [];
 const isAdmin = user => !!user && (user.admin === true || ADMIN_UIDS.includes(user.id));
 function saveDb() { atomicWrite(dbFile, JSON.stringify(db, null, 2)); }
 function atomicWrite(file, content) {
@@ -50,6 +54,37 @@ function atomicWrite(file, content) {
 const stateFile = uid => path.join(DATA, 'state-' + uid.replace(/[^a-zA-Z0-9_-]/g, '') + '.json');
 function readState(uid) {
   try { return JSON.parse(fs.readFileSync(stateFile(uid), 'utf8')); } catch { return null; }
+}
+function stateRevision(state) {
+  return crypto.createHash('sha256').update(JSON.stringify(state)).digest('base64url');
+}
+function validateState(state) {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) return 'state must be an object';
+  const arrayLimits = { routines: 500, workouts: 10000, bodyweight: 10000, customEx: 2000, bodyMeasurements: 10000, bodyPhotos: 2000, equipmentProfiles: 100 };
+  for (const [key, limit] of Object.entries(arrayLimits)) {
+    if (state[key] !== undefined && !Array.isArray(state[key])) return `${key} must be an array`;
+    if (Array.isArray(state[key]) && state[key].length > limit) return `${key} is too large`;
+  }
+  const encoded = JSON.stringify(state);
+  if (Buffer.byteLength(encoded, 'utf8') > MAX_STATE_BYTES) return 'state is too large';
+  return null;
+}
+function csvCell(value) {
+  const s = String(value == null ? '' : value);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function workoutsCsv(state) {
+  const rows = [['date', 'routine', 'exercise_id', 'exercise', 'set', 'reps', 'weight', 'seconds', 'speed', 'effort']];
+  const routineNames = Object.fromEntries((state.routines || []).map(r => [r.id, r.name || r.id]));
+  for (const workout of state.workouts || []) for (const entry of workout.entries || []) {
+    for (const [index, set] of (entry.sets || []).filter(s => s.done).entries()) {
+      rows.push([
+        workout.d, routineNames[workout.routineId] || workout.name || '', entry.id, entry.n || '', index + 1,
+        set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? ''
+      ]);
+    }
+  }
+  return rows.map(row => row.map(csvCell).join(',')).join('\n') + '\n';
 }
 
 /* ---------- push notifications (Web Push / VAPID) ---------- */
@@ -188,6 +223,19 @@ function readSession(req) {
   if (!Number.isInteger(claimed) || claimed !== sessionVersion(user)) return null;
   return user;
 }
+function readApiToken(req) {
+  const header = req.headers.authorization || '';
+  if (!/^Bearer\s+/i.test(header)) return null;
+  const raw = header.replace(/^Bearer\s+/i, '').trim();
+  if (!raw) return null;
+  const hash = crypto.createHash('sha256').update(raw).digest('base64url');
+  const token = db.tokens.find(t => t.hash === hash && !t.revoked);
+  if (!token) return null;
+  const user = db.users.find(u => u.id === token.userId) || null;
+  if (!user || user.disabled) return null;
+  token.lastUsed = new Date().toISOString();
+  return user;
+}
 // Guard for /api/admin/* — resolves the caller and 401/403s if they aren't an admin.
 function requireAdmin(req, res) {
   const user = readSession(req);
@@ -276,7 +324,7 @@ const routes = {
       rpName: RP_NAME, rpID: RP_ID,
       userID: Buffer.from(uid), userName: name, userDisplayName: name,
       attestationType: 'none',
-      authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+      authenticatorSelection: { residentKey: 'required', userVerification: USER_VERIFICATION },
       excludeCredentials: []
     });
     const cid = putChallenge({ challenge: options.challenge, name, uid, code });
@@ -294,7 +342,7 @@ const routes = {
         expectedChallenge: c.challenge,
         expectedOrigin: ORIGIN,
         expectedRPID: RP_ID,
-        requireUserVerification: false
+        requireUserVerification: REQUIRE_USER_VERIFICATION
       });
     } catch (e) { return json(res, 400, { error: 'verification failed: ' + e.message }); }
     if (!verification.verified) return json(res, 400, { error: 'not verified' });
@@ -321,7 +369,7 @@ const routes = {
 
   'POST /api/login/options': async (req, res) => {
     const options = await generateAuthenticationOptions({
-      rpID: RP_ID, userVerification: 'preferred', allowCredentials: []
+      rpID: RP_ID, userVerification: USER_VERIFICATION, allowCredentials: []
     });
     const cid = putChallenge({ challenge: options.challenge });
     json(res, 200, { cid, options });
@@ -340,7 +388,7 @@ const routes = {
         expectedChallenge: c.challenge,
         expectedOrigin: ORIGIN,
         expectedRPID: RP_ID,
-        requireUserVerification: false,
+        requireUserVerification: REQUIRE_USER_VERIFICATION,
         credential: {
           id: cred.id,
           publicKey: b64uToBuf(cred.publicKey),
@@ -377,18 +425,74 @@ const routes = {
     if (!user) return json(res, 401, { error: 'not signed in' });
     try {
       const state = JSON.parse(fs.readFileSync(stateFile(user.id), 'utf8'));
-      json(res, 200, { state });
+      json(res, 200, { state, revision: stateRevision(state) });
     } catch { json(res, 200, { state: null }); }
+  },
+
+  'GET /api/tokens': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    json(res, 200, { tokens: db.tokens.filter(t => t.userId === user.id && !t.revoked).map(t => ({ id: t.id, label: t.label, created: t.created, lastUsed: t.lastUsed || null })) });
+  },
+
+  'POST /api/tokens': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const body = await readBody(req);
+    const raw = 'og_' + crypto.randomBytes(24).toString('base64url');
+    const token = { id: crypto.randomBytes(9).toString('base64url'), userId: user.id, label: String(body.label || 'Personal export').trim().slice(0, 60), hash: crypto.createHash('sha256').update(raw).digest('base64url'), created: new Date().toISOString() };
+    db.tokens.push(token); saveDb();
+    // The raw value is returned once. Only the hash is persisted, so it cannot be recovered
+    // from db.json after this response is gone.
+    json(res, 200, { token: raw, meta: { id: token.id, label: token.label, created: token.created } });
+  },
+
+  'DELETE /api/tokens': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const body = await readBody(req);
+    const token = db.tokens.find(t => t.id === body.id && t.userId === user.id && !t.revoked);
+    if (!token) return json(res, 404, { error: 'token not found' });
+    token.revoked = true; token.revokedAt = new Date().toISOString(); saveDb();
+    json(res, 200, { ok: true });
+  },
+
+  // Personal read-only export. JSON is useful for integrations; CSV is deliberately flat so
+  // it opens directly in Sheets/Excel without exposing the server's internal files.
+  'GET /api/export': async (req, res) => {
+    const user = readSession(req) || readApiToken(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const state = readState(user.id) || {};
+    const format = new URL(req.url, 'http://x').searchParams.get('format') || 'json';
+    if (format === 'csv') {
+      const body = workoutsCsv(state);
+      res.writeHead(200, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="liftnex-history.csv"',
+        'Cache-Control': 'no-store'
+      });
+      return res.end(body);
+    }
+    const safe = { ...state, active: null };
+    json(res, 200, { exported: new Date().toISOString(), state: safe });
   },
 
   'PUT /api/data': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
     const body = await readBody(req);
-    if (!body.state || typeof body.state !== 'object') return json(res, 400, { error: 'state required' });
+    const stateError = validateState(body.state);
+    if (stateError) return json(res, 400, { error: stateError });
+    const currentState = readState(user.id);
+    const currentRevision = currentState ? stateRevision(currentState) : null;
+    // Clients that know their last server revision get conflict detection. The optional
+    // field keeps older clients working while they upgrade to the safer sync protocol.
+    if (body.baseRevision && body.baseRevision !== currentRevision)
+      return json(res, 409, { error: 'sync conflict', revision: currentRevision, state: currentState });
     delete body.state.active;              // in-progress workouts stay device-local
+    const revision = stateRevision(body.state);
     atomicWrite(stateFile(user.id), JSON.stringify(body.state));
-    json(res, 200, { ok: true, ts: body.state._ts || null });
+    json(res, 200, { ok: true, ts: body.state._ts || null, revision });
   },
 
   'GET /api/push/public-key': async (req, res) => json(res, 200, { key: vapid.publicKey }),
@@ -417,7 +521,7 @@ const routes = {
   'POST /api/push/test': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
-    await sendPush(user.id, { title: 'openGym', body: 'Test notification ✅ — this is what alerts look like.', tag: 'test' });
+    await sendPush(user.id, { title: 'LiftNex', body: 'Test notification ✅ — this is what alerts look like.', tag: 'test' });
     json(res, 200, { ok: true });
   },
 

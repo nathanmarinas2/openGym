@@ -234,11 +234,11 @@ importer for your history from other apps.
 
 ### One codebase, two flavors
 
-openGym is also a standalone mobile app — and it ships as a direct APK download, not
+LiftNex is also a standalone mobile app — and it ships as a direct APK download, not
 through app stores.
 
 - 📱 **Standalone mobile app.** The same frontend now also builds as a native iPhone /
-  Android app (Capacitor) — the install-and-done flavor of openGym: no account, no server,
+  Android app (Capacitor) — the install-and-done flavor of LiftNex: no account, no server,
   no sync. Everything stays on the phone.
   - State is mirrored into a file in the app's private storage on every change, so your
     log survives even when the OS evicts WebView storage (iOS does).

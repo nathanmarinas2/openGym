@@ -1,6 +1,6 @@
-# Contributing to openGym
+# Contributing to LiftNex
 
-Thanks for taking a look! openGym is intentionally small and dependency-light, and the goal is
+Thanks for taking a look! LiftNex is intentionally small and dependency-light, and the goal is
 to keep it that way — easy to read, easy to self-host.
 
 ## Project layout
@@ -9,7 +9,7 @@ to keep it that way — easy to read, easy to self-host.
 frontend/  React + Vite app (src/views, src/components, src/store, src/lib). Builds to static files.
            android/ + ios/ are the Capacitor shells for the standalone mobile app (docs/MOBILE.md).
 api/       backend — server.js (Node, no framework), one dependency (@simplewebauthn/server).
-web/       multi-stage Dockerfile (builds frontend → nginx) + nginx.conf (serves app, proxies /api).
+Dockerfile  multi-stage image (builds frontend → nginx); web/nginx.conf serves the app and proxies /api.
 media/     exercise img/gif (gitignored, fetched at runtime).
 docs/      self-hosting guide.
 ```
@@ -52,9 +52,9 @@ cd frontend && npm test
 
 | You have | Goes to |
 | --- | --- |
-| A question, or self-hosting that won't behave | [Discussions → Q&A](https://github.com/DuarteSantos8/openGym/discussions/categories/q-a) |
-| An idea you're not sure about yet | [Discussions → Ideas](https://github.com/DuarteSantos8/openGym/discussions/categories/ideas) |
-| A reproducible bug | [Issues](https://github.com/DuarteSantos8/openGym/issues) |
+| A question, or self-hosting that won't behave | [Discussions → Q&A](https://github.com/nathanmarinas2/openGym/discussions/categories/q-a) |
+| An idea you're not sure about yet | [Discussions → Ideas](https://github.com/nathanmarinas2/openGym/discussions/categories/ideas) |
+| A reproducible bug | [Issues](https://github.com/nathanmarinas2/openGym/issues) |
 | A change you've already built | A pull request |
 
 An answered question in Q&A is worth more than the same answer buried in a closed issue — the

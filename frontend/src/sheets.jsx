@@ -11,7 +11,7 @@ import { starterRoutines } from './lib/starter.js'
 import Media, { Thumb } from './components/Media.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
-import { Button, Slider, Switch, Segmented, SelectRow, Row } from './components/ui.jsx'
+import { Button, Slider, Switch, Segmented, SelectRow, Row, Tappable, TextField, NumberField } from './components/ui.jsx'
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import { loadOfWorkouts } from './lib/muscles.js'
@@ -20,6 +20,10 @@ import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-sha
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
 import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS } from './lib/progression.js'
 import { MOBILE, shareExport } from './lib/mobile.js'
+import { copyPlanLink } from './lib/plan-share.js'
+import { createApiToken, listApiTokens, revokeApiToken } from './lib/api.js'
+import { equipmentCatalog, activeProfile, profileWithItems, newProfile, availableExercise, substitutionsFor } from './lib/equipment.js'
+import { MEASURE_FIELDS, createMeasurement } from './lib/body.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -79,7 +83,7 @@ function WeightInput({ value, setValue, unit }) {
       <button className="chip" onClick={() => onSlide(value + 0.5)}>+0.5</button>
       <button className="chip" onClick={() => onSlide(value + 1)}>+1</button>
     </div>
-    <Slider value={sv} min={W_LO} max={W_HI} step={0.5} onChange={onSlide} />
+    <Slider value={sv} min={W_LO} max={W_HI} step={0.5} ariaLabel={t('Body weight')} onChange={onSlide} />
   </>
 }
 
@@ -251,6 +255,111 @@ function GoalSheet({ close }) {
 }
 export const goalSheet = () => ui().openSheet(close => <GoalSheet close={close} />)
 
+/* ============================ body measurements ============================ */
+function MeasurementSheet({ close }) {
+  const st = useStore(s => s.S)
+  const [values, setValues] = useState({})
+  const save = () => {
+    const m = createMeasurement(values)
+    if (Object.keys(m).length <= 2) { toast(t('Add at least one measurement')); return }
+    update(s => { s.bodyMeasurements = [...(s.bodyMeasurements || []), m].sort((a, b) => a.d.localeCompare(b.d)) })
+    close(); toast(t('Measurements saved'))
+  }
+  return <>
+    <h3>{t('Body measurements')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{t('Optional measurements help you see progress beyond the scale. Values are stored with your LiftNex data.')}</div>
+    <div className="list">
+      {MEASURE_FIELDS.map(([key, label, unit]) => <div className="row between" key={key} style={{ padding: '8px 2px' }}>
+        <label className="tt" htmlFor={'measure-' + key}>{t(label)} <span className="dim small">({unit})</span></label>
+        <NumberField id={'measure-' + key} aria-label={t(label)} value={values[key] ?? ''} nullable onChange={v => setValues(x => ({ ...x, [key]: v }))} style={{ width: 110, textAlign: 'right' }} />
+      </div>)}
+    </div>
+    <div style={{ height: 12 }} />
+    <Button variant="primary" icon="check" onClick={save}>{t('Save measurements')}</Button>
+  </>
+}
+export const bodyMeasurementSheet = () => ui().openSheet(close => <MeasurementSheet close={close} />)
+
+/* ============================ equipment profiles ============================ */
+function EquipmentSheet({ close }) {
+  const st = useStore(s => s.S)
+  const existing = st.equipmentProfiles?.length ? st.equipmentProfiles : [{ id: 'home', name: 'Home', items: ['body weight'] }]
+  const current = activeProfile(st) || existing[0]
+  const [selected, setSelected] = useState(current.id)
+  const [name, setName] = useState(current.name)
+  const [items, setItems] = useState([...(current.items || [])])
+  const [newName, setNewName] = useState('')
+  const catalog = equipmentCatalog(st)
+  const choose = p => { setSelected(p.id); setName(p.name); setItems([...(p.items || [])]) }
+  const toggle = item => setItems(cur => cur.includes(item) ? cur.filter(x => x !== item) : [...cur, item])
+  const save = () => {
+    update(s => {
+      const profiles = (s.equipmentProfiles?.length ? s.equipmentProfiles : existing).map(p => p.id === selected ? profileWithItems({ ...p, name: name.trim() || p.name }, items) : p)
+      s.equipmentProfiles = profiles; s.activeEquipmentProfile = selected
+    })
+    close(); toast(t('Equipment profile saved'))
+  }
+  const create = () => {
+    const p = newProfile(newName, ['body weight'])
+    update(s => { s.equipmentProfiles = [...(s.equipmentProfiles || existing), p]; s.activeEquipmentProfile = p.id })
+    setNewName(''); choose(p)
+  }
+  return <>
+    <h3>{t('Gym equipment')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>{t('Choose what is available so the library can show realistic exercises and substitutions.')}</div>
+    <div className="chips" style={{ marginBottom: 12 }}>
+      {existing.map(p => <button key={p.id} className={'chip nocap' + (selected === p.id ? ' on' : '')} onClick={() => choose(p)}>{p.name}</button>)}
+    </div>
+    <div className="row" style={{ gap: 8, marginBottom: 14 }}>
+      <TextField value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('New profile name')} aria-label={t('New profile name')} />
+      <Button size="sm" icon="plus" onClick={create} disabled={!newName.trim()}>{t('Add')}</Button>
+    </div>
+    <TextField value={name} onChange={e => setName(e.target.value)} aria-label={t('Profile name')} placeholder={t('Profile name')} />
+    <div className="small dim" style={{ margin: '12px 2px 7px' }}>{t('Available equipment')}</div>
+    <div className="chips">
+      {catalog.map(item => <button key={item} className={'chip' + (items.includes(item) ? ' on' : '')} onClick={() => toggle(item)}>{t(item)}</button>)}
+    </div>
+    <div className="small dim" style={{ margin: '10px 2px 14px' }}>{t('Leave all items unselected to allow every exercise.')}</div>
+    <Button variant="primary" icon="check" onClick={save}>{t('Save profile')}</Button>
+  </>
+}
+export const equipmentSheet = () => ui().openSheet(close => <EquipmentSheet close={close} />)
+
+/* ============================ personal read-only API ============================ */
+function ApiTokenSheet({ close }) {
+  const [tokens, setTokens] = useState([])
+  const [label, setLabel] = useState('')
+  const [newToken, setNewToken] = useState('')
+  const [busy, setBusy] = useState(false)
+  const load = () => listApiTokens().then(r => setTokens(r.tokens || [])).catch(() => toast(t('Could not load API tokens')))
+  useEffect(load, [])
+  const create = async () => {
+    setBusy(true)
+    try { const r = await createApiToken(label.trim() || t('Personal export')); setNewToken(r.token); setLabel(''); await load(); toast(t('Token created — copy it now')) }
+    catch (e) { toast(e.message || t('Could not create token')) }
+    setBusy(false)
+  }
+  const copy = async () => { try { await navigator.clipboard.writeText(newToken); toast(t('Token copied')) } catch { toast(t('Copy failed — select the token manually')) } }
+  return <>
+    <h3>{t('Personal API access')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{t('Create a read-only token for CSV/JSON exports. It cannot change your plan or access passkeys.')}</div>
+    <div className="row" style={{ gap: 8, marginBottom: 14 }}>
+      <TextField value={label} onChange={e => setLabel(e.target.value)} placeholder={t('Token label')} aria-label={t('Token label')} />
+      <Button size="sm" icon="key" onClick={create} disabled={busy}>{t('Create')}</Button>
+    </div>
+    {newToken && <div className="card" style={{ margin: '0 0 14px', padding: 12 }}>
+      <div className="small dim" style={{ marginBottom: 6 }}>{t('Copy this token now. It will not be shown again.')}</div>
+      <div className="row" style={{ gap: 8 }}><TextField value={newToken} readOnly aria-label={t('New API token')} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }} /><Button size="sm" icon="copy" onClick={copy}>{t('Copy')}</Button></div>
+    </div>}
+    <div className="list">{tokens.map(token => <div className="item" key={token.id}>
+      <div className="grow"><div className="tt">{token.label}</div><div className="ss">{t('Created')} {token.created?.slice(0, 10)}{token.lastUsed ? ' · ' + t('Used') + ' ' + token.lastUsed.slice(0, 10) : ''}</div></div>
+      <Button size="sm" variant="ghost" icon="trash" aria-label={t('Revoke token')} onClick={() => confirmSheet({ title: t('Revoke token?'), message: t('Apps using this token will stop receiving exports.'), confirmText: t('Revoke'), danger: true, onConfirm: async () => { await revokeApiToken(token.id); load(); toast(t('Token revoked')) } })} />
+    </div>)}</div>
+    {!tokens.length && <div className="small dim">{t('No read-only tokens yet.')}</div>}
+  </>
+}
+export const apiTokenSheet = () => ui().openSheet(close => <ApiTokenSheet close={close} />)
+
 /* ============================ exercise detail ============================ */
 // Estimated 1RM for one exercise (issue #18): what the log already implies, plus a calculator
 // for a set you have not done — so the number is reachable before there is any history.
@@ -284,6 +393,7 @@ function ExerciseDetail({ ex, close }) {
   const st = useStore(s => s.S)
   const last = lastEntryFor(st, ex.id)
   const best = bestWeightFor(st, ex.id)
+  const alternatives = substitutionsFor(st, ex, 4)
   return <>
     <h3 className="capitalize">{ex.n}</h3>
     <Media ex={ex} />
@@ -296,6 +406,11 @@ function ExerciseDetail({ ex, close }) {
     {ex.desc && <div className="exnote">{ex.desc}</div>}
     {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent">{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target)).join(', ')}` : ''}</div>}
     <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
+    {!availableExercise(st, ex) && alternatives.length > 0 && <>
+      <h4 className="sec">{t('Available substitutions')}</h4>
+      <div className="small dim" style={{ marginBottom: 7 }}>{t('This exercise is not in the active equipment profile. Try one of these movements instead:')}</div>
+      <div className="list">{alternatives.map(a => <Tappable key={a.id} className="item" onClick={() => exerciseDetailSheet(a)}><div className="grow"><div className="tt capitalize">{a.n}</div><div className="ss">{t(a.eq)} · {t(a.bp)}</div></div><Icon name="chevronRight" className="chev" /></Tappable>)}</div>
+    </>}
     {ex.custom && <div className="row" style={{ gap: 8, marginTop: 8 }}>
       <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
       <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
@@ -327,13 +442,13 @@ function AddToRoutine({ ex, close }) {
     <h3 className="capitalize">{t('Add “{0}”', ex.n)}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Pick a routine — sets, reps & weight come next.')}</div>
     <div className="list">
-      {st.routines.map(r => <div key={r.id} className="item" onClick={() => pick(r.id)}>
+      {st.routines.map(r => <Tappable key={r.id} className="item" onClick={() => pick(r.id)}>
         <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
         <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
         {r.ex.some(e => e.id === ex.id) && <span className="tag">{t('already in')}</span>}<Icon name="plus" className="chev" />
-      </div>)}
-      <div className="item" onClick={() => pick('_new')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="sparkles" /></span>
-        <div className="grow"><div className="tt">{t('New routine')}</div><div className="ss">{t('Create one and start with this exercise')}</div></div><Icon name="plus" className="chev" /></div>
+      </Tappable>)}
+      <Tappable className="item" onClick={() => pick('_new')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="sparkles" /></span>
+        <div className="grow"><div className="tt">{t('New routine')}</div><div className="ss">{t('Create one and start with this exercise')}</div></div><Icon name="plus" className="chev" /></Tappable>
     </div>
   </>
 }
@@ -429,7 +544,7 @@ function ExercisePicker({ onPick, close }) {
   return <>
     <h3>{t('Add exercise')}</h3>
     <div className="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
-      <input className="input" placeholder={t('Search {0} exercises…', all.length)} value={q} onChange={e => { setQ(e.target.value); setShown(50) }} /></div>
+      <input className="input" aria-label={t('Search {0} exercises…', all.length)} placeholder={t('Search {0} exercises…', all.length)} value={q} onChange={e => { setQ(e.target.value); setShown(50) }} /></div>
     <div className="chips" style={{ margin: eqOpts.length > 1 ? '10px 0 6px' : '10px 0' }}>
       {chosenCount > 0 && <button className={'chip' + (bp === '★' ? ' on' : '')} onClick={() => { setBp('★'); setEq(''); setShown(50) }}><Icon name="starFill" style={{ fontSize: 12, display: 'inline-block', marginRight: 4, verticalAlign: '-1px' }} />{t('Chosen')} ({chosenCount})</button>}
       <button className={'chip nocap' + (!bp ? ' on' : '')} onClick={() => { setBp(''); setEq(''); setShown(50) }}>{t('All')}</button>
@@ -440,14 +555,14 @@ function ExercisePicker({ onPick, close }) {
       {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(50) }}>{t(x)}</button>)}
     </div>}
     <div className="list">
-      {bp !== '★' && <div className="item" onClick={() => customExSheet(null, ex => onPick(ex), q.trim())}>
+      {bp !== '★' && <Tappable className="item" onClick={() => customExSheet(null, ex => onPick(ex), q.trim())}>
         <div className="thumb thumb-x"><Icon name="sparkles" /></div>
         <div className="grow"><div className="tt">{t('Create your own exercise')}</div><div className="ss">{t('name + body part, no animation')}</div></div><Icon name="plus" className="chev" />
-      </div>}
-      {f.slice(0, shown).map(e => <div key={e.id} className="item" onClick={() => onPick(e)}>
+      </Tappable>}
+      {f.slice(0, shown).map(e => <Tappable key={e.id} className="item" onClick={() => onPick(e)}>
         <Thumb ex={e} /><div className="grow"><div className="tt capitalize">{e.n}</div><div className="ss capitalize">{t(e.tg || e.bp)} · {t(e.eq)}</div></div>
         {usage[e.id] && <span className="tag acc"><Icon name="starFill" /></span>}<Icon name="plus" className="chev" />
-      </div>)}
+      </Tappable>)}
       {f.length === 0 && bp === '★' && <div className="empty">{t('Nothing chosen yet — add exercises and they’ll show up here.')}</div>}
     </div>
     {f.length > shown && <><div style={{ height: 8 }} /><Button onClick={() => setShown(s => s + 50)}>{t('Show more')}</Button></>}
@@ -634,7 +749,7 @@ function PlanTools({ close }) {
   const exportFile = async () => {
     const bundle = buildPlanBundle(st, user?.name ? t('{0}’s plan', user.name) : '')
     const json = JSON.stringify(bundle, null, 2)
-    const name = 'opengym-plan-' + todayISO() + '.json'
+    const name = 'liftnex-plan-' + todayISO() + '.json'
     if (MOBILE) { try { await shareExport(json, name) } catch (e) { /* dismissed */ } close(); return }
     const blob = new Blob([json], { type: 'application/json' })
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href)
@@ -654,7 +769,12 @@ function PlanTools({ close }) {
     <h3>{t('Share your plan')}</h3>
     <div className="muted small" style={{ marginBottom: 16 }}>{t('Send your routines to a friend, or put your week on paper.')}</div>
     <Button variant="primary" icon="upload" onClick={exportFile} disabled={!hasRoutines}>{t('Export plan file')}</Button>
-    <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('A small file a friend imports into their own openGym — routines only, none of your workouts or weigh-ins.')}</div>
+    <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('A small file a friend imports into their own LiftNex — routines only, none of your workouts or weigh-ins.')}</div>
+    {!MOBILE && <>
+      <div style={{ height: 12 }} />
+      <Button variant="tinted" icon="link" onClick={async () => { try { await copyPlanLink(st, user?.name ? t('{0}’s plan', user.name) : ''); toast(t('Read-only link copied')); close() } catch { toast(t('Could not copy link')) } }} disabled={!hasRoutines}>{t('Copy read-only link')}</Button>
+      <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('Anyone with the link can preview the plan, but it contains no history or private data.')}</div>
+    </>}
     {!MOBILE && <>
       <div style={{ height: 12 }} />
       <Button variant="tinted" icon="download" onClick={() => { close(); printPlan(st, user?.name || '') }} disabled={!hasRoutines}>{t('Print / Save as PDF')}</Button>
@@ -718,12 +838,12 @@ function DayOverride({ iso, close }) {
     <h3>{fmtDate(iso, true)}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Weekly plan:')} {weeklyR ? weeklyR.name : t('Rest')}{hasOvr && <span style={{ color: 'var(--orange)' }}> · {t('changed for this day')}</span>}<br />{t('Sick, missed a day or want a different session? Pick what to train instead.')}</div>
     <div className="list">
-      {st.routines.map(r => <div key={r.id} className="item" onClick={() => set(r.id)}>
+      {st.routines.map(r => <Tappable key={r.id} className="item" onClick={() => set(r.id)}>
         <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
         <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {effId === r.id && <Icon name="check" className="accent" />}</div>)}
-      <div className="item" onClick={() => set('rest')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest / skip this day')}</div></div>{effId === null && <Icon name="check" className="accent" />}</div>
-      {hasOvr && <div className="item" onClick={() => set('')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="reset" /></span><div className="grow"><div className="tt">{t('Back to weekly plan')}</div></div></div>}
+        {effId === r.id && <Icon name="check" className="accent" />}</Tappable>)}
+      <Tappable className="item" onClick={() => set('rest')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest / skip this day')}</div></div>{effId === null && <Icon name="check" className="accent" />}</Tappable>
+      {hasOvr && <Tappable className="item" onClick={() => set('')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="reset" /></span><div className="grow"><div className="tt">{t('Back to weekly plan')}</div></div></Tappable>}
     </div>
   </>
 }
@@ -735,11 +855,11 @@ function DayAssign({ day, close }) {
   return <>
     <h3>{t(DAYN[day])}</h3>
     <div className="list">
-      <div className="item" onClick={() => set('')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest day')}</div></div>{!st.week[day] && <Icon name="check" className="accent" />}</div>
-      {st.routines.map(r => <div key={r.id} className="item" onClick={() => set(r.id)}>
+      <Tappable className="item" onClick={() => set('')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest day')}</div></div>{!st.week[day] && <Icon name="check" className="accent" />}</Tappable>
+      {st.routines.map(r => <Tappable key={r.id} className="item" onClick={() => set(r.id)}>
         <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
         <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {st.week[day] === r.id && <Icon name="check" className="accent" />}</div>)}
+        {st.week[day] === r.id && <Icon name="check" className="accent" />}</Tappable>)}
     </div>
   </>
 }
@@ -810,13 +930,13 @@ export const calendarSheet = start => ui().openSheet(close => <Calendar start={s
 export function WorkoutRow({ w, onClick }) {
   const st = useStore(s => s.S)
   const glyph = glyphOf((st.routines.find(r => r.id === w.routineId) || {}).emoji)
-  return <div className="item" onClick={onClick}>
+  return <Tappable className="item" onClick={onClick}>
     <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
     <div className="grow"><div className="tt">{w.name}</div>
       <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), t('{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
     {w.prs && w.prs.length > 0 && <span className="pr"><Icon name="trophy" />{w.prs.length} PR</span>}
     <Icon name="chevronRight" className="chev" />
-  </div>
+  </Tappable>
 }
 
 /* ============================ workout lifecycle ============================ */

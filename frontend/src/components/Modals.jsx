@@ -5,6 +5,7 @@ import { useUI } from '../store/useUI.js'
 function Sheet({ sheet }) {
   const { closeSheet } = useUI()
   const ref = useRef(null)
+  const dialogRef = useRef(null)
   const drag = useRef({ startY: null, delta: 0 })
 
   const onTouchStart = e => {
@@ -44,19 +45,44 @@ function Sheet({ sheet }) {
     return () => el.removeEventListener('touchmove', onTouchMove)
   }, [])
 
+  // Sheets are dialogs, not just visual overlays: move focus into the active surface,
+  // keep Tab inside it, and make Escape behave like the backdrop when it is dismissible.
+  useEffect(() => {
+    const el = dialogRef.current
+    if (!el) return
+    const previous = document.activeElement
+    const focusable = () => [...el.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter(x => !x.disabled && x.getAttribute('aria-hidden') !== 'true')
+    requestAnimationFrame(() => (focusable()[0] || el).focus())
+    const onKeyDown = e => {
+      if (e.key === 'Escape' && !sheet.locked) { e.preventDefault(); closeSheet(sheet.id); return }
+      if (e.key !== 'Tab') return
+      const nodes = focusable()
+      if (!nodes.length) { e.preventDefault(); el.focus(); return }
+      const first = nodes[0], last = nodes[nodes.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    el.addEventListener('keydown', onKeyDown)
+    return () => {
+      el.removeEventListener('keydown', onKeyDown)
+      if (previous?.focus) previous.focus()
+    }
+  }, [sheet.id, sheet.locked, closeSheet])
+
   const close = () => closeSheet(sheet.id)
   if (sheet.kind === 'center') {
     return (
       <div>
         <div className="mback" onClick={() => { if (!sheet.locked) close() }} />
-        <div className="center">{sheet.render(close)}</div>
+        <div className="center" ref={dialogRef} role="dialog" aria-modal="true" aria-label="LiftNex dialog" tabIndex={-1}>{sheet.render(close)}</div>
       </div>
     )
   }
   return (
     <div>
       <div className="mback" onClick={() => { if (!sheet.locked) close() }} />
-      <div className="sheet" ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="sheet" ref={node => { ref.current = node; dialogRef.current = node }} role="dialog" aria-modal="true" aria-label="LiftNex sheet" tabIndex={-1} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div className="grab" />
         {sheet.render(close)}
       </div>

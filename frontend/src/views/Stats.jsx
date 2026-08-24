@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { EXIDX } from '../lib/exercises.js'
 import { lastBW, streakWeeks, setLabel, modeOf, effortOf } from '../lib/history.js'
-import { fmtNum, fmtDate, fmtVol, todayISO, weekKey } from '../lib/format.js'
+import { fmtNum, fmtDate, fmtVol, todayISO, weekKey, uid } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { bwSheet, goalSheet, calendarSheet, workoutDetailSheet, WorkoutRow, bwDeltaColor } from '../sheets.jsx'
+import { bwSheet, goalSheet, bodyMeasurementSheet, calendarSheet, workoutDetailSheet, WorkoutRow, bwDeltaColor } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
@@ -17,6 +17,46 @@ import {
   effortHistogram, isHardSet, HARD_RIR
 } from '../lib/effort.js'
 import { Button, Segmented, SelectRow } from '../components/ui.jsx'
+import { latestMeasurement, measurementLabel } from '../lib/body.js'
+import { putPhoto, readPhoto } from '../lib/offline.js'
+
+function BodyTracking({ S }) {
+  const fileRef = useRef(null)
+  const [photoUrl, setPhotoUrl] = useState(null)
+  const latest = latestMeasurement(S)
+  const photos = S.bodyPhotos || []
+  const update = useStore(s => s.update)
+  useEffect(() => {
+    let gone = false
+    const photo = photos.at(-1)
+    if (!photo) { setPhotoUrl(null); return () => { gone = true } }
+    readPhoto(photo.id).then(blob => {
+      if (gone || !blob) return
+      setPhotoUrl(URL.createObjectURL(blob))
+    })
+    return () => { gone = true; setPhotoUrl(url => { if (url) URL.revokeObjectURL(url); return null }) }
+  }, [photos])
+  const addPhoto = async ev => {
+    const file = ev.target.files?.[0]; ev.target.value = ''
+    if (!file || !file.type.startsWith('image/')) return
+    const id = uid()
+    await putPhoto(id, file)
+    update(s => { s.bodyPhotos = [...(s.bodyPhotos || []), { id, d: todayISO(), mime: file.type, bytes: file.size }] })
+  }
+  return <div className="card">
+    <div className="row between" style={{ marginBottom: 8 }}>
+      <h2 style={{ margin: 0 }}>{t('Body tracking')}</h2>
+      <div className="row" style={{ gap: 8 }}>
+        <Button size="sm" icon="scale" onClick={bodyMeasurementSheet}>{t('Measure')}</Button>
+        <Button size="sm" icon="image" onClick={() => fileRef.current?.click()}>{t('Photo')}</Button>
+      </div>
+    </div>
+    <div className="small dim" style={{ marginBottom: 8 }}>{latest ? `${fmtDate(latest.d, true)} · ${measurementLabel(latest)}` : t('Track measurements and optional progress photos alongside your weight.')}</div>
+    {photoUrl && <img src={photoUrl} alt={t('Latest progress photo')} style={{ display: 'block', width: '100%', maxHeight: 280, objectFit: 'cover', borderRadius: 12 }} />}
+    {photos.length > 0 && <div className="small dim" style={{ marginTop: 8 }}>{t('{0} private progress photos stored on this device.', photos.length)}</div>}
+    <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={addPhoto} />
+  </div>
+}
 
 // Which muscles the training in a window actually hit — and, the point of the card,
 // which ones it keeps missing. Shading is relative within the window (lib/muscles.js).
@@ -255,6 +295,8 @@ export default function Stats() {
         </> : <div className="muted small">{t('Finish your first workout to see progress curves here.')}</div>}
       </div>
     </div>
+
+    <BodyTracking S={S} />
 
     {S.workouts.length > 0 && <>
       <div className="row between" style={{ marginBottom: 10 }}>

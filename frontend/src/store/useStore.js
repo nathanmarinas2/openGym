@@ -4,6 +4,7 @@ import { localTZ } from '../lib/format.js'
 import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
+import { clearPhotos, readSnapshot, writeSnapshot } from '../lib/offline.js'
 
 const KEY = 'gym_state_v1'
 export const DEF = {
@@ -15,9 +16,30 @@ export const DEF = {
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
   // server pull, backup import) still falls back to the `showRir` boolean this replaced and
   // keeps the column it had. See effortOf.
-  reminder: { on: false, time: '08:00', tz: null }, effort: null
+  reminder: { on: false, time: '08:00', tz: null }, effort: null,
+  bodyMeasurements: [], bodyPhotos: [],
+  equipmentProfiles: [{ id: 'home', name: 'Home', items: ['body weight'] }],
+  activeEquipmentProfile: 'home'
 }
 const clone = o => JSON.parse(JSON.stringify(o))
+const mergeArray = (local = [], remote = []) => {
+  const out = [...remote]
+  for (const item of local) {
+    const key = item?.id || item?.date || item?.d
+    const idx = key == null ? out.findIndex(x => JSON.stringify(x) === JSON.stringify(item)) : out.findIndex(x => (x?.id || x?.date || x?.d) === key)
+    if (idx < 0) out.push(item)
+    else out[idx] = item
+  }
+  return out
+}
+const mergeStates = (local, remote) => {
+  const merged = Object.assign(clone(DEF), remote, local)
+  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'equipmentProfiles']) {
+    if (Array.isArray(local?.[key]) || Array.isArray(remote?.[key])) merged[key] = mergeArray(local?.[key], remote?.[key])
+  }
+  for (const key of ['exWeights', 'week', 'dayPlan']) merged[key] = { ...(remote?.[key] || {}), ...(local?.[key] || {}) }
+  return merged
+}
 
 function loadState() {
   try {
@@ -27,11 +49,12 @@ function loadState() {
   return clone(DEF)
 }
 
-const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length)
+const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.bodyMeasurements || []).length || (st.equipmentProfiles || []).some(p => p.name !== 'Home' || (p.items || []).length > 1))
 
 export const useStore = create((set, get) => {
   let pushTm = null
   let saveTm = null
+  let serverRevision = null
 
   // Mobile build: mirror the state into a file in the app's data directory (survives WebView
   // storage eviction) and keep the native reminder schedule in step with the weekly plan.
@@ -44,6 +67,9 @@ export const useStore = create((set, get) => {
     S._ts = Date.now()
     registerCustom(S.customEx)
     localStorage.setItem(KEY, JSON.stringify(S))
+    // IndexedDB is intentionally fire-and-forget: it must never block a workout set or make
+    // the app unusable in private browsing where IDB can be unavailable.
+    writeSnapshot(S).catch(() => {})
     set({ S })
     if (MOBILE) nativePersist()
     if (push && get().user) {
@@ -72,6 +98,8 @@ export const useStore = create((set, get) => {
 
   // Everything a sign-out leaves behind on this device, whichever way it was triggered.
   const clearLocalSession = () => {
+    serverRevision = null
+    clearPhotos().catch(() => {})
     get().setUser(null)
     localStorage.removeItem('gym_guest')
     localStorage.removeItem('gym_dirty')
@@ -83,6 +111,8 @@ export const useStore = create((set, get) => {
     S: (() => { const s = loadState(); registerCustom(s.customEx); return s })(),
     user: (() => { try { return JSON.parse(localStorage.getItem('gym_user')) || null } catch { return null } })(),
     ready: false,
+    online: typeof navigator === 'undefined' ? true : navigator.onLine,
+    syncStatus: 'idle',
 
     // Mutate a draft of S via producer fn, then persist + schedule sync.
     update(mut, push = true) {
@@ -104,21 +134,45 @@ export const useStore = create((set, get) => {
     async pushState() {
       if (!get().user) return
       clearTimeout(pushTm)
-      try { await api('/api/data', { method: 'PUT', body: JSON.stringify({ state: get().S }) }); localStorage.removeItem('gym_dirty') }
-      catch (e) { localStorage.setItem('gym_dirty', '1') }
+      set({ syncStatus: 'syncing' })
+      try {
+        // Photo blobs live in this device's IndexedDB. Metadata is intentionally not uploaded:
+        // syncing a filename without its image would make another device look as if it had a
+        // broken photo, and uploading private images would change the privacy model.
+        const outbound = clone(get().S)
+        outbound.bodyPhotos = []
+        const { revision } = await api('/api/data', {
+          method: 'PUT', body: JSON.stringify({ state: outbound, baseRevision: serverRevision })
+        })
+        serverRevision = revision || serverRevision
+        localStorage.removeItem('gym_dirty')
+        set({ syncStatus: 'synced' })
+      } catch (e) {
+        // A second device changed the profile. Merge additive workout data locally, then retry
+        // against the revision returned by the server; this avoids silently losing either copy.
+        if (e.status === 409 && e.data?.state) {
+          serverRevision = e.data.revision || null
+          persist(mergeStates(get().S, e.data.state), false)
+          return get().pushState()
+        }
+        localStorage.setItem('gym_dirty', '1')
+        set({ syncStatus: 'offline' })
+      }
     },
     async pullState() {
       try {
-        const { state } = await api('/api/data')
+        const { state, revision } = await api('/api/data')
+        serverRevision = revision || null
         const S = get().S
         const dirty = localStorage.getItem('gym_dirty') === '1'
         if (state && (!hasData(S) || ((state._ts || 0) >= (S._ts || 0) && !dirty))) {
           const active = S.active
           const next = Object.assign(clone(DEF), state)
           if (active) next.active = active
+          next.bodyPhotos = S.bodyPhotos || []
           persist(next, false)
         } else if (hasData(S)) { await get().pushState() }
-      } catch (e) { /* offline — keep local */ }
+      } catch (e) { set({ syncStatus: 'offline' }) /* offline — keep local */ }
     },
 
     async signOut() {
@@ -147,6 +201,13 @@ export const useStore = create((set, get) => {
 
     // Boot: ask the server who we are, then pull.
     async boot() {
+      // Recover the durable browser snapshot before asking the network. This is a second
+      // chance after localStorage eviction, and keeps the app useful on a plane or in a gym
+      // with unreliable Wi-Fi.
+      if (!MOBILE && !DEMO) {
+        const durable = await readSnapshot()
+        if (durable && (durable._ts || 0) > (get().S._ts || 0)) persist(Object.assign(clone(DEF), durable), false)
+      }
       // Mobile build: no backend either — restore from the file mirror (the durable copy;
       // localStorage may have been evicted since the last run) and go straight in.
       if (MOBILE) {
@@ -189,5 +250,13 @@ export const useStore = create((set, get) => {
     }
   }
 })
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    useStore.setState({ online: true })
+    if (useStore.getState().user) useStore.getState().pushState()
+  })
+  window.addEventListener('offline', () => useStore.setState({ online: false, syncStatus: 'offline' }))
+}
 
 export { hasData }

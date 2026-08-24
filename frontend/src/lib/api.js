@@ -8,9 +8,22 @@ export const webauthnOK = () => !!(window.PublicKeyCredential && navigator.crede
 export async function api(path, opts) {
   const r = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts))
   const data = await r.json().catch(() => ({}))
-  if (!r.ok) { const e = new Error(data.error || ('HTTP ' + r.status)); e.status = r.status; throw e }
+  if (!r.ok) { const e = new Error(data.error || ('HTTP ' + r.status)); e.status = r.status; e.data = data; throw e }
   return data
 }
+
+export async function fetchExport(format = 'json') {
+  const r = await fetch('/api/export?format=' + encodeURIComponent(format), { credentials: 'same-origin' })
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}))
+    const e = new Error(data.error || ('HTTP ' + r.status)); e.status = r.status; throw e
+  }
+  return { body: await r.text(), type: r.headers.get('content-type') || 'application/octet-stream' }
+}
+
+export const listApiTokens = () => api('/api/tokens')
+export const createApiToken = label => api('/api/tokens', { method: 'POST', body: JSON.stringify({ label }) })
+export const revokeApiToken = id => api('/api/tokens', { method: 'DELETE', body: JSON.stringify({ id }) })
 
 const bufToB64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 const b64uToBuf = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)).buffer
