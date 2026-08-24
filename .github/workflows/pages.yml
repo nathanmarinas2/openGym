@@ -1,0 +1,66 @@
+name: Deploy LiftNex web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'assets/banner.png'
+      - 'assets/screenshots/**'
+      - 'frontend/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build the demo app
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          VITE_DEMO=1 VITE_IMG_BASE=https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/images/ VITE_GIF_BASE=https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/videos/ npm run build
+
+      - name: Assemble the website
+        run: |
+          mkdir -p _site/app _site/img
+          cp website/index.html website/docs.html website/about.html website/styles.css website/site.js _site/
+          cp frontend/public/icon-180.png frontend/public/icon-512.png frontend/public/manifest.json frontend/public/sw.js _site/
+          cp assets/banner.png _site/img/banner.png
+          cp assets/screenshots/*.png _site/img/
+          cp -R frontend/dist/. _site/app/
+          touch _site/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -39,7 +39,7 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 
 <div align="center">
 
-### [🌐 LiftNex website](https://opengym.duarte-santos.ch) · [▶ Try the live demo](https://duartesantos8.github.io/openGym/)
+### [🌐 LiftNex website](https://nathanmarinas2.github.io/openGym/) · [▶ Try the live demo](https://nathanmarinas2.github.io/openGym/app/)
 
 No signup, nothing to install — it runs entirely in your browser on example data.<br>
 <sub>There's no server behind the demo, so passkey sign-in, sync across devices and the
@@ -84,7 +84,7 @@ as a home-screen app, passkey sign-in, offline support, sync across your phone a
 - 📥 **Bring your history with you** — import from **FitNotes** (Android and iOS), **Strong** and **Hevy**, or body weight straight out of an **Apple Health** export. Exercise names are matched against the library and anything unrecognised becomes one of your own exercises, so nothing in the file is dropped
 - 📦 **Yours to keep** — one-tap JSON export/import, guest mode, **no telemetry**, durable IndexedDB snapshots and offline-first recovery
 - 📊 **Personal exports** — signed-in profiles can download a flat CSV history or create revocable read-only API tokens for integrations
-- 📱 **Standalone Android app** — the whole tracker as a sideloadable APK: no account, no server, data on the phone, native workout reminders ([download](https://opengym.duarte-santos.ch))
+- 📱 **Standalone Android app** — the whole tracker as a sideloadable APK: no account, no server, data on the phone, native workout reminders ([download](https://github.com/nathanmarinas2/openGym/releases/latest))
 
 ## Quick start (self-host)
 
@@ -113,7 +113,7 @@ no backend — everything stays on the phone, with native workout-day reminders 
 backups. Self-hosting gets you multi-device sync and profiles for friends & family; the
 mobile app is the install-and-done flavor.
 
-- **Android:** [**download the APK**](https://opengym.duarte-santos.ch) and sideload it —
+- **Android:** [**download the APK**](https://github.com/nathanmarinas2/openGym/releases/latest) and sideload it —
   LiftNex is deliberately not on the Play Store. Or build it yourself: **[docs/MOBILE.md](docs/MOBILE.md)**.
 - **iPhone:** Apple doesn't allow installing apps outside the App Store, so there is no iOS
   download. Self-host and add it to your home screen from Safari (it's a full PWA), or build
@@ -166,7 +166,7 @@ Push notification keys are generated on first run and saved to `./data/vapid.jso
 
 Rough, community-driven — ideas and PRs welcome:
 
-- [x] Standalone mobile app — Android APK to sideload ([download](https://opengym.duarte-santos.ch)); on iOS as a self-hosted PWA (no store listings planned)
+- [x] Standalone mobile app — Android APK to sideload ([download](https://github.com/nathanmarinas2/openGym/releases/latest)); on iOS as a self-hosted PWA (no store listings planned)
 - [x] Automatic progression programs (linear, Greyskull LP, double progression) with stalls and deloads
 - [x] Estimated 1RM per exercise
 - [ ] Percentage / training-max programming (5/3/1-style) on top of the progression engine

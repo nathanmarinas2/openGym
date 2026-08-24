@@ -61,7 +61,7 @@ accounts, no store rules, no yearly fees between you and an open-source app.
 
 ### Android — sideload the APK
 
-The official signed LiftNex APK is at **[opengym.duarte-santos.ch](https://opengym.duarte-santos.ch)**.
+The official LiftNex APK is published in the **[latest GitHub release](https://github.com/nathanmarinas2/openGym/releases/latest)**.
 Android asks you to allow installs from the browser the first time — that's standard for any
 app outside the Play Store.
 

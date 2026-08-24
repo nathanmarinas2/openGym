@@ -249,7 +249,7 @@ through app stores.
   - `npm run build:mobile`, then open `android/` in Android Studio or `ios/` in Xcode —
     see **docs/MOBILE.md**. `NOTICE.md` now carries an AGPL §7 app-store exception.
 - 🤖 **Android APK, no Play Store.** The official build is a signed, sideloadable APK
-  (~4.5 MB) from [opengym.duarte-santos.ch](https://opengym.duarte-santos.ch) — deliberately
+  (~4.5 MB) from [the latest LiftNex release](https://github.com/nathanmarinas2/openGym/releases/latest) — deliberately
   store-free. docs/MOBILE.md covers building and signing your own.
 - 🍎 **iOS reality check.** Apple permits no installs outside the App Store, so there is no
   iOS download; the docs explain the free options (self-hosted PWA on the home screen, or
@@ -298,7 +298,7 @@ A muscle map across the app, and a live demo you can try without installing anyt
 - 🐛 **Fixed: finishing a workout from its last exercise could blank the whole app.** The
   per-exercise weight sheet read the running workout without checking it was still there, and
   finishing clears it while that sheet is still on screen.
-- ▶️ **Live demo** at [duartesantos8.github.io/openGym](https://duartesantos8.github.io/openGym/) —
+- ▶️ **Live demo** at [nathanmarinas2.github.io/openGym](https://nathanmarinas2.github.io/openGym/app/) —
   a browser-only build (`VITE_DEMO=1`) published to GitHub Pages on every push to `main`. It boots
   into guest mode with a seeded example profile (12 weeks of Push/Pull/Legs, weigh-ins, PRs) so
   every screen has something to show, and it never talks to a server. Passkeys, sync and the admin
