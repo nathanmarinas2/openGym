@@ -40,6 +40,7 @@ export const LOCAL_FOODS = [
   localFood('potato boiled', 'Potato, boiled', { calories: 87, protein: 1.9, carbs: 20.1, fat: .1, fiber: 1.8, sugar: .9, salt: 0 }, ['vegetables', 'side dish']),
   localFood('sweet potato', 'Sweet potato, baked', { calories: 90, protein: 2, carbs: 20.7, fat: .2, fiber: 3.3, sugar: 6.5, salt: 0 }, ['vegetables', 'side dish'], ['yam']),
   localFood('chicken breast', 'Chicken breast, cooked', { calories: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0, sugar: 0, salt: .2 }, ['meat', 'protein'], ['pollo']),
+  localFood('turkey breast', 'Turkey breast, cooked', { calories: 135, protein: 29, carbs: 0, fat: 1.6, fiber: 0, sugar: 0, salt: .2 }, ['meat', 'protein'], ['pavo', 'turkey', 'dinde']),
   localFood('salmon', 'Salmon, baked', { calories: 208, protein: 20.4, carbs: 0, fat: 13.4, fiber: 0, sugar: 0, salt: .6 }, ['fish', 'protein'], ['salmón']),
   localFood('tuna', 'Tuna, canned in water', { calories: 116, protein: 25.5, carbs: 0, fat: .8, fiber: 0, sugar: 0, salt: .9 }, ['fish', 'protein'], ['canned tuna']),
   localFood('egg', 'Egg', { calories: 143, protein: 12.6, carbs: .7, fat: 9.5, fiber: 0, sugar: .4, salt: .4 }, ['protein', 'breakfast'], ['eggs', 'huevo']),
@@ -72,6 +73,48 @@ const first = (...values) => values.find(value => value != null && value !== '')
 
 const tagName = tag => String(tag || '').replace(/^[a-z]{2}:/i, '').replace(/-/g, ' ').trim()
 const searchable = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+// Open Food Facts contains products in many languages. Keep the interface in the
+// user's language, but broaden common Spanish food terms for the remote search too.
+// This is intentionally small and dependency-free; the local aliases still make
+// these foods available when the public catalogue is temporarily unreachable.
+const SEARCH_SYNONYMS = [
+  ['pechuga de pavo', ['turkey breast', 'dinde']],
+  ['pechuga de pollo', ['chicken breast', 'poulet']],
+  ['pavo', ['turkey', 'turkey breast', 'dinde']],
+  ['pollo', ['chicken', 'chicken breast', 'poulet']],
+  ['ternera', ['beef', 'veal']],
+  ['cerdo', ['pork']],
+  ['jamon', ['ham']],
+  ['pescado', ['fish']],
+  ['atun', ['tuna']],
+  ['huevo', ['egg']],
+  ['leche', ['milk']],
+  ['yogur', ['yogurt']],
+  ['queso', ['cheese']],
+  ['arroz', ['rice']],
+  ['avena', ['oats', 'oatmeal']],
+  ['manzana', ['apple']],
+  ['platano', ['banana']],
+  ['fresas', ['strawberries', 'strawberry']],
+  ['pan', ['bread']],
+  ['patata', ['potato']],
+  ['tomate', ['tomato']]
+]
+
+const queryVariants = query => {
+  const original = String(query || '').trim()
+  const normalized = searchable(original)
+  const variants = [original]
+  for (const [source, equivalents] of SEARCH_SYNONYMS) {
+    if (normalized !== source && !normalized.includes(source)) continue
+    for (const equivalent of equivalents) {
+      variants.push(equivalent)
+      if (normalized !== source) variants.push(original.replace(new RegExp(source, 'i'), equivalent))
+    }
+  }
+  return [...new Set(variants)].filter(Boolean).slice(0, 4)
+}
 
 const nutrientsFrom = nutriments => ({
   calories: number(first(nutriments?.['energy-kcal_100g'], nutriments?.['energy-kcal_value'], nutriments?.['energy-kcal'])),
@@ -224,8 +267,8 @@ export async function searchFoodSources({ query, filters = {}, foods = [], signa
   const q = String(query || '').trim()
   if (q.length < 2) return []
   const local = searchFoods({ query: q, filters, foods })
-  try {
-    const params = new URLSearchParams({ q })
+  const results = await Promise.allSettled(queryVariants(q).map(async searchTerm => {
+    const params = new URLSearchParams({ q: searchTerm })
     const response = await fetch(`/api/nutrition/off/search?${params}`, {
       signal,
       cache: 'no-store',
@@ -233,17 +276,20 @@ export async function searchFoodSources({ query, filters = {}, foods = [], signa
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `Open Food Facts returned ${response.status}`)
-    const remote = (data.products || []).map(product => normalizeFood(product)).filter(Boolean)
-    const seen = new Set()
-    return filterFoods([...remote, ...mergeFoodSources(foods)].filter(food => {
-      if (!food?.id || seen.has(food.id)) return false
-      seen.add(food.id)
-      return true
-    }), { ...filters, query: q }).slice(0, 32)
-  } catch (error) {
-    if (local.length) return local
-    throw error
-  }
+    return (data.products || []).map(product => normalizeFood(product)).filter(Boolean)
+  }))
+  const remote = results.filter(result => result.status === 'fulfilled').flatMap(result => result.value)
+  const failed = results.filter(result => result.status === 'rejected')
+  const remoteFiltered = filterFoods(remote, filters)
+  const seen = new Set()
+  const combined = [...remoteFiltered, ...local].filter(food => {
+    if (!food?.id || seen.has(food.id)) return false
+    seen.add(food.id)
+    return true
+  })
+  if (combined.length) return combined.slice(0, 32)
+  if (failed.length === results.length && !local.length) throw failed[0].reason
+  return []
 }
 
 /** Look up one product by barcode. The API version is explicit so it is easy to migrate later. */

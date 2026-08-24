@@ -35,6 +35,8 @@ describe('nutrition helpers', () => {
   it('searches the built-in catalogue without a network request', () => {
     expect(searchFoods({ query: 'banana' }).some(item => item.name === 'Banana')).toBe(true)
     expect(searchFoods({ query: 'plátano' }).some(item => item.name === 'Banana')).toBe(true)
+    expect(searchFoods({ query: 'pavo' }).some(item => item.name === 'Turkey breast, cooked')).toBe(true)
+    expect(searchFoods({ query: 'pollo' }).some(item => item.name === 'Chicken breast, cooked')).toBe(true)
     expect(searchFoods({ query: 'my bowl', foods: [{ ...food, id: 'manual:bowl', name: 'My bowl' }] })).toHaveLength(1)
   })
 
