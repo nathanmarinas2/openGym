@@ -226,7 +226,11 @@ export async function searchFoodSources({ query, filters = {}, foods = [], signa
   const local = searchFoods({ query: q, filters, foods })
   try {
     const params = new URLSearchParams({ q })
-    const response = await fetch(`/api/nutrition/off/search?${params}`, { signal, headers: { Accept: 'application/json' } })
+    const response = await fetch(`/api/nutrition/off/search?${params}`, {
+      signal,
+      cache: 'no-store',
+      headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }
+    })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `Open Food Facts returned ${response.status}`)
     const remote = (data.products || []).map(product => normalizeFood(product)).filter(Boolean)
@@ -249,7 +253,11 @@ export async function lookupBarcode(code, { signal, foods = [] } = {}) {
   const localMatch = mergeFoodSources(foods).find(food => food.code === barcode)
   if (localMatch) return localMatch
   const params = new URLSearchParams({ code: barcode })
-  const response = await fetch(`/api/nutrition/off/barcode?${params}`, { signal, headers: { Accept: 'application/json' } })
+  const response = await fetch(`/api/nutrition/off/barcode?${params}`, {
+    signal,
+    cache: 'no-store',
+    headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }
+  })
   const data = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(data.error || `Open Food Facts returned ${response.status}`)
   if (data.status !== 1 || !data.product) throw new Error('Food not found in Open Food Facts')
