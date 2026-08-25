@@ -7,6 +7,7 @@ import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
 import { clearPhotos, readSnapshot, writeSnapshot } from '../lib/offline.js'
 
 const KEY = 'gym_state_v1'
+export const STATE_SCHEMA_VERSION = 2
 export const DEF = {
   unit: 'kg', restSec: 90, sound: true, keepAwake: true, lang: 'en',
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
@@ -20,13 +21,27 @@ export const DEF = {
   bodyMeasurements: [], bodyPhotos: [],
   nutritionEntries: [],
   nutritionGoal: { calories: 2200, protein: 150, carbs: 250, fat: 70 },
+  nutritionPreferences: { diet: 'none', allergens: '', avoidAdditives: false },
+  nutritionFavorites: [],
   recipes: [],
   waterEntries: [], waterGoal: 2000,
   fasting: { goalHours: 16, active: false, startedAt: null, history: [] },
+  coachProfile: { objective: 'performance', notes: '' },
+  coachActionHistory: [],
+  healthMetrics: [],
+  schemaVersion: STATE_SCHEMA_VERSION,
   equipmentProfiles: [{ id: 'home', name: 'Home', items: ['body weight'] }],
   activeEquipmentProfile: 'home'
 }
 const clone = o => JSON.parse(JSON.stringify(o))
+const migrateState = input => {
+  const state = Object.assign(clone(DEF), input || {})
+  state.nutritionPreferences = { ...DEF.nutritionPreferences, ...(input?.nutritionPreferences || {}) }
+  state.coachProfile = { ...DEF.coachProfile, ...(input?.coachProfile || {}) }
+  for (const key of ['nutritionFavorites', 'coachActionHistory', 'healthMetrics']) if (!Array.isArray(state[key])) state[key] = []
+  state.schemaVersion = STATE_SCHEMA_VERSION
+  return state
+}
 const mergeArray = (local = [], remote = []) => {
   const out = [...remote]
   for (const item of local) {
@@ -38,23 +53,23 @@ const mergeArray = (local = [], remote = []) => {
   return out
 }
 const mergeStates = (local, remote) => {
-  const merged = Object.assign(clone(DEF), remote, local)
-  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'nutritionEntries', 'recipes', 'waterEntries', 'equipmentProfiles']) {
+  const merged = migrateState(Object.assign(clone(DEF), remote, local))
+  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'nutritionEntries', 'nutritionFavorites', 'recipes', 'waterEntries', 'equipmentProfiles', 'coachActionHistory', 'healthMetrics']) {
     if (Array.isArray(local?.[key]) || Array.isArray(remote?.[key])) merged[key] = mergeArray(local?.[key], remote?.[key])
   }
   for (const key of ['exWeights', 'week', 'dayPlan']) merged[key] = { ...(remote?.[key] || {}), ...(local?.[key] || {}) }
-  return merged
+  return migrateState(merged)
 }
 
 function loadState() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return Object.assign(clone(DEF), JSON.parse(raw))
+    if (raw) return migrateState(JSON.parse(raw))
   } catch (e) { /* ignore */ }
-  return clone(DEF)
+  return migrateState(DEF)
 }
 
-const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.bodyMeasurements || []).length || (st.nutritionEntries || []).length || (st.recipes || []).length || (st.waterEntries || []).length || (st.fasting?.history || []).length || st.fasting?.active || (st.equipmentProfiles || []).some(p => p.name !== 'Home' || (p.items || []).length > 1))
+  const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.bodyMeasurements || []).length || (st.nutritionEntries || []).length || (st.recipes || []).length || (st.waterEntries || []).length || (st.healthMetrics || []).length || (st.fasting?.history || []).length || st.fasting?.active || (st.equipmentProfiles || []).some(p => p.name !== 'Home' || (p.items || []).length > 1))
 
 export const useStore = create((set, get) => {
   let pushTm = null
@@ -69,6 +84,7 @@ export const useStore = create((set, get) => {
   }
 
   const persist = (S, push = true) => {
+    S.schemaVersion = STATE_SCHEMA_VERSION
     S._ts = Date.now()
     registerCustom(S.customEx)
     localStorage.setItem(KEY, JSON.stringify(S))
@@ -125,7 +141,7 @@ export const useStore = create((set, get) => {
       mut(S)
       persist(S, push)
     },
-    replaceState(S, push = false) { persist(clone(S), push) },
+    replaceState(S, push = false) { persist(migrateState(S), push) },
 
     isGuest: () => localStorage.getItem('gym_guest') === '1',
     setGuest(v) { if (v) localStorage.setItem('gym_guest', '1'); else localStorage.removeItem('gym_guest'); set({}) },

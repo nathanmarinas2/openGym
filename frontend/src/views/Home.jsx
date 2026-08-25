@@ -131,6 +131,19 @@ export default function Home() {
       <div className="small muted" style={{ marginTop: 7 }}>{roundNutrition(nutrition.protein)}g {S.lang === 'es' ? 'proteína' : t('protein')} · {S.lang === 'es' ? 'Abrir diario' : t('Open food diary')}</div>
     </Tappable>
 
+    <div className="home-action-grid">
+      <Tappable className="card tappable home-action-card" onClick={() => nav('/briefing')}>
+        <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="sparkles" /></span>
+        <div><div className="ttl">{S.lang === 'es' ? 'Resumen diario' : 'Daily briefing'}</div><div className="small muted">{S.lang === 'es' ? 'Entrenamiento, combustible y tendencia' : 'Training, fuel and trend'}</div></div>
+        <Icon name="chevronRight" className="chev" />
+      </Tappable>
+      <Tappable className="card tappable home-action-card" onClick={() => nav('/coach')}>
+        <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="sparkles" /></span>
+        <div><div className="ttl">{S.lang === 'es' ? 'Coach personal' : 'Personal coach'}</div><div className="small muted">{S.lang === 'es' ? 'Revisión de todo tu historial' : 'Review your full history'}</div></div>
+        <Icon name="chevronRight" className="chev" />
+      </Tappable>
+    </div>
+
     <Tappable className="card tappable" style={{ cursor: 'pointer' }} onClick={() => calendarSheet()}>
       <div className="row between">
         <div>

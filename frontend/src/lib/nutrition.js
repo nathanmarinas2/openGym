@@ -10,11 +10,16 @@ export const DEFAULT_NUTRITION_GOAL = {
   fat: 70
 }
 
-export const NUTRIENT_KEYS = ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'salt']
+export const NUTRIENT_KEYS = [
+  'calories', 'protein', 'carbs', 'fat', 'saturatedFat', 'fiber', 'sugar', 'salt',
+  'sodium', 'potassium', 'calcium', 'iron', 'vitaminC', 'vitaminD'
+]
 
 const localFood = (id, name, values, categories = [], aliases = [], code = '') => ({
   id: `local:${id}`, code, source: 'LiftNex local catalog', name, brand: '', image: '', serving: '100g',
-  grade: '', categories, labels: [], aliases, per100: values
+  grade: '', categories, labels: [], aliases, per100: values,
+  availableNutrients: Object.fromEntries(Object.keys(values).map(key => [key, true])),
+  missingNutrients: [], sourceMeta: { provider: 'LiftNex local catalog', fetchedAt: null, country: null, cacheHit: false }
 })
 
 // Small, dependency-free starter catalogue. It keeps the diary useful on first launch,
@@ -78,7 +83,7 @@ const OFF_FIELDS = [
   'code', 'product_name', 'generic_name', 'product_name_en', 'brands', 'image_front_small_url',
   'image_front_url', 'nutriments', 'serving_size', 'nutrition_grades', 'nutrition_grade_fr',
   'nutriscore_grade', 'nova_group', 'ingredients_text', 'additives_tags', 'allergens_tags',
-  'categories_tags', 'labels_tags'
+  'categories_tags', 'labels_tags', 'countries_tags', 'countries', 'stores_tags'
 ].join(',')
 const isStaticDemo = () => import.meta.env.VITE_DEMO === '1' || (typeof window !== 'undefined' && /\.github\.io$/i.test(window.location.hostname))
 const foodSearchUrl = query => {
@@ -90,6 +95,20 @@ const foodBarcodeUrl = code => {
   if (!isStaticDemo()) return `/api/nutrition/off/barcode?${new URLSearchParams({ code })}`
   const params = new URLSearchParams({ fields: OFF_FIELDS })
   return `${OFF_DIRECT_BASE}/api/v2/product/${encodeURIComponent(code)}.json?${params}`
+}
+
+const foodCacheStorageKey = 'liftnex_food_search_cache_v2'
+const barcodeCacheStorageKey = 'liftnex_food_barcode_cache_v2'
+const readPersistedCache = key => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '{}')
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch { return {} }
+}
+const persistedSearchCache = readPersistedCache(foodCacheStorageKey)
+const persistedBarcodeCache = readPersistedCache(barcodeCacheStorageKey)
+const savePersistedCache = (key, value) => {
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* private mode/quota — memory cache still works */ }
 }
 
 // Open Food Facts contains products in many languages. Keep the interface in the
@@ -135,33 +154,57 @@ const queryVariants = query => {
 }
 
 const SEARCH_CACHE_TTL = 5 * 60 * 1000
-const FOOD_SEARCH_CACHE = new Map()
+const PERSISTED_CACHE_TTL = 24 * 60 * 60 * 1000
+const FOOD_SEARCH_CACHE = new Map(Object.entries(persistedSearchCache).map(([key, value]) => [key, value]).filter(([, value]) => value?.at && Date.now() - value.at < PERSISTED_CACHE_TTL))
+const BARCODE_CACHE = new Map(Object.entries(persistedBarcodeCache).map(([key, value]) => [key, value]).filter(([, value]) => value?.at && Date.now() - value.at < PERSISTED_CACHE_TTL))
 
 const searchCacheKey = (query, filters = {}) => JSON.stringify([
   searchable(query),
   filters.grade || '',
   filters.maxSugar ?? '',
   filters.minProtein ?? '',
-  searchable(filters.category || '')
+  searchable(filters.category || ''),
+  searchable(filters.brand || ''),
+  searchable(filters.country || '')
 ])
 
 const rememberSearch = (key, foods) => {
-  FOOD_SEARCH_CACHE.set(key, { at: Date.now(), foods })
+  const value = { at: Date.now(), foods }
+  FOOD_SEARCH_CACHE.set(key, value)
+  const persisted = Object.fromEntries([...FOOD_SEARCH_CACHE.entries()].slice(-60))
+  savePersistedCache(foodCacheStorageKey, persisted)
   if (FOOD_SEARCH_CACHE.size <= 80) return
   const oldest = [...FOOD_SEARCH_CACHE.entries()].sort((a, b) => a[1].at - b[1].at)[0]
   if (oldest) FOOD_SEARCH_CACHE.delete(oldest[0])
 }
 
-const nutrientsFrom = nutriments => ({
-  calories: number(first(nutriments?.['energy-kcal_100g'], nutriments?.['energy-kcal_value'], nutriments?.['energy-kcal'])),
-  protein: number(first(nutriments?.proteins_100g, nutriments?.protein_100g)),
-  carbs: number(first(nutriments?.carbohydrates_100g, nutriments?.carbohydrate_100g)),
-  fat: number(first(nutriments?.fat_100g, nutriments?.fats_100g)),
-  saturatedFat: number(first(nutriments?.['saturated-fat_100g'], nutriments?.saturated_fat_100g)),
-  fiber: number(first(nutriments?.fiber_100g, nutriments?.fibers_100g)),
-  sugar: number(first(nutriments?.sugars_100g, nutriments?.sugar_100g)),
-  salt: number(first(nutriments?.salt_100g))
-})
+const nutrientFields = {
+  calories: ['energy-kcal_100g', 'energy-kcal_value', 'energy-kcal'],
+  protein: ['proteins_100g', 'protein_100g'],
+  carbs: ['carbohydrates_100g', 'carbohydrate_100g'],
+  fat: ['fat_100g', 'fats_100g'],
+  saturatedFat: ['saturated-fat_100g', 'saturated_fat_100g'],
+  fiber: ['fiber_100g', 'fibers_100g'],
+  sugar: ['sugars_100g', 'sugar_100g'],
+  salt: ['salt_100g'],
+  sodium: ['sodium_100g'],
+  potassium: ['potassium_100g'],
+  calcium: ['calcium_100g'],
+  iron: ['iron_100g'],
+  vitaminC: ['vitamin-c_100g', 'vitamin_c_100g'],
+  vitaminD: ['vitamin-d_100g', 'vitamin_d_100g']
+}
+
+const nutrientsFrom = nutriments => {
+  const per100 = {}, availableNutrients = {}
+  for (const key of NUTRIENT_KEYS) {
+    const raw = first(...(nutrientFields[key] || []).map(field => nutriments?.[field]))
+    const available = raw != null && raw !== '' && Number.isFinite(+raw)
+    availableNutrients[key] = available
+    per100[key] = available ? Math.max(0, +raw) : 0
+  }
+  return { per100, availableNutrients, missingNutrients: NUTRIENT_KEYS.filter(key => !availableNutrients[key]) }
+}
 
 const canonicalId = (source, code, name) => {
   const raw = `${source}:${code || name || 'food'}`.toLowerCase()
@@ -169,12 +212,18 @@ const canonicalId = (source, code, name) => {
 }
 
 /** Convert an Open Food Facts product into the small snapshot stored in a diary entry. */
-export function normalizeFood(product, source = 'Open Food Facts') {
+export function normalizeFood(product, source = 'Open Food Facts', meta = {}) {
   if (!product) return null
   const name = String(first(product.product_name, product.generic_name, product.product_name_en, 'Unnamed food')).trim()
   const categories = Array.isArray(product.categories_tags) ? product.categories_tags.map(tagName).filter(Boolean) : []
   const labels = Array.isArray(product.labels_tags) ? product.labels_tags.map(tagName).filter(Boolean) : []
+  const countries = Array.isArray(product.countries_tags) ? product.countries_tags.map(tagName).filter(Boolean) : String(product.countries || '').split(',').map(value => value.trim()).filter(Boolean)
   const grade = String(first(product.nutriscore_grade, product.nutrition_grade_fr, product.nutrition_grades, '')).toLowerCase().slice(0, 1)
+  const nutrients = nutrientsFrom(product.nutriments || {})
+  const missingFields = [...nutrients.missingNutrients]
+  if (!String(product.ingredients_text || '').trim()) missingFields.push('ingredients')
+  if (!grade) missingFields.push('nutriScore')
+  if (!product.nova_group) missingFields.push('processing')
   return {
     id: canonicalId(source, product.code, name),
     code: product.code ? String(product.code) : '',
@@ -188,14 +237,42 @@ export function normalizeFood(product, source = 'Open Food Facts') {
     additives: Array.isArray(product.additives_tags) ? product.additives_tags.map(tagName).filter(Boolean) : [],
     allergens: Array.isArray(product.allergens_tags) ? product.allergens_tags.map(tagName).filter(Boolean) : [],
     ingredientsText: String(product.ingredients_text || '').trim(),
-    categories,
+    categories, countries,
     aliases: [],
     labels,
-    per100: nutrientsFrom(product.nutriments || {})
+    per100: nutrients.per100,
+    availableNutrients: nutrients.availableNutrients,
+    missingNutrients: nutrients.missingNutrients,
+    missingFields,
+    sourceMeta: {
+      provider: source,
+      fetchedAt: meta.fetchedAt || product._liftNexFetchedAt || new Date().toISOString(),
+      country: meta.country || countries[0] || null,
+      cacheHit: !!meta.cacheHit
+    }
   }
 }
 
 const SCORE_GRADE_BASE = { a: 84, b: 73, c: 61, d: 47, e: 32 }
+
+const nutrientKnown = (food, key) => food?.availableNutrients
+  ? food.availableNutrients[key] === true
+  : food?.per100?.[key] != null
+const displayValue = (food, key) => nutrientKnown(food, key) ? number(food?.per100?.[key]) : '—'
+const preferenceCheck = (food, preferences = {}) => {
+  const avoid = String(preferences.allergens || '').split(',').map(item => searchable(item).trim()).filter(Boolean)
+  const allergens = (food?.allergens || []).map(searchable)
+  const allergenMatches = avoid.filter(item => allergens.some(value => value.includes(item) || item.includes(value)))
+  const style = preferences.diet || 'none'
+  const haystack = searchable([food?.name, food?.ingredientsText, ...(food?.categories || []), ...(food?.labels || [])].join(' '))
+  const styleMismatch = style === 'vegan' && !/(vegan|plant|vegetable|legume|tofu)/.test(haystack)
+    ? 'Not clearly vegan'
+    : style === 'vegetarian' && /(meat|chicken|turkey|beef|pork|fish|tuna|salmon)/.test(haystack)
+      ? 'May not be vegetarian'
+      : ''
+  const warnings = [...allergenMatches.map(item => `Allergen: ${item}`), ...(styleMismatch ? [styleMismatch] : [])]
+  return { score: warnings.length ? 0 : 100, warnings, allergenMatches, styleMismatch }
+}
 
 const splitIngredients = value => {
   const parts = []
@@ -220,9 +297,9 @@ const splitIngredients = value => {
  * proprietary rating. It uses the public product snapshot: Nutri-Score when available,
  * sugar/salt/saturated fat, fibre/protein, declared additive count and NOVA group.
  */
-export function healthScore(food) {
+export function healthScore(food, preferences = {}) {
   const values = food?.per100 || {}
-  const hasData = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt'].some(key => number(values[key]) > 0) || /^[a-e]$/.test(food?.grade || '')
+  const hasData = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt'].some(key => nutrientKnown(food, key) && (number(values[key]) > 0 || values[key] === 0)) || /^[a-e]$/.test(food?.grade || '')
   if (!hasData) return null
   let score = SCORE_GRADE_BASE[food.grade] ?? 58
   const calories = number(values.calories)
@@ -231,16 +308,16 @@ export function healthScore(food) {
   const saturatedFat = number(values.saturatedFat)
   const fiber = number(values.fiber)
   const protein = number(values.protein)
-  if (sugar > 22) score -= 14
-  else if (sugar > 12) score -= 7
-  if (salt > 1.5) score -= 14
-  else if (salt > .8) score -= 7
-  if (saturatedFat > 10) score -= 10
-  else if (saturatedFat > 5) score -= 5
-  if (fiber >= 6) score += 7
-  else if (fiber >= 3) score += 3
-  if (protein >= 15) score += 5
-  else if (protein >= 8) score += 2
+  if (nutrientKnown(food, 'sugar') && sugar > 22) score -= 14
+  else if (nutrientKnown(food, 'sugar') && sugar > 12) score -= 7
+  if (nutrientKnown(food, 'salt') && salt > 1.5) score -= 14
+  else if (nutrientKnown(food, 'salt') && salt > .8) score -= 7
+  if (nutrientKnown(food, 'saturatedFat') && saturatedFat > 10) score -= 10
+  else if (nutrientKnown(food, 'saturatedFat') && saturatedFat > 5) score -= 5
+  if (nutrientKnown(food, 'fiber') && fiber >= 6) score += 7
+  else if (nutrientKnown(food, 'fiber') && fiber >= 3) score += 3
+  if (nutrientKnown(food, 'protein') && protein >= 15) score += 5
+  else if (nutrientKnown(food, 'protein') && protein >= 8) score += 2
   const additiveCount = Array.isArray(food.additives) ? food.additives.length : 0
   score -= Math.min(15, additiveCount * 2)
   if (food.novaGroup === 4) score -= 10
@@ -248,8 +325,8 @@ export function healthScore(food) {
   score = Math.max(0, Math.min(100, Math.round(score)))
   const additives = Array.isArray(food.additives) ? food.additives : []
   const additiveTone = additiveCount > 5 ? 'low' : additiveCount > 0 ? 'moderate' : 'good'
-  const nutrientTone = (value, warning, high) => value >= high ? 'good' : value >= warning ? 'moderate' : 'neutral'
-  const lowerIsBetter = (value, warning, high) => value > high ? 'low' : value > warning ? 'moderate' : 'good'
+  const nutrientTone = (value, warning, high, known = true) => !known ? 'unknown' : value >= high ? 'good' : value >= warning ? 'moderate' : 'neutral'
+  const lowerIsBetter = (value, warning, high, known = true) => !known ? 'unknown' : value > high ? 'low' : value > warning ? 'moderate' : 'good'
   const ingredientList = splitIngredients(food.ingredientsText)
   const ingredientSignals = ingredientList.map(name => {
     const normalized = searchable(name)
@@ -268,14 +345,14 @@ export function healthScore(food) {
   const breakdown = {
     negative: [
       { key: 'additives', kind: 'negative', icon: 'sparkles', tone: additiveTone, value: additiveCount, unit: '', detail: additives.join(', ') },
-      { key: 'salt', kind: 'negative', icon: 'droplet', tone: lowerIsBetter(salt, .8, 1.5), value: salt, unit: 'g / 100g' },
-      { key: 'saturatedFat', kind: 'negative', icon: 'droplet', tone: lowerIsBetter(saturatedFat, 5, 10), value: saturatedFat, unit: 'g / 100g' },
-      { key: 'sugar', kind: 'negative', icon: 'flame', tone: lowerIsBetter(sugar, 12, 22), value: sugar, unit: 'g / 100g' }
+      { key: 'salt', kind: 'negative', icon: 'droplet', tone: lowerIsBetter(salt, .8, 1.5, nutrientKnown(food, 'salt')), value: displayValue(food, 'salt'), unit: 'g / 100g' },
+      { key: 'saturatedFat', kind: 'negative', icon: 'droplet', tone: lowerIsBetter(saturatedFat, 5, 10, nutrientKnown(food, 'saturatedFat')), value: displayValue(food, 'saturatedFat'), unit: 'g / 100g' },
+      { key: 'sugar', kind: 'negative', icon: 'flame', tone: lowerIsBetter(sugar, 12, 22, nutrientKnown(food, 'sugar')), value: displayValue(food, 'sugar'), unit: 'g / 100g' }
     ],
     positive: [
-      { key: 'protein', kind: 'positive', icon: 'dumbbell', tone: nutrientTone(protein, 8, 15), value: protein, unit: 'g / 100g' },
-      { key: 'fiber', kind: 'positive', icon: 'heart', tone: nutrientTone(fiber, 3, 6), value: fiber, unit: 'g / 100g' },
-      { key: 'energy', kind: 'positive', icon: 'flame', tone: calories <= 400 ? 'good' : calories <= 600 ? 'moderate' : 'low', value: number(values.calories), unit: 'kcal / 100g' }
+      { key: 'protein', kind: 'positive', icon: 'dumbbell', tone: nutrientTone(protein, 8, 15, nutrientKnown(food, 'protein')), value: displayValue(food, 'protein'), unit: 'g / 100g' },
+      { key: 'fiber', kind: 'positive', icon: 'heart', tone: nutrientTone(fiber, 3, 6, nutrientKnown(food, 'fiber')), value: displayValue(food, 'fiber'), unit: 'g / 100g' },
+      { key: 'energy', kind: 'positive', icon: 'flame', tone: nutrientTone(600 - calories, 0, 200, nutrientKnown(food, 'calories')), value: displayValue(food, 'calories'), unit: 'kcal / 100g' }
     ],
     context: [
       { key: 'nutriScore', kind: 'context', icon: 'scale', tone: food.grade === 'a' || food.grade === 'b' ? 'good' : food.grade ? 'moderate' : 'neutral', value: food.grade ? food.grade.toUpperCase() : '—', unit: '' },
@@ -283,6 +360,15 @@ export function healthScore(food) {
     ],
     ingredients: ingredientSignals
   }
+  const coreFields = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt']
+  const coreKnown = coreFields.filter(key => nutrientKnown(food, key)).length
+  const confidence = coreKnown >= 5 && food.ingredientsText && food.grade && food.novaGroup ? 'high' : coreKnown >= 3 ? 'medium' : 'low'
+  const confidenceReasons = [
+    coreKnown < coreFields.length ? `${coreFields.length - coreKnown} core nutrient fields missing` : '',
+    !food.ingredientsText ? 'ingredients not available' : '',
+    !food.grade ? 'Nutri-Score not available' : '',
+    !food.novaGroup ? 'processing data not available' : ''
+  ].filter(Boolean)
   return {
     score,
     tone: score >= 75 ? 'good' : score >= 55 ? 'moderate' : 'low',
@@ -295,7 +381,11 @@ export function healthScore(food) {
     saturatedFat,
     fiber,
     protein,
-    calories: number(values.calories),
+    calories: displayValue(food, 'calories'),
+    confidence,
+    confidenceReasons,
+    missingFields: food.missingFields || [],
+    personal: preferenceCheck(food, preferences),
     breakdown
   }
 }
@@ -323,13 +413,18 @@ export function filterFoods(foods = [], filters = {}) {
   const query = searchable(String(filters.query || '').trim())
   const grade = searchable(filters.grade)
   const category = searchable(String(filters.category || '').trim())
+  const brand = searchable(String(filters.brand || '').trim())
+  const country = searchable(String(filters.country || '').trim())
   const minProtein = filters.minProtein === '' || filters.minProtein == null ? null : number(filters.minProtein)
   const maxSugar = filters.maxSugar === '' || filters.maxSugar == null ? null : number(filters.maxSugar)
   return foods.filter(food => {
     const haystack = searchable([food.name, food.brand, ...(food.aliases || []), ...(food.categories || []), ...(food.labels || [])].join(' '))
+    const countryText = searchable([...(food.countries || []), food.sourceMeta?.country || ''].join(' '))
     if (query && !haystack.includes(query)) return false
     if (grade && food.grade !== grade) return false
     if (category && !haystack.includes(category)) return false
+    if (brand && !searchable(food.brand).includes(brand)) return false
+    if (country && !countryText.includes(country)) return false
     if (minProtein != null && number(food.per100?.protein) < minProtein) return false
     if (maxSugar != null && number(food.per100?.sugar) > maxSugar) return false
     return true
@@ -377,15 +472,18 @@ export async function searchFoodSources({ query, filters = {}, signal } = {}) {
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error || `Open Food Facts returned ${response.status}`)
-      remote.push(...(data.products || []).map(product => normalizeFood(product)).filter(Boolean))
+      remote.push(...(data.products || []).map(product => normalizeFood(product, data.source || 'Open Food Facts', { fetchedAt: data.fetchedAt, cacheHit: data.cache?.hit })).filter(Boolean))
     } catch (error) {
       if (signal?.aborted) throw error
       failed.push(error)
     }
-    const filteredSoFar = filterFoods(remote, filters)
+    // The query may be Spanish while the returned product is labelled in English (or the
+    // reverse). A translated variant is already proof that this product matches; applying the
+    // original Spanish text again would incorrectly discard turkey/chicken results.
+    const filteredSoFar = remote.filter(food => filterFoods([food], { ...filters, query: searchTerm }).length > 0)
     if (remote.length >= 32 && (!hasFilters || filteredSoFar.length)) break
   }
-  const remoteFiltered = filterFoods(remote, filters)
+  const remoteFiltered = filterFoods(remote, { ...filters, query: '' })
   const seen = new Set()
   const combined = remoteFiltered.filter(food => {
     if (!food?.id || seen.has(food.id)) return false
@@ -406,6 +504,8 @@ export async function searchFoodSources({ query, filters = {}, signal } = {}) {
 export async function lookupBarcode(code, { signal, foods = [] } = {}) {
   const barcode = String(code || '').replace(/\D/g, '')
   if (barcode.length < 6) throw new Error('Enter a valid barcode')
+  const cached = BARCODE_CACHE.get(barcode)
+  if (cached && Date.now() - cached.at < PERSISTED_CACHE_TTL) return cached.food
   const response = await fetch(foodBarcodeUrl(barcode), {
     signal,
     cache: 'no-store',
@@ -414,7 +514,10 @@ export async function lookupBarcode(code, { signal, foods = [] } = {}) {
   const data = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(data.error || `Open Food Facts returned ${response.status}`)
   if (!data.product || (data.status !== 1 && data.status !== 'success' && !data.code)) throw new Error('Food not found in Open Food Facts')
-  return normalizeFood({ ...data.product, code: data.product.code || barcode })
+  const food = normalizeFood({ ...data.product, code: data.product.code || barcode }, data.source || 'Open Food Facts', { fetchedAt: data.fetchedAt, cacheHit: data.cache?.hit })
+  BARCODE_CACHE.set(barcode, { at: Date.now(), food })
+  savePersistedCache(barcodeCacheStorageKey, Object.fromEntries([...BARCODE_CACHE.entries()].slice(-80)))
+  return food
 }
 
 export const roundNutrition = value => Math.round(number(value) * 10) / 10

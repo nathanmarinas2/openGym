@@ -491,6 +491,64 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
   }
 }
 
+/* ------------------------------------------------------ health metrics ---- */
+
+// A deliberately provider-neutral daily shape. Health Connect, Apple Health exports and
+// wearable vendors all name these columns differently; keeping one normalized row means the
+// Coach can use them without coupling the app to one vendor's SDK or asking for permissions in
+// the browser. Native adapters can write the same shape later.
+const HEALTH_COLUMNS = {
+  steps: ['steps', 'step count', 'steps count', 'total steps'],
+  sleepHours: ['sleep hours', 'sleep duration', 'sleep', 'asleep hours'],
+  activeCalories: ['active calories', 'active energy', 'move calories', 'calories burned'],
+  restingHeartRate: ['resting heart rate', 'resting hr', 'resting bpm', 'heart rate'],
+}
+
+function firstColumn(header, aliases) {
+  for (const alias of aliases) {
+    const i = header.indexOf(norm(alias))
+    if (i !== -1) return i
+  }
+  return undefined
+}
+
+/** Parse a daily Health Connect / Apple Health / wearable CSV export. */
+export function parseHealthMetricsCSV(text) {
+  const rows = parseCSV(text)
+  if (rows.length < 2) return { error: 'empty' }
+  const header = rows[0].map(norm)
+  const dateCol = firstColumn(header, ['date', 'day', 'start date', 'timestamp', 'time'])
+  if (dateCol === undefined) return { error: 'unrecognised' }
+  const cols = Object.fromEntries(Object.entries(HEALTH_COLUMNS).map(([key, aliases]) => [key, firstColumn(header, aliases)]))
+  if (!Object.values(cols).some(index => index !== undefined)) return { error: 'unrecognised' }
+  const byDate = new Map()
+  let skipped = 0
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i]
+    const when = parseWhen(String(row[dateCol] || ''))
+    if (!when) { skipped++; continue }
+    const item = { d: when.d, source: 'Health metrics import' }
+    let measured = false
+    for (const [key, index] of Object.entries(cols)) {
+      if (index === undefined) continue
+      const value = num(row[index])
+      if (value <= 0) continue
+      item[key] = Math.round(value * 100) / 100
+      measured = true
+    }
+    if (!measured) { skipped++; continue }
+    const existing = byDate.get(when.d)
+    byDate.set(when.d, existing ? { ...existing, ...item } : item)
+  }
+  if (!byDate.size) return { error: 'unrecognised' }
+  const dates = [...byDate.keys()].sort()
+  return {
+    kind: 'healthMetrics', source: 'Health Connect / Apple Health CSV',
+    healthMetrics: dates.map(d => byDate.get(d)),
+    from: dates[0], to: dates[dates.length - 1], skipped,
+  }
+}
+
 /** Sniff the file and parse it as whatever it is. */
 export function parseImport(text, opts) {
   const s = String(text)
@@ -498,7 +556,9 @@ export function parseImport(text, opts) {
   const asWorkouts = parseWorkoutCSV(s, opts)
   if (!asWorkouts.error) return asWorkouts
   const asWeights = parseBodyweight(s, opts)
-  return asWeights.error ? asWorkouts : asWeights
+  if (!asWeights.error) return asWeights
+  const asHealth = parseHealthMetricsCSV(s)
+  return asHealth.error ? asWorkouts : asHealth
 }
 
 /* --------------------------------------------------------------- merge ---- */
@@ -510,6 +570,16 @@ export function mergeImport(S, parsed) {
     const fresh = parsed.bodyweight.filter(b => !have.has(b.d))
     S.bodyweight = [...S.bodyweight, ...fresh].sort((a, b) => (a.d < b.d ? -1 : 1))
     return { added: fresh.length, skipped: parsed.bodyweight.length - fresh.length }
+  }
+  if (parsed.kind === 'healthMetrics') {
+    const existing = new Map((S.healthMetrics || []).map(item => [item.d, item]))
+    let added = 0
+    for (const item of parsed.healthMetrics || []) {
+      if (!existing.has(item.d)) { added++; existing.set(item.d, item) }
+      else existing.set(item.d, { ...existing.get(item.d), ...item })
+    }
+    S.healthMetrics = [...existing.values()].sort((a, b) => (a.d < b.d ? -1 : 1))
+    return { added, skipped: (parsed.healthMetrics || []).length - added }
   }
   const have = new Set(S.workouts.map(w => w.d))
   const fresh = parsed.workouts.filter(w => !have.has(w.d))
