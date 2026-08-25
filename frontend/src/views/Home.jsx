@@ -7,7 +7,7 @@ import { t, dateLocale } from '../lib/i18n.js'
 import { bwSheet, goalSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan, bwDeltaColor } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
-import { Button, Tappable } from '../components/ui.jsx'
+import { Button, NumberField, Tappable } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import { DEFAULT_NUTRITION_GOAL, dailyTotals, roundNutrition } from '../lib/nutrition.js'
 
@@ -15,6 +15,7 @@ import { DEFAULT_NUTRITION_GOAL, dailyTotals, roundNutrition } from '../lib/nutr
 export default function Home() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
+  const update = useStore(s => s.update)
   const user = useStore(s => s.user)
   const [weekOffset, setWeekOffset] = useState(0)
 
@@ -44,6 +45,24 @@ export default function Home() {
   const bwPoints = S.bodyweight.slice(-30).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
   const nutrition = dailyTotals(S.nutritionEntries || [], todayISO())
   const nutritionGoal = { ...DEFAULT_NUTRITION_GOAL, ...(S.nutritionGoal || {}) }
+  const stepRow = (S.healthMetrics || []).find(item => item?.d === todayISO() && item.steps != null)
+  const steps = stepRow ? Math.max(0, Math.round(+stepRow.steps || 0)) : null
+  const stepsGoal = Math.max(500, Math.round(+S.stepsGoal || 10000))
+  const setSteps = value => update(s => {
+    const date = todayISO()
+    const rows = [...(s.healthMetrics || [])]
+    const index = rows.findIndex(item => item?.d === date)
+    const current = index >= 0 ? { ...rows[index] } : { d: date, source: 'Manual' }
+    if (value == null) delete current.steps
+    else current.steps = Math.max(0, Math.min(200000, Math.round(value)))
+    current.source = current.source || 'Manual'
+    const hasValue = Object.keys(current).some(key => !['d', 'source'].includes(key))
+    if (!hasValue) { if (index >= 0) rows.splice(index, 1) }
+    else if (index >= 0) rows[index] = current
+    else rows.push(current)
+    s.healthMetrics = rows.sort((a, b) => a.d.localeCompare(b.d))
+  })
+  const addSteps = amount => setSteps((steps || 0) + amount)
 
   // today's session shown right under the week strip
   const onToday = () => { if (S.active) nav('/workout'); else if (routine) startFlow(routine.id); else dayOverrideSheet(todayISO()) }
@@ -61,7 +80,7 @@ export default function Home() {
         <button className="iconbtn" style={{ width: 30, height: 30, fontSize: 15 }} onClick={() => setWeekOffset(w => w + 1)} aria-label="Next week"><Icon name="chevronRight" /></button>
       </div>
       <div className="week">{strip}</div>
-      <Tappable className="today-row" onClick={onToday}>
+    <Tappable className="today-row" onClick={onToday}>
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
           <span className="lrow-i" style={{ background: S.active ? 'var(--orange)' : routine ? 'var(--acc)' : 'var(--surface-3)' }}>
             <Icon name={S.active ? 'timer' : routine ? glyphOf(routine.emoji) : 'moon'} />
@@ -76,6 +95,24 @@ export default function Home() {
           : <Icon name="plus" className="chev" />}
       </Tappable>
     </div>
+
+    <section className="card home-steps-card" aria-labelledby="home-steps-title">
+      <div className="row between home-steps-head">
+        <div className="row" style={{ gap: 9, minWidth: 0 }}>
+          <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="figureRun" /></span>
+          <div><h2 id="home-steps-title" style={{ margin: 0 }}>{S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'}</h2><div className="small muted">{S.lang === 'es' ? 'Regístralos aquí, sin entrar en otro apartado' : 'Log them here without opening another section'}</div></div>
+        </div>
+        <div className="home-steps-number">{steps == null ? '—' : steps.toLocaleString()}<span> / {stepsGoal.toLocaleString()}</span></div>
+      </div>
+      <div className="nutrition-track home-steps-track"><span style={{ width: `${stepsGoal ? Math.min(100, (steps || 0) / stepsGoal * 100) : 0}`, background: 'var(--blue)' }} /></div>
+      <div className="home-steps-actions">
+        <div className="home-steps-quick" aria-label={S.lang === 'es' ? 'Añadir pasos' : 'Add steps'}>
+          {[500, 1000, 2500].map(amount => <Button key={amount} size="sm" variant="tinted" onClick={() => addSteps(amount)}>+{amount.toLocaleString()}</Button>)}
+        </div>
+        <label className="home-steps-input"><span>{S.lang === 'es' ? 'Editar' : 'Edit'}</span><NumberField nullable value={steps} decimal={false} aria-label={S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'} onChange={setSteps} /></label>
+      </div>
+      <div className="home-steps-goal"><span>{S.lang === 'es' ? 'Objetivo diario' : 'Daily goal'}</span><NumberField value={stepsGoal} decimal={false} aria-label={S.lang === 'es' ? 'Objetivo diario de pasos' : 'Daily steps goal'} onChange={value => update(s => { s.stepsGoal = Math.max(500, Math.min(100000, Math.round(value || 10000))) })} /><span>{S.lang === 'es' ? 'pasos' : 'steps'}</span></div>
+    </section>
 
     {!S.routines.length && !S.active && (
       <div className="card">

@@ -1,0 +1,34 @@
+# Render Blueprint for the account/sync API used by the optional GitHub Pages build.
+# The static UI stays on GitHub Pages; this service only runs api/server.js.
+services:
+  - type: web
+    name: liftnex-api
+    env: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATA_DIR
+        value: /data
+      - key: RP_ID
+        value: nathanmarinas2.github.io
+      - key: ORIGIN
+        value: https://nathanmarinas2.github.io
+      - key: CORS_ORIGINS
+        value: https://nathanmarinas2.github.io
+      - key: COOKIE_SAMESITE
+        value: None
+      - key: RP_NAME
+        value: LiftNex
+      - key: REQUIRE_USER_VERIFICATION
+        value: '1'
+      - key: INVITE_ONLY
+        value: '0'
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_API_KEY
+        sync: false
+    disk:
+      name: liftnex-api-data
+      mountPath: /data
+      sizeGB: 1

@@ -85,14 +85,16 @@ const OFF_FIELDS = [
   'nutriscore_grade', 'nova_group', 'ingredients_text', 'additives_tags', 'allergens_tags',
   'categories_tags', 'labels_tags', 'countries_tags', 'countries', 'stores_tags'
 ].join(',')
-const isStaticDemo = () => import.meta.env.VITE_DEMO === '1' || (typeof window !== 'undefined' && /\.github\.io$/i.test(window.location.hostname))
+const API_ORIGIN = String(import.meta.env.VITE_API_ORIGIN || '').replace(/\/$/, '')
+const apiUrl = path => API_ORIGIN ? API_ORIGIN + path : path
+const isStaticDemo = () => import.meta.env.VITE_DEMO === '1'
 const foodSearchUrl = query => {
-  if (!isStaticDemo()) return `/api/nutrition/off/search?${new URLSearchParams({ q: query })}`
+  if (!isStaticDemo()) return apiUrl(`/api/nutrition/off/search?${new URLSearchParams({ q: query })}`)
   const params = new URLSearchParams({ json: '1', search_terms: query, page_size: '32', page: '1', fields: OFF_FIELDS })
   return `${OFF_DIRECT_BASE}/cgi/search.pl?${params}`
 }
 const foodBarcodeUrl = code => {
-  if (!isStaticDemo()) return `/api/nutrition/off/barcode?${new URLSearchParams({ code })}`
+  if (!isStaticDemo()) return apiUrl(`/api/nutrition/off/barcode?${new URLSearchParams({ code })}`)
   const params = new URLSearchParams({ fields: OFF_FIELDS })
   return `${OFF_DIRECT_BASE}/api/v2/product/${encodeURIComponent(code)}.json?${params}`
 }
@@ -467,6 +469,7 @@ export async function searchFoodSources({ query, filters = {}, signal } = {}) {
     try {
       const response = await fetch(foodSearchUrl(searchTerm), {
         signal,
+        credentials: API_ORIGIN ? 'include' : 'same-origin',
         cache: 'no-store',
         headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }
       })
@@ -508,6 +511,7 @@ export async function lookupBarcode(code, { signal, foods = [] } = {}) {
   if (cached && Date.now() - cached.at < PERSISTED_CACHE_TTL) return cached.food
   const response = await fetch(foodBarcodeUrl(barcode), {
     signal,
+    credentials: API_ORIGIN ? 'include' : 'same-origin',
     cache: 'no-store',
     headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' }
   })
@@ -635,7 +639,7 @@ export async function searchUSDA({ query, filters = {}, signal } = {}) {
   const q = String(query || '').trim()
   if (q.length < 2) return []
   const params = new URLSearchParams({ q, pageSize: '32' })
-  const response = await fetch(`/api/nutrition/usda/search?${params}`, { signal, headers: { Accept: 'application/json' } })
+  const response = await fetch(apiUrl(`/api/nutrition/usda/search?${params}`), { signal, credentials: API_ORIGIN ? 'include' : 'same-origin', headers: { Accept: 'application/json' } })
   const data = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(data.error || `USDA returned ${response.status}`)
   return filterFoods(data.foods || [], filters)

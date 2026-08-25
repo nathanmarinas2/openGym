@@ -1082,6 +1082,22 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-remove{width:36px;height:36px;min-width:44px;min-height:44px;background:none;color:var(--label-3);font-size:17px}
 .nutrition-empty-meal{margin:10px 0 1px}
 .nutrition-home-card .nutrition-track{height:5px}
+.home-steps-card{border-left:3px solid var(--blue);padding:15px 16px}
+.home-steps-head{align-items:flex-start;gap:12px}
+.home-steps-head h2{font-size:17px;line-height:1.2}
+.home-steps-number{font-size:20px;font-weight:650;letter-spacing:-.025em;white-space:nowrap;color:var(--label)}
+.home-steps-number span{font-size:12px;font-weight:450;color:var(--label-2);letter-spacing:0}
+.home-steps-track{height:7px;margin:14px 0 11px}
+.home-steps-track span{display:block;height:100%;border-radius:inherit;transition:width var(--med) var(--ease)}
+.home-steps-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.home-steps-quick{display:flex;gap:6px;min-width:0;overflow:auto;scrollbar-width:none}
+.home-steps-quick::-webkit-scrollbar{display:none}
+.home-steps-quick .btn{flex:none;padding-inline:9px}
+.home-steps-input{display:flex;align-items:center;gap:5px;color:var(--label-2);font-size:12px;flex:none}
+.home-steps-input .num{width:78px;text-align:right;padding:8px 9px}
+.home-steps-goal{display:flex;align-items:center;gap:7px;margin-top:11px;padding-top:10px;border-top:var(--hair) solid var(--sep);color:var(--label-2);font-size:12px}
+.home-steps-goal span:first-child{margin-right:auto}
+.home-steps-goal .num{width:86px;text-align:right;padding:7px 8px;font-size:13px}
 .nutrition-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border-radius:var(--r-card);padding:5px;margin-bottom:14px}
 .nutrition-tabs button{min-height:52px;border-radius:10px;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;line-height:1.15}
 .nutrition-tabs button .icn{font-size:19px}

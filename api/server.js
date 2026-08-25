@@ -15,6 +15,8 @@ const DATA = process.env.DATA_DIR || '/data';
 const RP_ID = process.env.RP_ID || 'localhost';
 const ORIGIN = process.env.ORIGIN || 'http://localhost:8080';
 const RP_NAME = process.env.RP_NAME || 'LiftNex';
+const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '').split(',').map(value => value.trim().replace(/\/$/, '')).filter(Boolean);
+const COOKIE_SAMESITE = String(process.env.COOKIE_SAMESITE || (CORS_ORIGINS.length ? 'None' : 'Lax')).trim();
 const REQUIRE_USER_VERIFICATION = /^(1|true|yes|on)$/i.test(process.env.REQUIRE_USER_VERIFICATION ?? '1');
 const USER_VERIFICATION = REQUIRE_USER_VERIFICATION ? 'required' : 'preferred';
 // Optional nutrition providers. Keys stay server-side; the browser only sees normalized food data.
@@ -458,9 +460,9 @@ function requireAdmin(req, res) {
   return user;
 }
 function sessionCookie(user) {
-  return `gymsid=${makeSession(user)}; Path=/; Max-Age=${SESSION_DAYS * 86400}; HttpOnly;${SECURE} SameSite=Lax`;
+  return `gymsid=${makeSession(user)}; Path=/; Max-Age=${SESSION_DAYS * 86400}; HttpOnly;${SECURE} SameSite=${COOKIE_SAMESITE}`;
 }
-const clearCookie = `gymsid=; Path=/; Max-Age=0; HttpOnly;${SECURE} SameSite=Lax`;
+const clearCookie = `gymsid=; Path=/; Max-Age=0; HttpOnly;${SECURE} SameSite=${COOKIE_SAMESITE}`;
 
 function accountName(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, 40);
@@ -1030,6 +1032,15 @@ const routes = {
 };
 
 http.createServer(async (req, res) => {
+  const requestOrigin = String(req.headers.origin || '').replace(/\/$/, '');
+  if (requestOrigin && CORS_ORIGINS.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Vary', 'Origin');
+  }
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   const url = new URL(req.url, 'http://x');
   const key = req.method + ' ' + url.pathname;
   const handler = routes[key];

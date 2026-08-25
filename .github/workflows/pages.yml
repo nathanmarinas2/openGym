@@ -39,9 +39,14 @@ jobs:
 
       - name: Build the demo app
         working-directory: frontend
+        env:
+          # Leave empty for the public static demo. Set the repository variable
+          # LIFTNEX_API_ORIGIN to enable accounts/sync on GitHub Pages.
+          VITE_API_ORIGIN: ${{ vars.LIFTNEX_API_ORIGIN }}
+          VITE_DEMO: ${{ vars.LIFTNEX_API_ORIGIN == '' && '1' || '0' }}
         run: |
           npm ci --no-audit --no-fund
-          VITE_DEMO=1 VITE_IMG_BASE=https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/images/ VITE_GIF_BASE=https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/videos/ npm run build
+          VITE_IMG_BASE=https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/images/ VITE_GIF_BASE=https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/videos/ npm run build
 
       - name: Assemble the website
         run: |

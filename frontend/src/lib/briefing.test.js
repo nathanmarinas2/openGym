@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildDailyBriefing } from './briefing.js'
 
 describe('buildDailyBriefing', () => {
-  it('exposes saved rest data and daily steps without treating missing steps as zero', () => {
+  it('exposes saved rest data without mixing steps into the daily briefing', () => {
     const date = '2026-08-25'
     const S = {
       unit: 'kg', stepsGoal: 10000, week: {}, dayPlan: {}, routines: [], bodyweight: [],
@@ -14,14 +14,10 @@ describe('buildDailyBriefing', () => {
       ] }]
     }
     const briefing = buildDailyBriefing(S, date)
-    expect(briefing.steps).toEqual({ steps: 4200, goal: 10000, source: 'Manual' })
+    expect(briefing.steps).toBeUndefined()
     expect(briefing.workout.restEntries).toBe(2)
     expect(briefing.workout.averageRestSec).toBe(75)
     expect(briefing.workout.exerciseRestEntries).toBe(1)
   })
 
-  it('keeps an unlogged steps day distinct from zero steps', () => {
-    const briefing = buildDailyBriefing({ stepsGoal: 10000, healthMetrics: [], workouts: [], routines: [], week: {}, dayPlan: [] }, '2026-08-25')
-    expect(briefing.steps.steps).toBeNull()
-  })
 })
