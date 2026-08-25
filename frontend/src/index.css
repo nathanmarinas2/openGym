@@ -1094,10 +1094,18 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .home-steps-quick::-webkit-scrollbar{display:none}
 .home-steps-quick .btn{flex:none;padding-inline:9px}
 .home-steps-input{display:flex;align-items:center;gap:5px;color:var(--label-2);font-size:12px;flex:none}
+.home-steps-input .num,.home-steps-goal .num{
+  min-height:44px;background:var(--surface-2);color:var(--label);border:var(--hair) solid var(--sep);
+  border-radius:10px;outline:none;caret-color:var(--acc);font-variant-numeric:tabular-nums;
+  -webkit-appearance:none;appearance:none;transition:background var(--fast),box-shadow var(--fast),border-color var(--fast)
+}
 .home-steps-input .num{width:78px;text-align:right;padding:8px 9px}
+.home-steps-input .num:focus,.home-steps-goal .num:focus{border-color:var(--acc);box-shadow:inset 0 0 0 2px var(--acc)}
 .home-steps-goal{display:flex;align-items:center;gap:7px;margin-top:11px;padding-top:10px;border-top:var(--hair) solid var(--sep);color:var(--label-2);font-size:12px}
 .home-steps-goal span:first-child{margin-right:auto}
 .home-steps-goal .num{width:86px;text-align:right;padding:7px 8px;font-size:13px}
+:root[data-theme="light"] .home-steps-input .num,
+:root[data-theme="light"] .home-steps-goal .num{background:rgba(118,118,128,.12);border-color:rgba(60,60,67,.22)}
 .nutrition-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border-radius:var(--r-card);padding:5px;margin-bottom:14px}
 .nutrition-tabs button{min-height:52px;border-radius:10px;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;line-height:1.15}
 .nutrition-tabs button .icn{font-size:19px}
