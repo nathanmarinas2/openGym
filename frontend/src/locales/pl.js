@@ -254,6 +254,7 @@ export default {
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'Ekran pozostaje włączony w trakcie treningu, więc nie musisz odblokowywać telefonu między seriami.',
   'Weight unit': 'Jednostka wagi',
   'Rest timer': 'Minutnik przerwy',
+  'Exercise transition rest': 'Przerwa między ćwiczeniami', 'Rest between sets': 'Przerwa między seriami', 'Rest between exercises': 'Przerwa między ćwiczeniami', 'Rest tracked': 'Zarejestrowane przerwy', 'Average rest': 'Średnia przerwa', 'remaining': 'pozostało', 'Add a short walk': 'Dodaj krótki spacer',
   'Sounds': 'Dźwięki',
   'Note: switching units only changes the label — logged numbers are not converted.': 'Uwaga: zmiana jednostki zmienia tylko etykietę — zapisane liczby nie są przeliczane.',
   'Data': 'Dane',

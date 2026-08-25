@@ -22,7 +22,9 @@ self.addEventListener('notificationclick', e => {
   e.notification.close()
   e.waitUntil(self.clients.matchAll({ type: 'window' }).then(clients => {
     const c = clients.find(c => 'focus' in c)
-    return c ? c.focus() : self.clients.openWindow('./')
+    const target = e.notification.data?.route || './'
+    if (c) return c.navigate ? c.navigate(target).then(() => c.focus()) : c.focus()
+    return self.clients.openWindow(target)
   }))
 })
 

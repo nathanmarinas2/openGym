@@ -254,6 +254,7 @@ export default {
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'Экран не гаснет, пока идёт тренировка, — не нужно разблокировать телефон между подходами.',
   'Weight unit': 'Единица веса',
   'Rest timer': 'Таймер отдыха',
+  'Exercise transition rest': 'Отдых между упражнениями', 'Rest between sets': 'Отдых между подходами', 'Rest between exercises': 'Отдых между упражнениями', 'Rest tracked': 'Отдых записан', 'Average rest': 'Средний отдых', 'remaining': 'осталось', 'Add a short walk': 'Совершите короткую прогулку',
   'Sounds': 'Звуки',
   'Note: switching units only changes the label — logged numbers are not converted.': 'Примечание: смена единиц меняет только подпись — записанные числа не пересчитываются.',
   'Data': 'Данные',

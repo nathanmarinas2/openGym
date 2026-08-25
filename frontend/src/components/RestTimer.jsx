@@ -42,12 +42,12 @@ export default function RestTimer() {
     <div id="timer" className="rest">
       <div className="head">
         <div className="t">{clock(timer.left)}</div>
-        <div className="bar"><i style={{ width: pct + '%' }} /></div>
+        <div className="grow"><div className="lbl">{timer.label || t('Rest between sets')}</div><div className="bar"><i style={{ width: pct + '%' }} /></div></div>
       </div>
       <div className="acts">
         <Button size="sm" icon="minus" onClick={() => addRest(-15)}>15s</Button>
         <Button size="sm" icon="plus" onClick={() => addRest(15)}>15s</Button>
-        <Button size="sm" variant="primary" className="skip" onClick={stopRest}>{t('Skip')}</Button>
+        <Button size="sm" variant="primary" className="skip" onClick={() => stopRest('skipped')}>{t('Skip')}</Button>
       </div>
     </div>
   )

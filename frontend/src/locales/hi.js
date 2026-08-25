@@ -254,6 +254,7 @@ export default {
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'वर्कआउट चलने के दौरान स्क्रीन चालू रहती है, ताकि सेट के बीच फ़ोन अनलॉक न करना पड़े।',
   'Weight unit': 'वज़न की इकाई',
   'Rest timer': 'आराम टाइमर',
+  'Exercise transition rest': 'व्यायाम के बीच आराम', 'Rest between sets': 'सेट के बीच आराम', 'Rest between exercises': 'व्यायाम के बीच आराम', 'Rest tracked': 'आराम दर्ज', 'Average rest': 'औसत आराम', 'remaining': 'बाकी', 'Add a short walk': 'थोड़ी देर टहलें',
   'Sounds': 'ध्वनियाँ',
   'Note: switching units only changes the label — logged numbers are not converted.': 'नोट: इकाई बदलने से केवल लेबल बदलता है — दर्ज संख्याएँ परिवर्तित नहीं होतीं।',
   'Data': 'डेटा',

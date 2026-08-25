@@ -130,6 +130,9 @@ export default function Settings() {
       <SelectRow icon="timer" iconTint="var(--orange)" title={t('Rest timer')}
         value={S.restSec} onChange={v => update(s => { s.restSec = v })}
         options={[60, 90, 120, 150, 180].map(v => ({ value: v, label: v + 's' }))} />
+      <SelectRow icon="timer" iconTint="var(--purple)" title={t('Exercise transition rest')}
+        value={S.exerciseRestSec || S.restSec} onChange={v => update(s => { s.exerciseRestSec = v })}
+        options={[60, 90, 120, 150, 180, 240].map(v => ({ value: v, label: v + 's' }))} />
       {(wakeOK || !MOBILE) && (
         <Row icon="sun" iconTint="var(--yellow)" title={t('Keep screen awake')}
           subtitle={wakeOK ? null : t('Not supported in this browser.')}>

@@ -254,6 +254,7 @@ export default {
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': '训练进行时屏幕保持常亮，组间无需再解锁手机。',
   'Weight unit': '重量单位',
   'Rest timer': '休息计时',
+  'Exercise transition rest': '动作间休息', 'Rest between sets': '组间休息', 'Rest between exercises': '动作间休息', 'Rest tracked': '已记录休息', 'Average rest': '平均休息', 'remaining': '剩余', 'Add a short walk': '短走一会儿',
   'Sounds': '声音',
   'Note: switching units only changes the label — logged numbers are not converted.': '注意：切换单位只改变标签——已记录的数字不会换算。',
   'Data': '数据',

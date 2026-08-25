@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { uid } from '../lib/format.js'
 import { beep, vibrate } from '../lib/sound.js'
+import { duckOtherAudio, restoreOtherAudio } from '../lib/audioFocus.js'
+import { syncRestNotification, finishRestNotification, clearRestNotification } from '../lib/restNotification.js'
 import { api } from '../lib/api.js'
 import { t } from '../lib/i18n.js'
 import { useStore } from './useStore.js'
@@ -16,6 +18,21 @@ let timerTick = null
 let workInt = null
 let workTick = null
 let workDone = null
+
+const logRest = (timer, reason) => {
+  const active = useStore.getState().S.active
+  if (!active || !timer?.startedAt) return
+  const endedAt = Date.now()
+  const actualSec = Math.max(0, Math.min(timer.total, Math.round((endedAt - timer.startedAt) / 1000)))
+  useStore.getState().update(s => {
+    if (!s.active) return
+    s.active.restLog = [...(s.active.restLog || []), {
+      id: uid(), kind: timer.kind || 'set', reason,
+      plannedSec: timer.total, actualSec, startedAt: timer.startedAt, endedAt,
+      completed: !['skipped', 'discarded', 'interrupted', 'new_workout', 'workout_finished', 'stopped'].includes(reason)
+    }]
+  }, true)
+}
 
 export const useUI = create((set, get) => ({
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center', locked }
@@ -38,10 +55,12 @@ export const useUI = create((set, get) => ({
     toastTm = setTimeout(() => set({ toastMsg: '' }), 2200)
   },
 
-  startRest(sec) {
-    get().stopRest()
+  startRest(sec, { kind = 'set', label = '' } = {}) {
+    get().stopRest('interrupted')
     const endsAt = Date.now() + sec * 1000
-    set({ timer: { left: sec, total: sec, endsAt } })
+    set({ timer: { left: sec, total: sec, endsAt, startedAt: Date.now(), kind, label } })
+    duckOtherAudio()
+    syncRestNotification({ left: sec, total: sec, label: label || (kind === 'exercise' ? t('Rest between exercises') : t('Rest')) })
     pushRestTimer(sec)
     timerTick = () => {
       const tm = get().timer
@@ -50,11 +69,12 @@ export const useUI = create((set, get) => ({
       if (left === tm.left) return
       const snd = useStore.getState().S.sound
       if (left <= 0) {
-        beep(snd, 880, 0.15); beep(snd, 880, 0.15, 0.25); beep(snd, 1320, 0.4, 0.5)
-        vibrate([200, 100, 200]); get().toast(t('Rest over — next set!')); get().stopRest(); return
+        beep(snd, 880, 0.18, 0, 0.7); beep(snd, 880, 0.18, 0.25, 0.75); beep(snd, 1320, 0.5, 0.5, 0.9)
+        vibrate([200, 100, 200]); get().toast(t('Rest over — next set!')); get().stopRest('completed'); return
       }
-      if (left <= 3) beep(snd, 660, 0.1)
+      if (left <= 3) beep(snd, 660 + (3 - left) * 100, 0.12, 0, 0.5)
       set({ timer: { ...tm, left } })
+      if (left <= 10 || left % 5 === 0) syncRestNotification({ left, total: tm.total, label: tm.label || (tm.kind === 'exercise' ? t('Rest between exercises') : t('Rest')) })
     }
     timerInt = setInterval(timerTick, 1000)
     document.addEventListener('visibilitychange', timerTick)
@@ -65,14 +85,23 @@ export const useUI = create((set, get) => ({
     const left = tm.left + sec
     // taking off more than is left means "I'm ready now" — same as skipping, and it keeps a
     // negative duration out of both the progress bar and the server-side push schedule
-    if (left <= 0) { get().stopRest(); return }
-    set({ timer: { ...tm, left, total: tm.total + sec, endsAt: tm.endsAt + sec * 1000 } })
+    if (left <= 0) { get().stopRest('skipped'); return }
+    const next = { ...tm, left, total: tm.total + sec, endsAt: tm.endsAt + sec * 1000 }
+    set({ timer: next })
+    syncRestNotification({ left, total: next.total, label: next.label || (next.kind === 'exercise' ? t('Rest between exercises') : t('Rest')) })
     pushRestTimer(left)
   },
-  stopRest() {
+  stopRest(reason = 'stopped') {
     if (timerInt) clearInterval(timerInt); timerInt = null
     if (timerTick) document.removeEventListener('visibilitychange', timerTick); timerTick = null
-    if (get().timer) cancelPushRestTimer()
+    const tm = get().timer
+    if (tm) {
+      logRest(tm, reason)
+      if (reason === 'completed') finishRestNotification(tm.label || (tm.kind === 'exercise' ? t('Rest between exercises') : t('Rest')))
+      else clearRestNotification()
+      cancelPushRestTimer()
+      restoreOtherAudio()
+    }
     set({ timer: null })
   },
 
@@ -86,7 +115,7 @@ export const useUI = create((set, get) => ({
      hold records 0:38 rather than crediting the full target. */
   startWork(sec, label, onDone) {
     get().stopWork()
-    get().stopRest()
+    get().stopRest('interrupted')
     const total = Math.max(1, Math.round(sec) || 1)
     const endsAt = Date.now() + total * 1000
     workDone = onDone

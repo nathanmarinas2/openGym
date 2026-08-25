@@ -41,6 +41,13 @@ const setSummary = (set, target = {}) => ({
 
 const workoutSummary = (workout, custom) => {
   const entries = Array.isArray(workout?.entries) ? workout.entries : []
+  const rests = (workout?.restLog || []).map(rest => ({
+    kind: rest.kind === 'exercise' ? 'exercise' : 'set',
+    plannedSec: Math.round(number(rest.plannedSec)),
+    actualSec: Math.round(number(rest.actualSec)),
+    completed: rest.completed !== false,
+    reason: rest.reason || 'stopped'
+  }))
   const exercises = entries.map(entry => {
     const doneSets = (entry.sets || []).filter(set => set?.done !== false)
     const sets = doneSets.map(set => setSummary(set, entry.target || {}))
@@ -76,6 +83,14 @@ const workoutSummary = (workout, custom) => {
     completion: plannedSets ? round(completedSets / plannedSets * 100) : null,
     volume: round(exercises.reduce((sum, entry) => sum + entry.volume, 0)),
     prs: (workout?.prs || []).map(id => exerciseName(id, custom)),
+    rest: {
+      entries: rests.length,
+      totalSec: rests.reduce((sum, rest) => sum + rest.actualSec, 0),
+      averageSec: rests.length ? round(rests.reduce((sum, rest) => sum + rest.actualSec, 0) / rests.length) : null,
+      setEntries: rests.filter(rest => rest.kind === 'set').length,
+      exerciseEntries: rests.filter(rest => rest.kind === 'exercise').length,
+      skipped: rests.filter(rest => !rest.completed || rest.reason === 'skipped').length
+    },
     exercises
   }
 }
@@ -237,6 +252,8 @@ export function buildLongitudinalCoachContext(S = {}, { date, objective = 'perfo
   const weight = weightHistory(S.bodyweight || [], S.targetW, S.unit || 'kg')
   const measurements = (S.bodyMeasurements || []).slice().sort((a, b) => dateValue(a.d) - dateValue(b.d))
   const healthMetrics = (S.healthMetrics || []).slice().sort((a, b) => dateValue(a.d) - dateValue(b.d)).slice(-180)
+  const stepRows = healthMetrics.filter(item => item.steps != null)
+  const stepsGoal = number(S.stepsGoal || 10000)
   const fastingHistory = S.fasting?.history || []
   const weeks = new Set(workouts.map(item => weekKey(item.date)).filter(Boolean))
   const plannedPerWeek = Object.values(S.week || {}).filter(Boolean).length
@@ -284,7 +301,10 @@ export function buildLongitudinalCoachContext(S = {}, { date, objective = 'perfo
         averageDurationMinutes: round(average(workouts.filter(item => item.durationMinutes != null), item => item.durationMinutes)),
         sessionsLast30Days: workouts.filter(item => dateValue(item.date) >= Date.now() - 30 * 86400000).length,
         sessionsLast90Days: workouts.filter(item => dateValue(item.date) >= Date.now() - 90 * 86400000).length,
-        newPRs: workouts.reduce((sum, item) => sum + item.prs.length, 0)
+        newPRs: workouts.reduce((sum, item) => sum + item.prs.length, 0),
+        restEntries: workouts.reduce((sum, item) => sum + item.rest.entries, 0),
+        averageRestSeconds: round(average(workouts.flatMap(item => item.rest.entries ? [item.rest.averageSec] : []), value => value)),
+        exerciseRestEntries: workouts.reduce((sum, item) => sum + item.rest.exerciseEntries, 0)
       },
       recentSessions: sessions.slice(-12)
     },
@@ -312,6 +332,13 @@ export function buildLongitudinalCoachContext(S = {}, { date, objective = 'perfo
     wellness: {
       days: healthMetrics,
       latest: healthMetrics.at(-1) || null,
+      steps: {
+        goal: stepsGoal,
+        loggedDays: stepRows.length,
+        average: round(average(stepRows, item => item.steps)),
+        goalDays: stepRows.filter(item => number(item.steps) >= stepsGoal).length,
+        latest: stepRows.at(-1) || null
+      },
       metrics: ['steps', 'sleepHours', 'activeCalories', 'restingHeartRate']
         .filter(key => healthMetrics.some(item => item[key] != null))
     },

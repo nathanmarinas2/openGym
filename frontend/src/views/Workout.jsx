@@ -199,16 +199,17 @@ function ActiveWorkout() {
     const m = modeAt(idx)
     const cardioEntry = m === 'cardio'
     const isLastUnit = unitIdx >= units.length - 1
-    let askTop = false, exJustDone = false, workoutDone = false
+    let askTop = false, exJustDone = false, workoutDone = false, restPlan = null, stopReason = null
     mutEntry(idx, e => {
       e.sets[i].done = !e.sets[i].done
       if (e.sets[i].done) {
         beep(S.sound, 1040, 0.12); vibrate(30)
         const isLastExInUnit = idx === unit[unit.length - 1]
         const unitDone = unit.every(ui => (ui === idx ? e : A.entries[ui]).sets.every(x => x.done))
-        if (isLastExInUnit && !unitDone) startRest(S.restSec)
-        else if (unitDone) stopRest()
         if (unitDone && isLastUnit) workoutDone = true      // last exercise's last set → done
+        if (isLastExInUnit && !unitDone) restPlan = { seconds: S.restSec, kind: 'set', label: t('Rest between sets') }
+        else if (unitDone && !isLastUnit) restPlan = { seconds: S.exerciseRestSec || S.restSec, kind: 'exercise', label: t('Rest between exercises') }
+        else if (unitDone) stopReason = workoutDone ? 'workout_complete' : 'exercise_complete'
         // Only loaded reps training has a "working weight" worth confirming — a bodyweight
         // plank has nothing to put in that slider, and neither does a set of push-ups
         // (issue #32: the fewest taps that still record what happened).
@@ -216,6 +217,8 @@ function ActiveWorkout() {
         if (e.sets.every(x => x.done)) { exJustDone = true; if (loaded && !e.asked) { e.asked = true; askTop = true } }
       }
     })
+    if (restPlan) startRest(restPlan.seconds, restPlan)
+    else if (stopReason) stopRest(stopReason)
     // reps: topWeight first (it chains into the finish/continue prompt on the last unit).
     // cardio/timed or already-confirmed: go straight to the prompt.
     if (askTop) topWeightSheet(idx)
@@ -253,7 +256,7 @@ function ActiveWorkout() {
 
   return <div className="narrow">
     <div className="hdr">
-      <button className="iconbtn" aria-label={t('Discard')} onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); nav('/home') } })}><Icon name="xmark" /></button>
+      <button className="iconbtn" aria-label={t('Discard')} onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { stopRest('discarded'); update(s => { s.active = null }); nav('/home') } })}><Icon name="xmark" /></button>
       <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 600 }}>{A.name}</div><div className="sub"><Elapsed start={A.start} /> · {t('{0} sets', done + '/' + total)}</div></div>
       <button className="iconbtn" style={{ color: 'var(--acc)' }} aria-label={t('Finish')} onClick={finishWorkout}><Icon name="check" /></button>
     </div>

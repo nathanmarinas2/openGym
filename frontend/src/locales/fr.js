@@ -254,6 +254,7 @@ export default {
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'L’écran reste allumé tant qu’une séance est en cours, pas besoin de déverrouiller ton téléphone entre les séries.',
   'Weight unit': 'Unité de poids',
   'Rest timer': 'Minuteur de repos',
+  'Exercise transition rest': 'Repos entre exercices', 'Rest between sets': 'Repos entre séries', 'Rest between exercises': 'Repos entre exercices', 'Rest tracked': 'Repos enregistrés', 'Average rest': 'Repos moyen', 'remaining': 'restantes', 'Add a short walk': 'Ajouter une courte marche',
   'Sounds': 'Sons',
   'Note: switching units only changes the label — logged numbers are not converted.': 'Note : changer d’unité ne change que l’étiquette — les nombres enregistrés ne sont pas convertis.',
   'Data': 'Données',

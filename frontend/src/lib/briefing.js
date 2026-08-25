@@ -22,6 +22,7 @@ function workoutSnapshot(S, date) {
   const entries = workout?.entries || []
   const sets = entries.flatMap(entry => (entry.sets || []).filter(set => set.done !== false))
   const rated = sets.filter(set => set.rir != null || set.rpe != null)
+  const rests = (workout?.restLog || []).filter(rest => n(rest.actualSec) >= 0)
   const rir = rated.filter(set => set.rir != null)
   const rpe = rated.filter(set => set.rpe != null)
   const volume = entries.reduce((sum, entry) => sum + (entry.sets || []).reduce((inner, set) => inner + n(set.w) * n(set.r), 0), 0)
@@ -36,8 +37,17 @@ function workoutSnapshot(S, date) {
     averageRir: rir.length ? signed(rir.reduce((sum, set) => sum + n(set.rir), 0) / rir.length) : null,
     averageRpe: rpe.length ? signed(rpe.reduce((sum, set) => sum + n(set.rpe), 0) / rpe.length) : null,
     ratedSets: rated.length,
-    plannedExercises: routine?.ex?.length || 0
+    plannedExercises: routine?.ex?.length || 0,
+    restEntries: rests.length,
+    averageRestSec: rests.length ? signed(rests.reduce((sum, rest) => sum + n(rest.actualSec), 0) / rests.length) : null,
+    exerciseRestEntries: rests.filter(rest => rest.kind === 'exercise').length
   }
+}
+
+function stepsSnapshot(S, date) {
+  const row = [...(S.healthMetrics || [])].reverse().find(item => item?.d === date && item.steps != null)
+  const goal = n(S.stepsGoal || 10000)
+  return { steps: row ? n(row.steps) : null, goal, source: row?.source || null }
 }
 
 export function buildDailyBriefing(S = {}, date = new Date().toISOString().slice(0, 10)) {
@@ -48,6 +58,7 @@ export function buildDailyBriefing(S = {}, date = new Date().toISOString().slice
   const workout = workoutSnapshot(S, date)
   const weight = weightSnapshot(S, date)
   const fasting = S.fasting || {}
+  const steps = stepsSnapshot(S, date)
   const remaining = { calories: Math.max(0, n(goal.calories) - n(totals.calories)), protein: Math.max(0, n(goal.protein) - n(totals.protein)) }
   let recommendation
   if (workout.planned && !workout.completed) {
@@ -58,6 +69,8 @@ export function buildDailyBriefing(S = {}, date = new Date().toISOString().slice
     recommendation = { tone: 'blue', type: 'hydration', title: 'Hydration is behind', detail: `${signed(Math.max(0, waterGoal - water))} ml remain to reach your water goal.`, action: 'Log water' }
   } else if (workout.averageRir != null && workout.averageRir <= 1) {
     recommendation = { tone: 'violet', type: 'recovery', title: 'Keep recovery in view', detail: `Your logged average is ${workout.averageRir} RIR today. Avoid adding unplanned volume until you see how you recover.`, action: 'Review progress' }
+  } else if (steps.steps != null && steps.goal > 0 && steps.steps < steps.goal * .45) {
+    recommendation = { tone: 'blue', type: 'steps', title: 'Add a short walk', detail: `${Math.max(0, steps.goal - steps.steps)} steps remain to reach today’s movement goal.`, action: 'Review progress' }
   } else if (!workout.completed && !workout.planned && !totals.calories) {
     recommendation = { tone: 'neutral', type: 'logging', title: 'Create a useful baseline', detail: 'Log your first meal or session today so tomorrow’s briefing can be specific.', action: 'Open nutrition' }
   } else {
@@ -69,8 +82,8 @@ export function buildDailyBriefing(S = {}, date = new Date().toISOString().slice
     nutrition: { totals, goal, remaining, loggedEntries: (S.nutritionEntries || []).filter(item => item?.date === date).length },
     hydration: { water, goal: waterGoal, remaining: Math.max(0, waterGoal - water) },
     fasting: { active: !!fasting.active, goalHours: n(fasting.goalHours || 16), startedAt: fasting.startedAt || null },
+    steps,
     weight,
     recommendation
   }
 }
-

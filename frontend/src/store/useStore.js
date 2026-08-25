@@ -7,9 +7,9 @@ import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
 import { clearPhotos, readSnapshot, writeSnapshot } from '../lib/offline.js'
 
 const KEY = 'gym_state_v1'
-export const STATE_SCHEMA_VERSION = 2
+export const STATE_SCHEMA_VERSION = 3
 export const DEF = {
-  unit: 'kg', restSec: 90, sound: true, keepAwake: true, lang: 'en',
+  unit: 'kg', restSec: 90, exerciseRestSec: 120, stepsGoal: 10000, sound: true, keepAwake: true, lang: 'en',
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
   bodyweight: [], routines: [], week: {}, dayPlan: {},
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',

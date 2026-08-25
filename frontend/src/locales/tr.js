@@ -254,6 +254,7 @@ export default {
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'Antrenman sürerken ekran açık kalır, böylece setler arasında telefonunu açmak zorunda kalmazsın.',
   'Weight unit': 'Ağırlık birimi',
   'Rest timer': 'Dinlenme sayacı',
+  'Exercise transition rest': 'Egzersizler arası dinlenme', 'Rest between sets': 'Setler arası dinlenme', 'Rest between exercises': 'Egzersizler arası dinlenme', 'Rest tracked': 'Dinlenmeler kaydedildi', 'Average rest': 'Ortalama dinlenme', 'remaining': 'kaldı', 'Add a short walk': 'Kısa bir yürüyüş ekle',
   'Sounds': 'Sesler',
   'Note: switching units only changes the label — logged numbers are not converted.': 'Not: birim değiştirmek sadece etiketi değiştirir — kayıtlı sayılar dönüştürülmez.',
   'Data': 'Veriler',

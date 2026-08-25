@@ -958,10 +958,10 @@ export function beginWorkout(routineId, bw) {
     const plan = nextPrescription(st, cfg, r)
     return { id: cfg.id, sg: cfg.sg, target: { ...cfg }, plan, sets: applyPrescription(buildSets(st, cfg), plan) }
   })
+  useUI.getState().stopRest('new_workout')
   update(s => {
-    s.active = { id: uid(), d: todayISO(), start: Date.now(), routineId, name: r ? r.name : t('Freestyle'), bw: bw || null, cur: 0, entries }
+    s.active = { id: uid(), d: todayISO(), start: Date.now(), routineId, name: r ? r.name : t('Freestyle'), bw: bw || null, cur: 0, entries, restLog: [] }
   })
-  useUI.getState().stopRest()
   nav('/workout')
 }
 function TopWeight({ entryIdx, close }) {
@@ -1029,6 +1029,8 @@ export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComple
 
 function FinishSummary({ w, prs, e1prs = [], close }) {
   const st = useStore(s => s.S)
+  const rests = (w.restLog || []).filter(rest => Number.isFinite(+rest.actualSec))
+  const averageRest = rests.length ? Math.round(rests.reduce((sum, rest) => sum + rest.actualSec, 0) / rests.length) : 0
   return <div style={{ textAlign: 'center', padding: '8px 0' }}>
     <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
     <h3 style={{ margin: '8px 0' }}>{t('Workout complete!')}</h3>
@@ -1038,6 +1040,7 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
       <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{setsDone(w)}</div></div>
       <div className="tile"><div className="l">{t('PRs')}</div><div className="v" style={{ fontSize: 20 }}>{prs.length || '—'}</div></div>
     </div>
+    {rests.length > 0 && <div className="small muted" style={{ margin: '10px 0 14px' }}>{t('Rest tracked')}: {rests.length} · {t('Average rest')}: {Math.floor(averageRest / 60)}:{String(averageRest % 60).padStart(2, '0')}</div>}
     {(prs.length > 0 || e1prs.length > 0) && <div style={{ textAlign: 'left', marginBottom: 12 }}>
       {prs.map(id => <div key={id} className="small accent capitalize row" style={{ gap: 5 }}><Icon name="trophy" style={{ fontSize: 13 }} />{t('New PR:')} {(EXIDX[id] || {}).n || id}</div>)}
       {e1prs.map(p => <div key={p.id} className="small accent capitalize row" style={{ gap: 5 }}><Icon name="chartLine" style={{ fontSize: 13 }} />{t('Best estimated 1RM:')} {(EXIDX[p.id] || {}).n || p.id} · {fmtNum(p.est)} {st.unit}</div>)}
@@ -1058,6 +1061,8 @@ export function finishWorkout() {
   doFinishWorkout()
 }
 function doFinishWorkout() {
+  // Persist the last partial rest before replacing the active session with its history row.
+  useUI.getState().stopRest('workout_finished')
   const st = S()
   const A = st.active
   if (!A) return
@@ -1077,7 +1082,8 @@ function doFinishWorkout() {
     // finished workout cannot say whether it hit its reps, and a timed session reads back
     // as "0 reps". It is what the progression engine works from.
     entries: A.entries.map(e => ({ id: e.id, sets: e.sets, topW: e.topW || null, target: e.target || null })).filter(e => e.sets.some(s => s.done)),
-    prs
+    prs,
+    restLog: (A.restLog || []).map(rest => ({ ...rest })),
   }
   w.vol = workoutVolume(w)
   update(s => {
@@ -1088,7 +1094,7 @@ function doFinishWorkout() {
     s.workouts.push(w)
     s.active = null
   })
-  useUI.getState().stopRest()
+  useUI.getState().stopRest('workout_finished')
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
   ui().openSheet(close => <FinishSummary w={w} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
 }

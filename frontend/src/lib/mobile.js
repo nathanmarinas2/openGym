@@ -14,6 +14,9 @@ import { t } from './i18n.js'
 export const MOBILE = import.meta.env.VITE_MOBILE === '1'
 
 const FILE = 'opengym-state.json'
+const REST_NOTIFICATION_ID = 220
+const REST_DONE_NOTIFICATION_ID = 221
+const restClock = sec => `${Math.floor(Math.max(0, sec) / 60)}:${String(Math.max(0, sec) % 60).padStart(2, '0')}`
 
 export async function nativeLoad() {
   try {
@@ -56,6 +59,32 @@ export async function syncReminder(S, interactive = false) {
     if (notifications.length) await LocalNotifications.schedule({ notifications })
     return true
   } catch (e) { return false }
+}
+
+// Native rest feedback: an ongoing notification shows the current countdown while the app
+// is backgrounded, plus a scheduled end alert so the timer survives WebView suspension.
+export async function updateNativeRestNotification({ left, total, label }) {
+  if (!MOBILE) return false
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    const permission = await LocalNotifications.checkPermissions()
+    if (permission.display !== 'granted') return false
+    await LocalNotifications.cancel({ notifications: [{ id: REST_NOTIFICATION_ID }, { id: REST_DONE_NOTIFICATION_ID }] }).catch(() => {})
+    await LocalNotifications.schedule({ notifications: [
+      { id: REST_NOTIFICATION_ID, title: `LiftNex · ${label || t('Rest')}`, body: `${restClock(left)} ${t('remaining')}`, ongoing: true, autoCancel: false },
+      { id: REST_DONE_NOTIFICATION_ID, title: `LiftNex · ${label || t('Rest')}`, body: t('Rest over — next set!'), schedule: { at: new Date(Date.now() + Math.max(1, left) * 1000), allowWhileIdle: true }, extra: { route: '#/workout' } }
+    ]})
+    return true
+  } catch { return false }
+}
+
+export async function clearNativeRestNotification() {
+  if (!MOBILE) return false
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    await LocalNotifications.cancel({ notifications: [{ id: REST_NOTIFICATION_ID }, { id: REST_DONE_NOTIFICATION_ID }] })
+    return true
+  } catch { return false }
 }
 
 // WKWebView can't do blob-URL downloads, so the backup goes out through the OS share sheet
