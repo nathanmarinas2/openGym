@@ -1076,7 +1076,7 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-remove{width:36px;height:36px;min-width:44px;min-height:44px;background:none;color:var(--label-3);font-size:17px}
 .nutrition-empty-meal{margin:10px 0 1px}
 .nutrition-home-card .nutrition-track{height:5px}
-.nutrition-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:var(--surface);border-radius:var(--r-card);padding:5px;margin-bottom:14px}
+.nutrition-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border-radius:var(--r-card);padding:5px;margin-bottom:14px}
 .nutrition-tabs button{min-height:52px;border-radius:10px;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;line-height:1.15}
 .nutrition-tabs button .icn{font-size:19px}
 .nutrition-tabs button.on{background:var(--acc-soft);color:var(--acc-text);font-weight:600}

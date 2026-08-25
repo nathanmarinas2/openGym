@@ -431,7 +431,6 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
   const [consent, setConsent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [answer, setAnswer] = useState('')
-  const [source, setSource] = useState('local')
   useEffect(() => { setObjective(storedProfile.objective || 'performance'); setNotes(storedProfile.notes || '') }, [storedProfile.objective, storedProfile.notes])
   const context = useMemo(() => buildLongitudinalCoachContext(S, { date, objective, notes, goal }), [S, date, objective, notes, goal])
   const saveProfile = patch => update(s => { s.coachProfile = { ...(s.coachProfile || {}), ...patch } })
@@ -442,11 +441,9 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
       const response = await api('/api/nutrition/coach', { method: 'POST', body: JSON.stringify({ context }) })
       setReview(response.coach || null)
       setAnswer(response.answer || '')
-      setSource(response.source || 'local')
     } catch {
       setReview(null)
-      setAnswer(C.coachFallback)
-      setSource('local')
+      setAnswer('')
     }
     finally { setLoading(false) }
   }
@@ -465,7 +462,7 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
     <section className="card nutrition-coach-coverage"><div className="row between"><h2>{C.coachDataCoverage}</h2><span className="tag acc">{context.scope}</span></div><div className="nutrition-coach-coverage-grid"><div><strong>{coverage.workoutSessions}</strong><span>{C.coachSessions}</span></div><div><strong>{coverage.nutritionEntries}</strong><span>{C.coachMeals}</span></div><div><strong>{coverage.weightEntries}</strong><span>{C.coachWeight}</span></div><div><strong>{context.nutrition.proteinDays}</strong><span>{C.coachProteinDays}</span></div><div><strong>{coverage.healthMetricDays}</strong><span>{C.coachHealthDays}</span></div></div><p className="nutrition-source"><Icon name="info" /> {C.coachAnalysisSize}</p></section>
     <section className="card nutrition-coach-findings"><h2>{C.coachImprovements}</h2>{context.localAnalysis.findings.length ? context.localAnalysis.findings.map((item, index) => <div className={`nutrition-coach-finding ${item.tone}`} key={`${item.title}-${index}`}><Icon name={item.tone === 'orange' ? 'warning' : item.tone === 'neutral' ? 'info' : 'sparkles'} /><div><strong>{item.title}</strong><span>{item.detail}</span></div></div>) : <div className="nutrition-insight acc"><Icon name="checkCircle" /><span>{C.noAdvice}</span></div>}<div className="nutrition-coach-local-actions"><strong>{C.coachActions}</strong>{context.localAnalysis.actions.map((item, index) => <span key={index}>{item}</span>)}</div></section>
     <section className="card nutrition-insights" aria-live="polite"><h2>{C.localCoach}</h2>{local.length ? local.map(item => <div className={`nutrition-insight ${item.tone}`} key={item.key}><Icon name={item.tone === 'neutral' ? 'info' : item.tone === 'blue' ? 'droplet' : item.tone === 'violet' ? 'timer' : 'sparkles'} /><span>{insightText(item.key)}</span></div>) : <div className="nutrition-insight acc"><Icon name="checkCircle" /><span>{C.noAdvice}</span></div>}</section>
-    <section className="card nutrition-ai-card"><h2>{C.askCoach}</h2><p className="muted small">{C.coachConsent}</p><div className="nutrition-consent"><Check checked={consent} onChange={setConsent} ariaLabel={C.coachConsent} /><span>{C.coachConsent}</span></div><Button variant="primary" icon="sparkles" disabled={!consent || loading} onClick={ask}>{loading ? C.searching : C.askCoach}</Button>{review ? <CoachReview C={C} review={review} update={update} /> : answer && <div className="nutrition-ai-answer"><div className="small muted">{source === 'local' ? C.coachNoProvider : source === 'gemini' ? C.geminiCoach : C.askCoach}</div><p>{answer}</p></div>}<p className="nutrition-source"><Icon name="info" /> {C.coachDisclaimer}</p></section>
+    <section className="card nutrition-ai-card"><h2>{C.askCoach}</h2><p className="muted small">{C.coachConsent}</p><div className="nutrition-consent"><Check checked={consent} onChange={setConsent} ariaLabel={C.coachConsent} /><span>{C.coachConsent}</span></div><Button variant="primary" icon="sparkles" disabled={!consent || loading} onClick={ask}>{loading ? C.searching : C.askCoach}</Button>{review ? <CoachReview C={C} review={review} update={update} /> : answer && <div className="nutrition-ai-answer"><p>{answer}</p></div>}<p className="nutrition-source"><Icon name="info" /> {C.coachDisclaimer}</p></section>
   </>
 }
 
