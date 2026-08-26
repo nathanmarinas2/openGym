@@ -16,7 +16,7 @@ const OBJECTIVES = [
 const copy = es => es ? {
   title: 'Objetivos',
   subtitle: 'Una única fuente para todo lo que quieres conseguir',
-  intro: 'Define aquí tus metas. Inicio, Nutrición, Balance y Coach las utilizarán automáticamente.',
+  intro: 'Define aquí tus metas. Inicio, Entrenamiento, Progreso, Nutrición y Coach las utilizarán automáticamente.',
   primary: 'Objetivo principal',
   body: 'Composición corporal',
   targetWeight: 'Peso objetivo',
@@ -40,7 +40,7 @@ const copy = es => es ? {
 } : {
   title: 'Goals',
   subtitle: 'One source of truth for everything you want to achieve',
-  intro: 'Set your targets here. Home, Nutrition, Balance and Coach will use them automatically.',
+  intro: 'Set your targets here. Home, Training, Progress, Nutrition and Coach will use them automatically.',
   primary: 'Primary goal',
   body: 'Body composition',
   targetWeight: 'Target weight',

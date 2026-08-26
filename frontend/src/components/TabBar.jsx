@@ -32,9 +32,9 @@ export default function TabBar({ onStart }) {
     <nav id="tabbar">
       <Tab k="home" icon="house" to="/home" label={t('Home')} />
       <Tab k="plan" icon="calendar" to="/plan" label={t('Plan')} />
-      <button className={'start' + (S.active ? ' rec' : '')} onClick={startWorkout}>
+      <button className={'start' + (S.active ? ' rec' : '')} onClick={startWorkout} aria-label={S.active ? t('Resume') : S.lang === 'es' ? 'Entrenar' : t('Start')}>
         <span className="cir"><Icon name={S.active ? 'play' : 'dumbbell'} /></span>
-        <span>{S.active ? t('Resume') : t('Start')}</span>
+        <span>{S.active ? t('Resume') : S.lang === 'es' ? 'Entrenar' : t('Start')}</span>
       </button>
       <Tab k="stats" icon="chart" to="/stats" label={t('Stats')} />
       <Tab k="nutrition" icon="forkKnife" to="/nutrition" label={S.lang === 'es' ? 'Nutrición' : t('Nutrition')} />

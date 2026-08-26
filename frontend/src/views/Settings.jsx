@@ -123,7 +123,10 @@ export default function Settings() {
           options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]}
           value={S.unit} onChange={v => update(s => { s.unit = v })} />
       </Row>
-      <Row icon="target" iconTint="var(--acc)" title={getLang() === 'es' ? 'Objetivos' : 'Goals'} subtitle={getLang() === 'es' ? 'Centraliza todas tus metas' : 'Manage every target in one place'} accessory="chevron" onClick={() => nav('/goals')} />
+    </Section>
+
+    <Section title={getLang() === 'es' ? 'Objetivos' : 'Goals'} footer={getLang() === 'es' ? 'Se aplican a Inicio, Entrenamiento, Progreso, Nutrición y Coach.' : 'Used across Home, Training, Progress, Nutrition and Coach.'}>
+      <Row icon="target" iconTint="var(--acc)" title={getLang() === 'es' ? 'Objetivos centralizados' : 'Centralized goals'} subtitle={getLang() === 'es' ? 'Peso, nutrición, actividad y entrenamiento en un solo lugar.' : 'Weight, nutrition, activity and training in one place.'} accessory="chevron" onClick={() => nav('/goals')} />
     </Section>
 
     <Section

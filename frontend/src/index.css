@@ -1157,11 +1157,6 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 }
 .home-steps-input .num{width:78px;text-align:right;padding:8px 9px}
 .home-steps-input .num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),inset 0 0 0 1px var(--acc)}
-.home-goals-hint{display:flex;align-items:center;gap:7px;width:100%;min-height:44px;margin-top:11px;padding:9px 10px;border-top:var(--hair) solid var(--sep);color:var(--acc-text);font-size:13px;text-align:left;transition:background var(--fast),transform var(--fast)}
-.home-goals-hint .icn:first-child{font-size:15px}
-.home-goals-hint .icn:last-child{margin-left:auto;color:var(--label-3);font-size:14px}
-.home-goals-hint:hover{background:var(--acc-soft)}
-.home-goals-hint:active{transform:scale(.99)}
 :root[data-theme="light"] .home-steps-input .num{background:var(--field-bg);border-color:var(--field-line)}
 .nutrition-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border:1px solid var(--surface-line);border-radius:var(--r-card);padding:5px;margin-bottom:14px;box-shadow:var(--shadow-card)}
 .nutrition-tabs button{min-height:52px;border-radius:10px;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;line-height:1.15}
@@ -1698,6 +1693,7 @@ body{
 
 /* The product report is a reading surface: larger media, type and breathing room. */
 .nutrition-search>.nutrition-recent{display:none}
+.home-balance-detail{width:auto;height:44px;min-width:44px;padding-inline:12px}
 .nutrition-product-hero{padding:20px;border-left:3px solid var(--acc)}
 .nutrition-product-hero-top{gap:22px}
 .nutrition-product-image{width:170px;height:220px;box-shadow:0 10px 24px rgb(0 0 0 / 14%)}
@@ -1723,21 +1719,8 @@ body{
 .nutrition-alternative-copy strong{font-size:15px}
 .nutrition-alternative-copy small{font-size:13px;line-height:1.35}
 
-/* Goals are a first-class Home surface instead of a buried balance link. */
-.home-goals-card{padding:16px}
-.home-goals-head{align-items:flex-start;gap:10px}
-.home-goals-head h2{font-size:18px;line-height:1.2}
-.home-goals-head .btn{min-width:auto;flex:none}
-.home-goals-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:15px}
-.home-goal-item{min-width:0;padding:11px 10px;border:var(--hair) solid var(--surface-line);border-radius:12px;background:var(--surface-2)}
-.home-goal-item span,.home-goal-item small{display:block;color:var(--label-2);font-size:11px;line-height:1.3;overflow-wrap:anywhere}
-.home-goal-item strong{display:block;margin:6px 0 3px;color:var(--label);font-family:'Barlow Condensed',sans-serif;font-size:20px;line-height:1;overflow-wrap:anywhere}
-
-@media (max-width:520px){
-  .home-goals-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-
 @media (max-width:430px){
+  .home-balance-detail{width:auto;height:44px;min-width:44px;padding-inline:12px}
   .nutrition-product-hero{padding:16px}
   .nutrition-product-image{width:min(205px,64vw);height:245px}
   .nutrition-product-hero-copy{width:100%;text-align:left}
