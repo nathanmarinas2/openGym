@@ -1,43 +1,48 @@
 /* ============================================================================
    LiftNex — design system
    ----------------------------------------------------------------------------
-   Rebuilt around four rules, each aimed at a specific "generated" tell in the
+   Rebuilt around four rules, each aimed at a specific quality gap in the
    previous sheet:
 
    1. ONE TYPE SCALE, MOSTLY REGULAR WEIGHT. The old sheet set font-weight 700/800
       on nearly every element, which flattens hierarchy — when everything shouts,
       position is the only cue left. Here weight carries meaning: 600 for a title,
       400 for its content, and size does the rest.
-   2. A NEUTRAL SURFACE RAMP. Cards are near-neutral greys a few points apart, not
-      saturated blue-greys. Colour is spent only on the accent and on status.
-   3. HAIRLINES, NOT BORDERS. Separators are sub-pixel and inset past the icon
-      rail, so a list reads as one object instead of a stack of outlined boxes.
+   2. A TONAL SURFACE RAMP. Graphite cards sit clearly above the background,
+      while borders and shadows stay restrained so content remains the focus.
+   3. CONTROLS LOOK OPERABLE. Inputs, buttons and chips have deliberate bounds,
+      44–48px touch targets, and a clear focus/pressed state.
    4. MOTION THAT ACKNOWLEDGES, NOT ANIMATES. Presses scale ~2%, transitions run
       140–220ms on an ease-out curve. Nothing bounces or slides for decoration.
    ========================================================================== */
 
 /* ---------------------------------------------------------------- tokens -- */
 :root {
-  /* surfaces — dark is the default */
-  --bg:        #000000;
-  --bg-el:     #0e0e10;   /* elevated backdrop (sheets, bars) */
-  --surface:   #1c1c1e;   /* card / grouped-list fill */
-  --surface-2: #2c2c2e;   /* pressed + nested fill */
-  --surface-3: #3a3a3c;   /* controls (segmented track, switch off) */
+  /* surfaces — dark is the default; the small tonal steps create hierarchy */
+  --bg:        #080b0e;
+  --bg-el:     #0e1419;   /* elevated backdrop (sheets, bars) */
+  --surface:   #151c22;   /* card / grouped-list fill */
+  --surface-2: #1d2730;   /* pressed + nested fill */
+  --surface-3: #293640;   /* controls (segmented track, switch off) */
+  --surface-line: rgba(225,242,237,.10);
+  --field-bg: #111920;
+  --field-line: rgba(225,242,237,.14);
+  --shadow-card: 0 12px 28px rgba(0,0,0,.18);
+  --shadow-control: 0 8px 18px rgba(0,0,0,.16);
 
   /* text */
   --label:     #ffffff;
-  --label-2:   rgba(235,235,245,.60);
-  --label-3:   rgba(235,235,245,.32);
-  --label-4:   rgba(235,235,245,.18);
+  --label-2:   rgba(235,242,245,.70);
+  --label-3:   rgba(235,242,245,.48);
+  --label-4:   rgba(235,242,245,.22);
 
   /* lines */
-  --sep:       rgba(84,84,88,.60);
-  --sep-op:    rgba(84,84,88,.34);   /* for edges sitting over blur */
+  --sep:       rgba(136,157,166,.28);
+  --sep-op:    rgba(136,157,166,.20);   /* for edges sitting over blur */
   --hair:      .5px;
 
   /* system palette (iOS dark values) */
-  --blue:#0a84ff; --green:#30d158; --red:#ff453a; --orange:#ff9f0a;
+  --blue:#4aa3ff; --green:#8eea63; --red:#ff6257; --orange:#ffb340;
   --yellow:#ffd60a; --teal:#40c8e0; --indigo:#5e5ce6; --pink:#ff375f;
   --purple:#bf5af2; --mint:#63e6e2; --brown:#ac8e68; --grey:#8e8e93;
 
@@ -50,7 +55,7 @@
   --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
 
   /* geometry */
-  --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:22px; --r-card:14px;
+  --r-sm:10px; --r:14px; --r-lg:18px; --r-xl:24px; --r-card:18px;
   --pad:16px;
   --icon-stroke:1.7;
 
@@ -63,30 +68,35 @@
 }
 
 :root[data-theme="light"] {
-  --bg:        #f2f2f7;
-  --bg-el:     #f7f7fa;
+  --bg:        #f1f6f3;
+  --bg-el:     #f8fbf9;
   --surface:   #ffffff;
-  --surface-2: #ececef;
-  --surface-3: #e3e3e8;
+  --surface-2: #edf4ef;
+  --surface-3: #e2ece5;
+  --surface-line: rgba(16,45,30,.10);
+  --field-bg: #f3f8f4;
+  --field-line: rgba(16,45,30,.16);
+  --shadow-card: 0 10px 24px rgba(22,63,40,.08);
+  --shadow-control: 0 6px 14px rgba(22,63,40,.10);
 
-  --label:     #000000;
-  --label-2:   rgba(60,60,67,.72);
-  --label-3:   rgba(60,60,67,.30);
-  --label-4:   rgba(60,60,67,.16);
+  --label:     #102018;
+  --label-2:   rgba(16,32,24,.72);
+  --label-3:   rgba(16,32,24,.48);
+  --label-4:   rgba(16,32,24,.20);
 
-  --sep:       rgba(60,60,67,.29);
-  --sep-op:    rgba(60,60,67,.20);
+  --sep:       rgba(16,45,30,.18);
+  --sep-op:    rgba(16,45,30,.14);
 
-  --blue:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
+  --blue:#006dcc; --green:#087a43; --red:#c8322a; --orange:#ad6500;
   --yellow:#ffcc00; --teal:#30b0c7; --indigo:#5856d6; --pink:#ff2d55;
   --purple:#af52de; --mint:#00c7be; --brown:#a2845e; --grey:#8e8e93;
-  --acc-2:#248a3d;
+  --acc-2:#0a6e3c;
   --acc-text:var(--acc-2);
   --on-acc:#ffffff;
 }
 
 /* accents — Apple's system colours, so a recolour never looks off-system */
-:root[data-accent="lime"]  { --acc:var(--green);  --acc-2:#248a3d; --on-acc:#000 }
+:root[data-accent="lime"]  { --acc:var(--green);  --acc-2:#5cc441; --on-acc:#000 }
 :root[data-accent="sky"]   { --acc:var(--blue);   --acc-2:#0060df; --on-acc:#fff }
 :root[data-accent="orange"]{ --acc:var(--orange); --acc-2:#c76b00; --on-acc:#000 }
 :root[data-accent="violet"]{ --acc:var(--purple); --acc-2:#8944ab; --on-acc:#fff }
@@ -94,13 +104,8 @@
 :root[data-accent="red"]   { --acc:var(--red);    --acc-2:#d70015; --on-acc:#fff }
 :root[data-accent="teal"]  { --acc:var(--teal);   --acc-2:#0071a4; --on-acc:#000 }
 :root[data-accent="gold"]  { --acc:var(--yellow); --acc-2:#b25000; --on-acc:#000 }
-/* Label colour on a filled accent button is picked per accent by measured contrast,
-   not by taste. Button text is 17px/600, so the AA bar is 3:1 (large text). White on
-   the light-theme green is 2.22:1 and on teal 2.57:1 — both fail, and green is the
-   DEFAULT accent, so every primary button in light mode was failing. Black scores
-   9.46 / 8.16 there. Blue, purple, pink and red keep white (3.5–4.1:1), which both
-   passes and matches the platform convention. */
-:root[data-theme="light"][data-accent="lime"],
+/* Filled accent text uses a measured high-contrast pair in each theme. */
+:root[data-theme="light"][data-accent="lime"]  { --on-acc:#fff }
 :root[data-theme="light"][data-accent="teal"]  { --on-acc:#000 }
 :root[data-theme="light"][data-accent="sky"],
 :root[data-theme="light"][data-accent="violet"],
@@ -116,7 +121,7 @@ html{
 body{
   background:var(--bg);color:var(--label);
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Roboto,system-ui,sans-serif;
-  font-size:17px;line-height:1.29;letter-spacing:-.01em;
+  font-size:17px;line-height:1.35;letter-spacing:-.01em;
   min-height:100vh;overscroll-behavior-y:none;overflow-x:clip;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
   touch-action:manipulation;
@@ -128,6 +133,9 @@ img{max-width:100%}
 a{color:var(--acc-text);text-decoration:none}
 :focus{outline:none}
 :focus-visible{outline:2.5px solid var(--acc);outline-offset:2px;border-radius:6px}
+button,input,select,textarea{touch-action:manipulation}
+button:disabled{cursor:not-allowed}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--acc)}
 button,.chip,.tile,.item,.wday,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp button,.sld
 {-webkit-user-select:none;user-select:none}
 
@@ -176,24 +184,25 @@ body.resting #app{padding-bottom:calc(250px + var(--sab))}
 
 /* large title, the way a nav bar does it */
 .hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 18px}
-.hdr h1{font-size:34px;line-height:1.06;font-weight:700;letter-spacing:-.028em}
+.hdr h1{font-size:36px;line-height:1.04;font-weight:750;letter-spacing:-.035em}
 .hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
 
 .iconbtn{
   width:36px;height:36px;min-width:44px;min-height:44px;border-radius:50%;flex:none;
-  background:var(--surface);color:var(--label);
+  background:var(--surface-2);color:var(--label);border:1px solid var(--surface-line);
   display:flex;align-items:center;justify-content:center;font-size:18px;
-  transition:background var(--fast),transform var(--fast);
+  transition:background var(--fast),transform var(--fast),border-color var(--fast),color var(--fast);
 }
-.iconbtn:active{background:var(--surface-2);transform:scale(.92)}
+.iconbtn:hover{background:var(--surface-3);border-color:var(--acc-line)}
+.iconbtn:active{background:var(--surface-3);transform:scale(.94)}
 .iconbtn.on-ss{background:var(--acc-soft);color:var(--acc)}
 
 h4.sec{
-  font-size:13px;font-weight:400;letter-spacing:-.004em;color:var(--label-2);
-  text-transform:none;margin:22px 0 8px;padding:0 4px;
+  font-size:12px;font-weight:650;letter-spacing:.065em;color:var(--label-2);
+  text-transform:uppercase;margin:24px 0 9px;padding:0 4px;
 }
 .card h2{
-  font-size:13px;font-weight:400;letter-spacing:-.004em;color:var(--label-2);
+  font-size:14px;font-weight:650;letter-spacing:-.004em;color:var(--label-2);
   text-transform:none;margin:0 0 12px;
 }
 .divider{height:var(--hair);background:var(--sep);margin:14px 0;border:0}
@@ -203,23 +212,23 @@ h4.sec{
 
 /* ----------------------------------------------------------------- card -- */
 .card{
-  background:var(--surface);border-radius:var(--r-card);
-  padding:16px;margin-bottom:12px;
+  background:var(--surface);border:1px solid var(--surface-line);border-radius:var(--r-card);
+  box-shadow:var(--shadow-card);padding:18px;margin-bottom:14px;
 }
 .card .big{font-size:30px;font-weight:600;letter-spacing:-.026em;line-height:1.1}
 
 /* ------------------------------------------------------ inset group list -- */
 .sect{margin-bottom:22px}
 .sect-t{
-  font-size:13px;font-weight:400;color:var(--label-2);
-  letter-spacing:-.004em;padding:0 4px 7px;display:block;
+  font-size:12px;font-weight:650;color:var(--label-2);
+  letter-spacing:.06em;text-transform:uppercase;padding:0 4px 9px;display:block;
 }
-.sect-b{background:var(--surface);border-radius:var(--r-card);overflow:hidden}
+.sect-b{background:var(--surface);border:1px solid var(--surface-line);border-radius:var(--r-card);overflow:hidden;box-shadow:var(--shadow-card)}
 .sect-f{font-size:13px;color:var(--label-2);padding:7px 4px 0;line-height:1.38}
 
 .lrow{
   display:flex;align-items:center;gap:12px;width:100%;text-align:left;
-  padding:11px 14px;min-height:46px;position:relative;color:var(--label);
+  padding:13px 15px;min-height:52px;position:relative;color:var(--label);
   background:none;
 }
 /* hairline starts after the icon rail so the list reads as one object */
@@ -227,11 +236,12 @@ h4.sec{
   content:'';position:absolute;left:14px;right:0;top:0;height:var(--hair);background:var(--sep);
 }
 .lrow:has(.lrow-i)+.lrow:has(.lrow-i)::before{left:55px}
+.lrow.tap:hover{background:color-mix(in srgb,var(--acc) 5%,transparent)}
 .lrow.tap:active{background:var(--surface-2)}
 .lrow-i{
-  width:29px;height:29px;border-radius:7px;flex:none;font-size:18px;
+  width:34px;height:34px;border-radius:10px;flex:none;font-size:18px;
   display:flex;align-items:center;justify-content:center;
-  background:var(--tint,var(--acc));color:#fff;
+  background:color-mix(in srgb,var(--tint,var(--acc)) 24%,var(--surface-2));color:var(--tint,var(--acc));
 }
 .lrow-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .lrow-t{font-size:17px;letter-spacing:-.012em;line-height:1.25}
@@ -257,37 +267,40 @@ h4.sec{
 /* -------------------------------------------------------------- buttons -- */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;
-  padding:14px 18px;border-radius:var(--r);font-size:17px;font-weight:600;
-  letter-spacing:-.012em;background:var(--surface-2);color:var(--label);
-  transition:transform var(--fast) var(--ease),background var(--fast),opacity var(--fast);
+  min-height:48px;padding:12px 18px;border:1px solid transparent;border-radius:14px;
+  font-size:17px;font-weight:650;letter-spacing:-.012em;background:var(--surface-2);color:var(--label);
+  box-shadow:var(--shadow-control);
+  transition:transform var(--fast) var(--ease),background var(--fast),border-color var(--fast),box-shadow var(--fast),opacity var(--fast),filter var(--fast);
 }
 .btn .icn{font-size:19px}
+.btn:hover{filter:brightness(1.06)}
 .btn:active{transform:scale(.975)}
-.btn.primary{background:var(--acc);color:var(--on-acc)}
+.btn.primary{background:var(--acc);color:var(--on-acc);box-shadow:0 8px 18px color-mix(in srgb,var(--acc) 22%,transparent)}
 .btn.primary:active{background:var(--acc-2)}
-.btn.tinted{background:var(--acc-soft);color:var(--acc)}
-.btn.danger{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
-.btn.ghost,.btn.plain{background:none;color:var(--acc);font-weight:400}
+.btn.tinted{background:var(--acc-soft);color:var(--acc-text);border-color:var(--acc-line);box-shadow:none}
+.btn.danger{background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red);border-color:color-mix(in srgb,var(--red) 25%,transparent);box-shadow:none}
+.btn.ghost,.btn.plain{background:transparent;color:var(--acc-text);font-weight:550;box-shadow:none}
 .btn.ghost:active,.btn.plain:active{background:var(--surface-2)}
-.btn.sm{padding:8px 14px;width:auto;font-size:15px;border-radius:var(--r-sm);gap:5px}
+.btn.sm{min-height:44px;padding:8px 14px;width:auto;font-size:15px;border-radius:12px;gap:5px}
 .btn.sm .icn{font-size:16px}
-.btn.xs{padding:5px 10px;width:auto;font-size:13px;border-radius:7px;gap:4px}
+.btn.xs{min-height:44px;padding:6px 10px;width:auto;font-size:13px;border-radius:10px;gap:4px}
 .btn:disabled{opacity:.32;pointer-events:none}
 
 /* ----------------------------------------------------------- tab bar ----- */
 #tabbar{
-  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  position:fixed;left:10px;right:10px;bottom:calc(8px + var(--sab));z-index:50;
   display:flex;justify-content:space-around;align-items:flex-end;
-  padding:7px 6px calc(6px + var(--sab));
+  padding:7px 8px 8px;
   background:color-mix(in srgb,var(--bg-el) 72%,transparent);
   backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
-  border-top:var(--hair) solid var(--sep-op);
+  border:1px solid var(--sep-op);border-radius:24px;
+  box-shadow:0 14px 34px rgba(0,0,0,.26);
 }
-:root[data-theme="light"] #tabbar{background:rgba(249,249,251,.78)}
+:root[data-theme="light"] #tabbar{background:rgba(248,251,249,.88);box-shadow:0 12px 28px rgba(22,63,40,.12)}
 #tabbar button{
   flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  color:var(--label-3);font-size:10px;font-weight:500;letter-spacing:.005em;padding-top:3px;
-  transition:color var(--fast);
+  color:var(--label-3);font-size:10px;font-weight:550;letter-spacing:.005em;padding:5px 2px 2px;
+  min-height:52px;border-radius:16px;transition:color var(--fast),background var(--fast),transform var(--fast);
 }
 /* The inactive tint is semi-transparent, so wherever two strokes cross inside an
    icon (the calendar's hangers over its frame, the divider's caps on its sides)
@@ -296,12 +309,14 @@ h4.sec{
    fades it as one shape — and it does that for every icon, not just this one. */
 #tabbar button .icn{font-size:25px;--icon-stroke:1.65;color:var(--label)}
 #tabbar button.on{color:var(--acc)}
+#tabbar button:not(.start).on{background:var(--acc-soft)}
+#tabbar button:not(.start):active{background:var(--surface-2);transform:scale(.97)}
 #tabbar button.on .icn{--icon-stroke:2;color:inherit;opacity:1}
 #tabbar button.start{margin-top:-24px}
 #tabbar button.start .cir{
-  width:52px;height:52px;border-radius:50%;background:var(--acc);color:var(--on-acc);
+  width:58px;height:58px;border-radius:50%;background:var(--acc);color:var(--on-acc);
   display:flex;align-items:center;justify-content:center;position:relative;
-  box-shadow:0 6px 18px -4px color-mix(in srgb,var(--acc) 55%,transparent);
+  border:5px solid var(--bg-el);box-shadow:0 8px 22px -4px color-mix(in srgb,var(--acc) 58%,transparent);
   transition:transform var(--fast) var(--ease);
 }
 #tabbar button.start:active .cir{transform:scale(.93)}
@@ -343,9 +358,11 @@ h4.sec{
 .list{display:flex;flex-direction:column;gap:8px}
 .item{
   display:flex;align-items:center;gap:12px;background:var(--surface);
-  border-radius:var(--r-card);padding:10px 12px;min-height:60px;
-  transition:background var(--fast);text-align:left;width:100%;
+  border:1px solid var(--surface-line);box-shadow:var(--shadow-card);
+  border-radius:var(--r-card);padding:11px 13px;min-height:64px;
+  transition:background var(--fast),border-color var(--fast);text-align:left;width:100%;
 }
+.item:hover{border-color:var(--acc-line)}
 .item:active{background:var(--surface-2)}
 .thumb{width:50px;height:50px;border-radius:9px;object-fit:cover;background:#fff;flex:none}
 .thumb-x{
@@ -358,7 +375,7 @@ h4.sec{
 .chev{color:var(--label);flex:none;font-size:15px;--icon-stroke:2.4}
 .tag{
   display:inline-flex;align-items:center;gap:3px;background:var(--surface-2);
-  color:var(--label-2);border-radius:6px;padding:3px 7px;font-size:12px;
+  border:1px solid var(--surface-line);color:var(--label-2);border-radius:8px;padding:4px 8px;font-size:12px;
   font-weight:500;text-transform:capitalize;
 }
 .tag.acc{background:var(--acc-soft);color:var(--acc-text)}
@@ -371,23 +388,30 @@ h4.sec{
 .chips::-webkit-scrollbar{display:none}
 .chip{
   flex:none;min-height:44px;padding:6px 13px;border-radius:99px;background:var(--surface);
-  font-size:14px;font-weight:400;color:var(--label);text-transform:capitalize;
-  letter-spacing:-.006em;transition:background var(--fast),color var(--fast);
+  border:1px solid var(--surface-line);font-size:14px;font-weight:450;color:var(--label);text-transform:capitalize;
+  letter-spacing:-.006em;transition:background var(--fast),color var(--fast),border-color var(--fast),transform var(--fast);
 }
 .chip:active{background:var(--surface-2)}
-.chip.on{background:var(--acc);color:var(--on-acc);font-weight:500}
+.chip.on{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600;box-shadow:0 5px 14px color-mix(in srgb,var(--acc) 18%,transparent)}
 
 /* =========================== CONTROLS ==================================== */
 
 /* --- text field --- */
 .field,.input{
-  width:100%;background:var(--surface);border:none;border-radius:var(--r);
-  padding:13px 15px;font-size:17px;letter-spacing:-.012em;outline:none;
-  transition:box-shadow var(--fast);
+  width:100%;min-height:50px;background:var(--field-bg);border:1px solid var(--field-line);border-radius:14px;
+  padding:12px 15px;font-size:17px;letter-spacing:-.012em;outline:none;caret-color:var(--acc);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--label) 4%,transparent);
+  transition:box-shadow var(--fast),border-color var(--fast),background var(--fast);
 }
 .field::placeholder,.input::placeholder{color:var(--label-3)}
-.field:focus,.input:focus{box-shadow:inset 0 0 0 2px var(--acc)}
+.field:hover,.input:hover{border-color:color-mix(in srgb,var(--acc) 45%,var(--field-line))}
+.field:focus,.input:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),inset 0 0 0 1px var(--acc)}
 .field.area,textarea.input{min-height:92px;resize:vertical;line-height:1.42}
+input.num{
+  min-height:44px;background:var(--field-bg);border:1px solid var(--field-line);border-radius:12px;
+  color:var(--label);caret-color:var(--acc);transition:box-shadow var(--fast),border-color var(--fast),background var(--fast)
+}
+input.num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),inset 0 0 0 1px var(--acc)}
 .account-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin:0 auto 14px;width:100%;max-width:420px}
 .account-form h3{font-size:20px;text-align:center;margin:0 0 2px;letter-spacing:-.02em}
 .account-label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--label-2)}
@@ -405,20 +429,18 @@ h4.sec{
 /* --- search field --- */
 .searchf{position:relative;display:flex;align-items:center}
 .searchf .lead{
-  position:absolute;left:11px;font-size:16px;color:var(--label-3);
+  position:absolute;left:13px;font-size:16px;color:var(--label-3);
   pointer-events:none;--icon-stroke:2.1;z-index:1;
 }
-.searchf .field{padding-left:35px;padding-right:36px;background:var(--surface-2);border-radius:10px}
-:root[data-theme="light"] .searchf .field{background:rgba(118,118,128,.12)}
+.searchf .field{padding-left:39px;padding-right:42px;background:var(--field-bg);border-radius:14px}
 .searchf .clear{
   position:absolute;right:0;width:44px;height:44px;border-radius:50%;
-  background:var(--label-3);color:var(--bg);display:flex;align-items:center;
+  background:var(--surface-3);border:1px solid var(--surface-line);color:var(--label);display:flex;align-items:center;
   justify-content:center;font-size:11px;--icon-stroke:3;
 }
 /* legacy .search wrapper */
 .search{position:relative}
-.search .input{padding-left:35px;background:var(--surface-2);border-radius:10px}
-:root[data-theme="light"] .search .input{background:rgba(118,118,128,.12)}
+.search .input{padding-left:35px;background:var(--field-bg);border-radius:14px}
 .search>svg{
   position:absolute;left:11px;top:50%;transform:translateY(-50%);z-index:1;
   width:16px;height:16px;stroke:var(--label-3);fill:none;stroke-width:2.1;stroke-linecap:round;
@@ -448,23 +470,23 @@ h4.sec{
    padding box, which is what the thumb needs. */
 .seg{
   position:relative;display:flex;
-  background:var(--surface-3);border-radius:9px;padding:2px;isolation:isolate;
+  background:var(--surface-3);border:1px solid var(--surface-line);border-radius:12px;padding:3px;isolation:isolate;
 }
 .seg>button{flex:1 1 0;min-width:0}
-:root[data-theme="light"] .seg{background:rgba(118,118,128,.12)}
+:root[data-theme="light"] .seg{background:var(--surface-3)}
 .seg-sel{
   position:absolute;z-index:0;top:2px;bottom:2px;left:2px;
   width:calc((100% - 4px)/var(--n));
   transform:translateX(calc(100% * var(--i)));
-  background:var(--surface);border-radius:7px;
-  box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.06);
+  background:var(--surface);border-radius:9px;
+  box-shadow:var(--shadow-control);
   transition:transform var(--med) var(--ease);
 }
 :root[data-theme="light"] .seg-sel{background:#fff}
 .seg button{
   position:relative;z-index:1;padding:6px 8px;font-size:14px;font-weight:500;
   letter-spacing:-.006em;color:var(--label);display:flex;align-items:center;
-  justify-content:center;gap:5px;min-height:30px;transition:opacity var(--fast);
+  justify-content:center;gap:5px;min-height:38px;border-radius:9px;transition:opacity var(--fast),color var(--fast);
 }
 .seg button .icn{font-size:16px}
 .seg button:not(.on){color:var(--label-2);font-weight:400}
@@ -477,7 +499,7 @@ h4.sec{
 
 /* native time input, restyled to sit in a row like a value label */
 .timef{
-  background:var(--surface-2);border:none;border-radius:8px;padding:6px 10px;
+  min-height:44px;background:var(--field-bg);border:1px solid var(--field-line);border-radius:12px;padding:6px 10px;
   font-size:16px;color:var(--label);outline:none;font-variant-numeric:tabular-nums;
 }
 .timef::-webkit-calendar-picker-indicator{filter:invert(.5)}
@@ -488,10 +510,10 @@ h4.sec{
 .stp-l{font-size:13px;color:var(--label-2);text-align:center}
 .stp{
   display:flex;align-items:center;background:var(--surface-2);
-  border-radius:10px;overflow:hidden;min-width:0;
+  border:1px solid var(--surface-line);border-radius:14px;overflow:hidden;min-width:0;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--label) 4%,transparent);
 }
 .stp button{
-  width:40px;height:44px;flex:none;color:var(--label);font-size:16px;
+  width:44px;height:44px;flex:none;color:var(--label);font-size:16px;
   display:flex;align-items:center;justify-content:center;
   transition:background var(--fast);--icon-stroke:2.2;
 }
@@ -624,7 +646,7 @@ h4.sec{
      clock hard to pick out mid-set. The blur stays, so it still sits above the page. */
   background:color-mix(in srgb,var(--surface) 97%,transparent);
   backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
-  border-radius:var(--r-lg);padding:12px 14px;
+  border:1px solid var(--surface-line);border-radius:var(--r-lg);padding:13px 15px;
   display:flex;align-items:center;gap:12px;
   box-shadow:0 12px 34px -8px rgba(0,0,0,.55);
   animation:slideup var(--med) var(--ease);
@@ -661,14 +683,15 @@ h4.sec{
 #modal-root{position:fixed;inset:0;z-index:100;display:none}
 #modal-root.open{display:block}
 .mback{
-  position:absolute;inset:0;background:rgba(0,0,0,.4);
-  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  position:absolute;inset:0;background:rgba(3,8,11,.64);
+  backdrop-filter:blur(8px) saturate(110%);-webkit-backdrop-filter:blur(8px) saturate(110%);
   touch-action:none;overscroll-behavior:none;
 }
 .sheet{
   position:absolute;left:0;right:0;bottom:0;background:var(--bg-el);
+  border:1px solid var(--surface-line);border-bottom:0;
   border-radius:var(--r-xl) var(--r-xl) 0 0;
-  padding:8px 18px calc(20px + var(--sab));
+  padding:10px 20px calc(24px + var(--sab));
   max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
   animation:sheetup .34s var(--ease);
   overscroll-behavior:contain;touch-action:pan-y;will-change:transform;
@@ -679,8 +702,8 @@ h4.sec{
 .sheet h3{font-size:20px;font-weight:600;letter-spacing:-.021em;margin-bottom:14px}
 .center{
   position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:min(84vw,300px);background:var(--bg-el);border-radius:var(--r-lg);padding:20px;
-  box-shadow:0 20px 60px -12px rgba(0,0,0,.5);
+  width:min(90vw,420px);background:var(--bg-el);border:1px solid var(--surface-line);border-radius:var(--r-xl);padding:22px;
+  box-shadow:0 22px 60px -18px rgba(0,0,0,.62);
   animation:pop .28s var(--ease);
 }
 :root[data-theme="light"] .center{background:#fff}
@@ -932,11 +955,11 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-goal-grid label,.nutrition-filter-grid label,.nutrition-manual-grid label{display:flex;flex-direction:column;gap:5px;min-width:0}
 .nutrition-goal-grid label>span,.nutrition-filter-grid label>span,.nutrition-manual-grid label>span{font-size:12px;color:var(--label-2)}
 .nutrition-view .num{
-  min-height:44px;background:var(--surface-2);color:var(--label);border:none;border-radius:var(--r);
+  min-height:44px;background:var(--field-bg);color:var(--label);border:1px solid var(--field-line);border-radius:12px;
   outline:none;padding:11px 10px;font-size:16px;font-variant-numeric:tabular-nums;
   -moz-appearance:textfield;appearance:textfield;
 }
-.nutrition-view .num:focus{box-shadow:inset 0 0 0 2px var(--acc)}
+.nutrition-view .num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),inset 0 0 0 1px var(--acc)}
 .nutrition-view .num::-webkit-inner-spin-button{display:none}
 .nutrition-goal-input{position:relative}
 .nutrition-goal-input .num{padding-right:27px;text-align:right;width:100%}
@@ -978,6 +1001,7 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-food-open .nutrition-food-main{display:flex;flex-direction:column;gap:0}
 .nutrition-food-open .small{display:block;margin-top:3px}
 .nutrition-food-result .nutrition-food-icon{width:88px;height:112px;border-radius:14px}
+.nutrition-food-result{margin:8px 0;padding:14px;border:1px solid var(--surface-line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-card)}
 .nutrition-food-score-preview{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:10px;color:var(--label-2);font-size:13px;line-height:1.35}
 .nutrition-food-score-preview>span:nth-child(2){min-width:0;overflow-wrap:anywhere}
 .nutrition-food-score-preview>.icn{width:17px;height:17px;margin-left:auto;color:var(--label-3);flex:none}
@@ -1095,21 +1119,22 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .home-steps-quick .btn{flex:none;padding-inline:9px}
 .home-steps-input{display:flex;align-items:center;gap:5px;color:var(--label-2);font-size:12px;flex:none}
 .home-steps-input .num,.home-steps-goal .num{
-  min-height:44px;background:var(--surface-2);color:var(--label);border:var(--hair) solid var(--sep);
+  min-height:44px;background:var(--field-bg);color:var(--label);border:1px solid var(--field-line);
   border-radius:10px;outline:none;caret-color:var(--acc);font-variant-numeric:tabular-nums;
   -webkit-appearance:none;appearance:none;transition:background var(--fast),box-shadow var(--fast),border-color var(--fast)
 }
 .home-steps-input .num{width:78px;text-align:right;padding:8px 9px}
-.home-steps-input .num:focus,.home-steps-goal .num:focus{border-color:var(--acc);box-shadow:inset 0 0 0 2px var(--acc)}
+.home-steps-input .num:focus,.home-steps-goal .num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),inset 0 0 0 1px var(--acc)}
 .home-steps-goal{display:flex;align-items:center;gap:7px;margin-top:11px;padding-top:10px;border-top:var(--hair) solid var(--sep);color:var(--label-2);font-size:12px}
 .home-steps-goal span:first-child{margin-right:auto}
 .home-steps-goal .num{width:86px;text-align:right;padding:7px 8px;font-size:13px}
 :root[data-theme="light"] .home-steps-input .num,
-:root[data-theme="light"] .home-steps-goal .num{background:rgba(118,118,128,.12);border-color:rgba(60,60,67,.22)}
-.nutrition-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border-radius:var(--r-card);padding:5px;margin-bottom:14px}
+:root[data-theme="light"] .home-steps-goal .num{background:var(--field-bg);border-color:var(--field-line)}
+.nutrition-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border:1px solid var(--surface-line);border-radius:var(--r-card);padding:5px;margin-bottom:14px;box-shadow:var(--shadow-card)}
 .nutrition-tabs button{min-height:52px;border-radius:10px;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;line-height:1.15}
 .nutrition-tabs button .icn{font-size:19px}
-.nutrition-tabs button.on{background:var(--acc-soft);color:var(--acc-text);font-weight:600}
+.nutrition-tabs button.on{background:var(--acc-soft);color:var(--acc-text);font-weight:600;box-shadow:inset 0 0 0 1px var(--acc-line)}
+.nutrition-tabs button:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}
 .nutrition-tabs button:active{background:var(--surface-2)}
 .nutrition-provider{display:flex;align-items:center;gap:8px;margin:12px 0 9px}
 .nutrition-provider .chips{flex:1}

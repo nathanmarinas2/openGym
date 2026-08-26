@@ -66,7 +66,7 @@ export function SearchField({ value, onChange, onClear, ...rest }) {
       <Icon name="magnifier" className="lead" />
       <input className="field" value={value} onChange={onChange} {...rest} />
       {!!value && (
-        <button className="clear" onClick={onClear} aria-label="Clear">
+        <button type="button" className="clear" onClick={onClear} aria-label="Clear">
           <Icon name="xmark" />
         </button>
       )}
@@ -301,7 +301,7 @@ function require_ui() {
 
 export function Button({ variant = 'plain', size, icon, trailingIcon, children, className = '', ...rest }) {
   return (
-    <button className={`btn ${variant}${size ? ' ' + size : ''} ${className}`} {...rest}>
+    <button type="button" className={`btn ${variant}${size ? ' ' + size : ''} ${className}`} {...rest}>
       {icon && <Icon name={icon} />}
       {children && <span>{children}</span>}
       {trailingIcon && <Icon name={trailingIcon} />}
