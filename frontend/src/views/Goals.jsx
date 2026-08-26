@@ -1,67 +1,28 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { DEFAULT_NUTRITION_GOAL } from '../lib/nutrition.js'
-import { useLang } from '../lib/i18n.js'
+import { t, useLang } from '../lib/i18n.js'
 import Icon from '../components/Icon.jsx'
 import { Button, NumberField, Section, SelectRow } from '../components/ui.jsx'
 
 const OBJECTIVES = [
-  ['performance', 'Mejorar rendimiento', 'Improve performance'],
-  ['build', 'Ganar músculo', 'Build muscle'],
-  ['cut', 'Perder grasa', 'Lose fat'],
-  ['maintain', 'Mantener peso', 'Maintain weight'],
-  ['health', 'Salud general', 'General health'],
+  ['performance', 'Improve performance'],
+  ['build', 'Build muscle'],
+  ['cut', 'Lose fat'],
+  ['maintain', 'Maintain weight'],
+  ['health', 'General health'],
 ]
 
-const copy = es => es ? {
-  title: 'Objetivos',
-  subtitle: 'Una única fuente para todo lo que quieres conseguir',
-  intro: 'Define aquí tus metas. Inicio, Entrenamiento, Progreso, Nutrición y Coach las utilizarán automáticamente.',
-  primary: 'Objetivo principal',
-  body: 'Composición corporal',
-  targetWeight: 'Peso objetivo',
-  noTarget: 'Sin definir',
-  nutrition: 'Objetivos nutricionales',
-  nutritionHint: 'Se aplican a cada día del diario',
-  calories: 'Calorías', protein: 'Proteína', carbs: 'Carbohidratos', fat: 'Grasa',
-  movement: 'Actividad diaria',
-  steps: 'Pasos diarios',
-  hydration: 'Hidratación',
-  water: 'Agua diaria',
-  training: 'Entrenamiento',
-  sessions: 'Sesiones planificadas por semana',
-  noPlan: 'Aún no hay días planificados',
-  openPlan: 'Configurar plan',
-  coach: 'El Coach utiliza estos objetivos para revisar tu historial.',
-  unitSteps: 'pasos',
-  unitWater: 'ml',
-  unitSessions: 'sesiones',
-  savedIn: 'Se guarda en tu perfil y se sincroniza con tus datos.',
-} : {
-  title: 'Goals',
-  subtitle: 'One source of truth for everything you want to achieve',
-  intro: 'Set your targets here. Home, Training, Progress, Nutrition and Coach will use them automatically.',
-  primary: 'Primary goal',
-  body: 'Body composition',
-  targetWeight: 'Target weight',
-  noTarget: 'Not set',
-  nutrition: 'Nutrition targets',
-  nutritionHint: 'Applied to each diary day',
-  calories: 'Calories', protein: 'Protein', carbs: 'Carbs', fat: 'Fat',
-  movement: 'Daily activity',
-  steps: 'Daily steps',
-  hydration: 'Hydration',
-  water: 'Daily water',
-  training: 'Training',
-  sessions: 'Planned sessions per week',
-  noPlan: 'No planned days yet',
-  openPlan: 'Configure plan',
-  coach: 'Coach uses these targets when reviewing your history.',
-  unitSteps: 'steps',
-  unitWater: 'ml',
-  unitSessions: 'sessions',
-  savedIn: 'Saved to your profile and synced with your data.',
-}
+const copy = () => ({
+  title: t('Goals'), subtitle: t('One source of truth for everything you want to achieve'),
+  intro: t('Set your targets here. Home, Training, Progress, Nutrition and Coach will use them automatically.'),
+  primary: t('Primary goal'), body: t('Body composition'), targetWeight: t('Target weight'), noTarget: t('Not set'),
+  nutrition: t('Nutrition targets'), nutritionHint: t('Applied to each diary day'), calories: t('Calories'), protein: t('Protein'),
+  carbs: t('Carbs'), fat: t('Fat'), movement: t('Daily activity'), steps: t('Daily steps'), hydration: t('Hydration'),
+  water: t('Daily water'), training: t('Training'), sessions: t('Planned sessions per week'), noPlan: t('No planned days yet'),
+  openPlan: t('Configure plan'), coach: t('Coach uses these targets when reviewing your history.'), currentTarget: t('Current target'), unitSteps: t('steps'),
+  unitWater: t('ml'), unitSessions: t('sessions'), savedIn: t('Saved to your profile and synced with your data.')
+})
 
 function GoalNumber({ label, value, unit, onChange, ariaLabel, nullable = false }) {
   return <label className="goals-number-field">
@@ -78,13 +39,12 @@ export default function Goals() {
   const nav = useNavigate()
   const S = useStore(state => state.S)
   const update = useStore(state => state.update)
-  const es = S.lang === 'es'
-  const C = copy(es)
+  const C = copy()
   const objective = S.coachProfile?.objective || 'performance'
   const nutritionGoal = { ...DEFAULT_NUTRITION_GOAL, ...(S.nutritionGoal || {}) }
   const plannedSessions = Object.values(S.week || {}).filter(Boolean).length
   const unit = S.unit || 'kg'
-  const objectiveOptions = OBJECTIVES.map(([value, spanish, english]) => ({ value, label: es ? spanish : english }))
+  const objectiveOptions = OBJECTIVES.map(([value, label]) => ({ value, label: t(label) }))
   const setNutrition = (key, value) => update(s => {
     s.nutritionGoal = { ...DEFAULT_NUTRITION_GOAL, ...(s.nutritionGoal || {}), [key]: Math.max(0, Math.round(+value || 0)) }
   })
@@ -92,7 +52,7 @@ export default function Goals() {
   return <div className="narrow goals-view">
     <header className="hdr goals-header">
       <div className="row" style={{ gap: 10 }}>
-        <button className="iconbtn" onClick={() => nav('/home')} aria-label={es ? 'Volver' : 'Back'}><Icon name="chevronLeft" /></button>
+        <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
         <div><h1>{C.title}</h1><div className="sub">{C.subtitle}</div></div>
       </div>
       <span className="goals-header-mark"><Icon name="target" /></span>
@@ -100,7 +60,7 @@ export default function Goals() {
 
     <section className="card goals-hero">
       <div className="goals-hero-icon"><Icon name="target" /></div>
-      <div><strong>{OBJECTIVES.find(([value]) => value === objective)?.[es ? 1 : 2] || C.primary}</strong><p>{C.intro}</p></div>
+      <div><strong>{t(OBJECTIVES.find(([value]) => value === objective)?.[1] || 'Primary goal')}</strong><p>{C.intro}</p></div>
     </section>
 
     <Section title={C.primary} footer={C.coach}>
@@ -110,7 +70,7 @@ export default function Goals() {
     <Section title={C.body}>
       <div className="goals-single-card">
         <GoalNumber label={C.targetWeight} value={S.targetW} unit={unit} nullable ariaLabel={C.targetWeight} onChange={value => update(s => { s.targetW = value == null || value <= 0 ? null : Math.round(value * 10) / 10 })} />
-        <span className="goals-field-hint">{S.targetW ? `${es ? 'Meta actual' : 'Current target'}: ${S.targetW} ${unit}` : C.noTarget}</span>
+        <span className="goals-field-hint">{S.targetW ? `${C.currentTarget || t('Current target')}: ${S.targetW} ${unit}` : C.noTarget}</span>
       </div>
     </Section>
 

@@ -45,10 +45,8 @@ export default function Settings() {
   const user = useStore(s => s.user)
   const { update, replaceState, setUser, pullState, pushState, signOut, signOutAll, resetDemo } = useStore()
   const toast = useUI(s => s.toast)
-  const accountStatus = getLang() === 'es' ? 'Sesión iniciada; tus datos se sincronizan con esta cuenta.' : 'Signed in; your data syncs with this account.'
-  const signOutEverywhereMessage = getLang() === 'es'
-    ? 'Cierra este perfil en todos los dispositivos, incluido este.'
-    : 'Signs this profile out on every device, including this one.'
+  const accountStatus = t('Signed in; your data syncs with this account.')
+  const signOutEverywhereMessage = t('Signs this profile out on every device, including this one.')
   const fileRef = useRef(null)
   const importRef = useRef(null)
   const wakeOK = wakeLockSupported()
@@ -165,8 +163,8 @@ export default function Settings() {
       </Row>
     </Section>
 
-    <Section title={getLang() === 'es' ? 'Objetivos' : 'Goals'} footer={getLang() === 'es' ? 'Se aplican a Inicio, Entrenamiento, Progreso, Nutrición y Coach.' : 'Used across Home, Training, Progress, Nutrition and Coach.'}>
-      <Row icon="target" iconTint="var(--acc)" title={getLang() === 'es' ? 'Objetivos centralizados' : 'Centralized goals'} subtitle={getLang() === 'es' ? 'Peso, nutrición, actividad y entrenamiento en un solo lugar.' : 'Weight, nutrition, activity and training in one place.'} accessory="chevron" onClick={() => nav('/goals')} />
+    <Section title={t('Goals')} footer={t('Used across Home, Training, Progress, Nutrition and Coach.')}>
+      <Row icon="target" iconTint="var(--acc)" title={t('Centralized goals')} subtitle={t('Weight, nutrition, activity and training in one place.')} accessory="chevron" onClick={() => nav('/goals')} />
     </Section>
 
     <Section title={t('Heart-rate profile')} footer={t('Manual maximum takes priority. Karvonen uses the latest resting heart rate when available; these are training estimates, not medical advice.')}>
@@ -177,7 +175,7 @@ export default function Settings() {
         <NumberField nullable decimal={false} value={S.hrProfile?.maxHr ?? null} aria-label={t('Manual max HR')} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), maxHr: v } })} />
       </Row>
       <SelectRow icon="target" iconTint="var(--orange)" title={t('Maximum HR method')} value={S.hrProfile?.maxHrMethod || 'tanaka'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), maxHrMethod: v } })} options={[{ value: 'tanaka', label: 'Tanaka' }, { value: 'fox', label: 'Fox' }, { value: 'gulati', label: 'Gulati' }]} />
-      <SelectRow icon="chartLine" iconTint="var(--orange)" title={t('Zone method')} value={S.hrProfile?.zoneMethod || 'percent-max'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), zoneMethod: v } })} options={[{ value: 'percent-max', label: t('Percent of max HR') }, { value: 'karvonen', label: 'Karvonen / heart-rate reserve' }]} />
+      <SelectRow icon="chartLine" iconTint="var(--orange)" title={t('Zone method')} value={S.hrProfile?.zoneMethod || 'percent-max'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), zoneMethod: v } })} options={[{ value: 'percent-max', label: t('Percent of max HR') }, { value: 'karvonen', label: t('Karvonen / heart-rate reserve') }]} />
     </Section>
 
     <Section title={t('Coach & privacy')} footer={t('AI is optional. Your history is never sent until you give explicit consent. Plans returned by Coach are drafts and require your confirmation.')}>
@@ -191,22 +189,18 @@ export default function Settings() {
     <TrainerArea user={user} S={S} update={update} toast={toast} />
 
     <Section
-      title={getLang() === 'es' ? 'Balance diario' : 'Daily balance'}
-      footer={getLang() === 'es'
-        ? 'Las calorías de pasos y entrenamiento son estimaciones informativas; no sustituyen una indicación médica.'
-        : 'Step and workout calories are informative estimates; they are not medical guidance.'}
+      title={t('Daily balance')}
+      footer={t('Step and workout calories are informative estimates; they are not medical guidance.')}
     >
       <Row
         icon="flame"
         iconTint="var(--orange)"
-        title={getLang() === 'es' ? 'El objetivo calórico ya incluye actividad' : 'Calorie target already includes activity'}
-        subtitle={getLang() === 'es'
-          ? 'Recomendado para evitar contar dos veces pasos y entrenamientos.'
-          : 'Recommended to avoid counting steps and workouts twice.'}
+        title={t('Calorie target already includes activity')}
+        subtitle={t('Recommended to avoid counting steps and workouts twice.')}
       >
         <Switch
           checked={S.nutritionSettings?.calorieTargetIncludesActivity !== false}
-          ariaLabel={getLang() === 'es' ? 'El objetivo calórico incluye actividad' : 'Calorie target includes activity'}
+          ariaLabel={t('Calorie target includes activity')}
           onChange={v => update(s => { s.nutritionSettings = { ...(s.nutritionSettings || {}), calorieTargetIncludesActivity: v } })}
         />
       </Row>

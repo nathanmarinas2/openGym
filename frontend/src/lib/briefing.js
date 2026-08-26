@@ -114,13 +114,13 @@ export function buildDailyBriefing(S = {}, date = new Date().toISOString().slice
   const over = { calories: Math.max(0, -delta.calories), protein: Math.max(0, -delta.protein) }
   let recommendation
   if (workout.planned && !workout.completed) {
-    recommendation = { tone: 'acc', type: 'training', title: 'Training is the next priority', detail: `${workout.plannedName} is planned today. Log the session so nutrition and performance stay connected.`, action: 'Open workout' }
+    recommendation = { tone: 'acc', type: 'training', title: 'Training is the next priority', detail: `${workout.plannedName} is planned today. Log the session so nutrition and performance stay connected.`, detailKey: '{0} is planned today. Log the session so nutrition and performance stay connected.', detailArgs: [workout.plannedName], action: 'Open workout' }
   } else if (goal.protein > 0 && remaining.protein >= 30) {
-    recommendation = { tone: 'orange', type: 'nutrition', title: 'Close the protein gap', detail: `${signed(remaining.protein)} g remain for today. Add a protein-rich meal rather than compensating at night.`, action: 'Open nutrition' }
+    recommendation = { tone: 'orange', type: 'nutrition', title: 'Close the protein gap', detail: `${signed(remaining.protein)} g remain for today. Add a protein-rich meal rather than compensating at night.`, detailKey: '{0} g remain for today. Add a protein-rich meal rather than compensating at night.', detailArgs: [signed(remaining.protein)], action: 'Open nutrition' }
   } else if (waterGoal > 0 && water < waterGoal * .6) {
-    recommendation = { tone: 'blue', type: 'hydration', title: 'Hydration is behind', detail: `${signed(Math.max(0, waterGoal - water))} ml remain to reach your water goal.`, action: 'Log water' }
+    recommendation = { tone: 'blue', type: 'hydration', title: 'Hydration is behind', detail: `${signed(Math.max(0, waterGoal - water))} ml remain to reach your water goal.`, detailKey: '{0} ml remain to reach your water goal.', detailArgs: [signed(Math.max(0, waterGoal - water))], action: 'Log water' }
   } else if (workout.averageRir != null && workout.averageRir <= 1) {
-    recommendation = { tone: 'violet', type: 'recovery', title: 'Keep recovery in view', detail: `Your logged average is ${workout.averageRir} RIR today. Avoid adding unplanned volume until you see how you recover.`, action: 'Review progress' }
+    recommendation = { tone: 'violet', type: 'recovery', title: 'Keep recovery in view', detail: `Your logged average is ${workout.averageRir} RIR today. Avoid adding unplanned volume until you see how you recover.`, detailKey: 'Your logged average is {0} RIR today. Avoid adding unplanned volume until you see how you recover.', detailArgs: [workout.averageRir], action: 'Review progress' }
   } else if (!workout.completed && !workout.planned && !totals.calories) {
     recommendation = { tone: 'neutral', type: 'logging', title: 'Create a useful baseline', detail: 'Log your first meal or session today so tomorrow’s briefing can be specific.', action: 'Open nutrition' }
   } else {

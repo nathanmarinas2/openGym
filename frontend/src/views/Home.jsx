@@ -105,46 +105,46 @@ export default function Home() {
       <div className="row between home-balance-head">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
           <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="dashboard" /></span>
-          <div><h2 id="home-balance-title" style={{ margin: 0 }}>{S.lang === 'es' ? 'Balance de hoy' : 'Today’s balance'}</h2><div className="small muted">{S.lang === 'es' ? 'Actividad, comida y objetivos en una sola vista' : 'Activity, food and goals in one view'}</div></div>
+          <div><h2 id="home-balance-title" style={{ margin: 0 }}>{t('Today’s balance')}</h2><div className="small muted">{t('Activity, food and goals in one view')}</div></div>
         </div>
-        <Button size="sm" variant="tinted" trailingIcon="chevronRight" className="home-balance-detail" onClick={() => nav('/briefing')}>{S.lang === 'es' ? 'Resumen' : 'Briefing'}</Button>
+        <Button size="sm" variant="tinted" trailingIcon="chevronRight" className="home-balance-detail" onClick={() => nav('/briefing')}>{t('Briefing')}</Button>
       </div>
       <div className="home-balance-grid">
         <div className="home-balance-metric steps">
-          <div className="home-balance-label"><Icon name="footprints" />{S.lang === 'es' ? 'Pasos' : 'Steps'}</div>
+          <div className="home-balance-label"><Icon name="footprints" />{t('Steps')}</div>
           <strong>{steps == null ? '—' : steps.toLocaleString()}<span> / {stepsGoal.toLocaleString()}</span></strong>
-          <small>{activity.stepsCalories == null ? (S.lang === 'es' ? 'kcal: —' : 'kcal: —') : `≈ ${roundNutrition(activity.stepsCalories)} kcal`}</small>
+          <small>{activity.stepsCalories == null ? t('kcal: —') : `≈ ${roundNutrition(activity.stepsCalories)} kcal`}</small>
         </div>
         <div className="home-balance-metric workout">
-          <div className="home-balance-label"><Icon name="dumbbell" />{S.lang === 'es' ? 'Gimnasio' : 'Gym'}</div>
-          <strong>{dailyWorkout.completed ? (S.lang === 'es' ? '1 sesión' : '1 session') : '—'}</strong>
-          <small>{activity.workoutCalories == null ? (dailyWorkout.completed ? (S.lang === 'es' ? 'kcal: —' : 'kcal: —') : (S.lang === 'es' ? 'Sin sesión' : 'No session')) : `≈ ${roundNutrition(activity.workoutCalories)} kcal`}</small>
+          <div className="home-balance-label"><Icon name="dumbbell" />{t('Gym')}</div>
+          <strong>{dailyWorkout.completed ? t('{0} session', 1) : '—'}</strong>
+          <small>{activity.workoutCalories == null ? (dailyWorkout.completed ? t('kcal: —') : t('No session')) : `≈ ${roundNutrition(activity.workoutCalories)} kcal`}</small>
         </div>
         <div className="home-balance-metric food">
-          <div className="home-balance-label"><Icon name="forkKnife" />{S.lang === 'es' ? 'Comida' : 'Food'}</div>
+          <div className="home-balance-label"><Icon name="forkKnife" />{t('Food')}</div>
           <strong>{roundNutrition(nutrition.calories)}<span> / {roundNutrition(briefing.nutrition.effectiveCaloriesGoal)} kcal</span></strong>
-          <small>{briefing.nutrition.over.calories > 0 ? `${roundNutrition(briefing.nutrition.over.calories)} ${S.lang === 'es' ? 'sobre objetivo' : 'over target'}` : `${roundNutrition(briefing.nutrition.remaining.calories)} ${S.lang === 'es' ? 'restantes' : 'remaining'}`}</small>
+          <small>{briefing.nutrition.over.calories > 0 ? t('{0} over target', roundNutrition(briefing.nutrition.over.calories)) : t('{0} remaining', roundNutrition(briefing.nutrition.remaining.calories))}</small>
         </div>
         <div className="home-balance-metric protein">
-          <div className="home-balance-label"><Icon name="target" />{S.lang === 'es' ? 'Proteína' : 'Protein'}</div>
+          <div className="home-balance-label"><Icon name="target" />{t('Protein')}</div>
           <strong>{roundNutrition(nutrition.protein)}<span> / {roundNutrition(nutritionGoal.protein)} g</span></strong>
-          <small>{briefing.nutrition.over.protein > 0 ? `${roundNutrition(briefing.nutrition.over.protein)} g ${S.lang === 'es' ? 'sobre objetivo' : 'over target'}` : `${roundNutrition(briefing.nutrition.remaining.protein)} g ${S.lang === 'es' ? 'restantes' : 'remaining'}`}</small>
+          <small>{briefing.nutrition.over.protein > 0 ? t('{0} g over target', roundNutrition(briefing.nutrition.over.protein)) : t('{0} g remaining', roundNutrition(briefing.nutrition.remaining.protein))}</small>
         </div>
       </div>
       <div className="nutrition-track home-balance-track"><span style={{ width: `${stepsGoal ? Math.min(100, (steps || 0) / stepsGoal * 100) : 0}`, background: 'var(--blue)' }} /></div>
-      <div className="home-balance-activity-total"><span>{S.lang === 'es' ? 'Actividad del día' : 'Today’s activity'}</span><strong>{activity.activeCalories == null ? '—' : `≈ ${roundNutrition(activity.activeCalories)} kcal`}</strong><small>{activity.activeCaloriesSource === 'device' ? (S.lang === 'es' ? 'Dato importado' : 'Imported data') : activity.activeCalories == null ? (S.lang === 'es' ? 'Añade pasos o termina una sesión' : 'Add steps or finish a session') : (S.lang === 'es' ? 'Pasos + sesión estimados' : 'Estimated steps + session')}</small></div>
+      <div className="home-balance-activity-total"><span>{t('Today’s activity')}</span><strong>{activity.activeCalories == null ? '—' : `≈ ${roundNutrition(activity.activeCalories)} kcal`}</strong><small>{activity.activeCaloriesSource === 'device' ? t('Imported data') : activity.activeCalories == null ? t('Add steps or finish a session') : t('Estimated steps + session')}</small></div>
       <div className="home-balance-step-editor">
-        <div className="home-balance-step-title"><span>{S.lang === 'es' ? 'Registrar pasos' : 'Log steps'}</span><span className="muted">{S.lang === 'es' ? 'sin salir de Inicio' : 'without leaving Home'}</span></div>
+        <div className="home-balance-step-title"><span>{t('Log steps')}</span><span className="muted">{t('without leaving Home')}</span></div>
         <div className="home-steps-actions">
-          <div className="home-steps-quick" aria-label={S.lang === 'es' ? 'Añadir pasos' : 'Add steps'}>
+          <div className="home-steps-quick" aria-label={t('Add steps')}>
             {[500, 1000, 2500].map(amount => <Button key={amount} size="sm" variant="tinted" onClick={() => addSteps(amount)}>+{amount.toLocaleString()}</Button>)}
           </div>
-          <label className="home-steps-input"><span>{S.lang === 'es' ? 'Total' : 'Total'}</span><NumberField nullable value={steps} decimal={false} aria-label={S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'} onChange={setSteps} /></label>
+          <label className="home-steps-input"><span>{t('Total')}</span><NumberField nullable value={steps} decimal={false} aria-label={t('Today’s steps')} onChange={setSteps} /></label>
         </div>
       </div>
       <div className="home-balance-note"><Icon name="info" />{includesActivity
-        ? (S.lang === 'es' ? 'Las kcal de actividad son orientativas y no se suman a tu objetivo de comida.' : 'Activity kcal are estimates and are not added to your food target.')
-        : (S.lang === 'es' ? 'Tu objetivo permite sumar la actividad estimada cuando hay datos disponibles.' : 'Your target allows estimated activity to extend the available intake when data is available.')}</div>
+        ? t('Activity kcal are estimates and are not added to your food target.')
+        : t('Your target allows estimated activity to extend the available intake when data is available.')}</div>
     </section>
 
     {!S.routines.length && !S.active && (
@@ -192,18 +192,18 @@ export default function Home() {
       <div className="row between">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
           <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="forkKnife" /></span>
-          <div><div className="lbl2">{S.lang === 'es' ? 'Nutrición' : t('Nutrition')}</div><div className="ttl">{roundNutrition(nutrition.calories)} / {roundNutrition(nutritionGoal.calories)} kcal</div></div>
+          <div><div className="lbl2">{t('Nutrition')}</div><div className="ttl">{roundNutrition(nutrition.calories)} / {roundNutrition(nutritionGoal.calories)} kcal</div></div>
         </div>
         <Icon name="chevronRight" className="chev" />
       </div>
       <div className="nutrition-track" style={{ marginTop: 12 }}><span style={{ width: `${Math.min(100, nutritionGoal.calories ? nutrition.calories / nutritionGoal.calories * 100 : 0)}%` }} /></div>
-      <div className="small muted" style={{ marginTop: 7 }}>{roundNutrition(nutrition.protein)}g {S.lang === 'es' ? 'proteína' : t('protein')} · {S.lang === 'es' ? 'Abrir diario' : t('Open food diary')}</div>
+      <div className="small muted" style={{ marginTop: 7 }}>{roundNutrition(nutrition.protein)}g {t('Protein').toLowerCase()} · {t('Open food diary')}</div>
     </Tappable>
 
     <div className="home-action-grid home-action-grid-single">
       <Tappable className="card tappable home-action-card" onClick={() => nav('/coach')}>
         <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="brain" /></span>
-        <div><div className="ttl">{S.lang === 'es' ? 'Coach personal' : 'Personal coach'}</div><div className="small muted">{S.lang === 'es' ? 'Revisión de todo tu historial' : 'Review your full history'}</div></div>
+        <div><div className="ttl">{t('Personal coach')}</div><div className="small muted">{t('Review your full history')}</div></div>
         <Icon name="chevronRight" className="chev" />
       </Tappable>
     </div>

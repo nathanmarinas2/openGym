@@ -34,6 +34,13 @@ const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
 const ui = () => useUI.getState()
 const toast = m => ui().toast(m)
+const localizePlanWarning = warning => {
+  const unknown = /^Unknown exercise “(.+)” was added for review\.$/.exec(warning)
+  if (unknown) return t('Unknown exercise “{0}” was added for review.', unknown[1])
+  const limit = /^Routine (\d+) exceeded the exercise limit; extra exercises were ignored\.$/.exec(warning)
+  if (limit) return t('Routine {0} exceeded the exercise limit; extra exercises were ignored.', limit[1])
+  return t(warning)
+}
 const snd = () => S().sound
 
 /* ============================ custom confirm dialog ============================ */
@@ -868,7 +875,7 @@ function PlanJsonImport({ plan, close }) {
   return <>
     <h3>{plan.title ? t('Import “{0}”', plan.title) : t('Import this plan')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>{t('{0} routines', plan.routineCount)} · {t('{0} exercises', plan.exerciseCount)} · {t('Existing routines will not be overwritten.')}</div>
-    {plan.warnings.length > 0 && <div className="notice warn" style={{ marginBottom: 12 }}><b>{t('Review before importing')}</b><ul style={{ margin: '7px 0 0 18px' }}>{plan.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></div>}
+    {plan.warnings.length > 0 && <div className="notice warn" style={{ marginBottom: 12 }}><b>{t('Review before importing')}</b><ul style={{ margin: '7px 0 0 18px' }}>{plan.warnings.map((warning, index) => <li key={index}>{localizePlanWarning(warning)}</li>)}</ul></div>}
     <Button variant="primary" icon="download" onClick={apply}>{t('Import and merge')}</Button>
     <div className="dim small" style={{ marginTop: 8 }}>{t('New IDs are generated. Workouts and nutrition history are never changed.')}</div>
   </>
