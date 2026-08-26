@@ -13,6 +13,42 @@ import {
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField, SearchField, TextField } from '../components/ui.jsx'
 
+const NUTRITION_SEARCH_STORAGE_KEY = 'liftnex:nutrition-search:v1'
+const NUTRITION_SEARCH_TTL = 30 * 60 * 1000
+
+function readNutritionSearchState() {
+  if (typeof window === 'undefined') return null
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(NUTRITION_SEARCH_STORAGE_KEY) || 'null')
+    if (!saved || !saved.savedAt || Date.now() - saved.savedAt > NUTRITION_SEARCH_TTL) {
+      window.sessionStorage.removeItem(NUTRITION_SEARCH_STORAGE_KEY)
+      return null
+    }
+    return saved
+  } catch {
+    return null
+  }
+}
+
+function persistNutritionSearchState(state) {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.setItem(NUTRITION_SEARCH_STORAGE_KEY, JSON.stringify({
+      ...state,
+      // Keep the snapshot bounded: this is a navigation hand-off, not a second database.
+      results: (state.results || []).slice(0, 50),
+      savedAt: Date.now()
+    }))
+  } catch {
+    // A full sessionStorage must never prevent opening a product detail.
+  }
+}
+
+function clearNutritionSearchState() {
+  if (typeof window === 'undefined') return
+  try { window.sessionStorage.removeItem(NUTRITION_SEARCH_STORAGE_KEY) } catch {}
+}
+
 const EN = {
   title: 'Nutrition', subtitle: 'Fuel your training with a simple food diary', date: 'Day',
   calories: 'Calories', protein: 'Protein', carbs: 'Carbs', fat: 'Fat', fiber: 'Fiber', sugar: 'Sugar', salt: 'Salt', sodium: 'Sodium', potassium: 'Potassium', calcium: 'Calcium', iron: 'Iron', vitaminC: 'Vitamin C', vitaminD: 'Vitamin D',
@@ -281,21 +317,30 @@ function BarcodeScanner({ C, onDetected, onClose }) {
   return <section className="nutrition-scanner" aria-label={C.barcode}><div className="nutrition-scanner-frame"><video ref={videoRef} muted playsInline /><span className="nutrition-scanner-guide" /></div>{error && <div className="nutrition-alert" role="alert"><Icon name="info" /> <span>{error}</span></div>}<Button size="sm" variant="plain" icon="xmark" onClick={onClose}>{C.stopScanner}</Button></section>
 }
 
-function NutritionDiary({ C, S, date, setDate, meal, setMeal, dayEntries, totals, goal, update, addFood, removeEntry, recentFoods, favoriteFoods = [], preferences = {}, favorites = [], toggleFavorite = () => {} }) {
+function NutritionDiary({ C, S, date, setDate, meal, setMeal, dayEntries, totals, goal, update, addFood, removeEntry, recentFoods, favoriteFoods = [], preferences = {}, favorites = [], toggleFavorite = () => {}, restoreSearch = null }) {
   const nav = useNavigate()
-  const [query, setQuery] = useState('')
-  const [barcode, setBarcode] = useState('')
-  const [filters, setFilters] = useState({ grade: '', maxSugar: '', minProtein: '', category: '', brand: '', country: '' })
-  const [results, setResults] = useState([])
-  const [grams, setGrams] = useState({})
+  const [query, setQuery] = useState(() => restoreSearch?.query || '')
+  const [barcode, setBarcode] = useState(() => restoreSearch?.barcode || '')
+  const [filters, setFilters] = useState(() => ({ grade: '', maxSugar: '', minProtein: '', category: '', brand: '', country: '', ...(restoreSearch?.filters || {}) }))
+  const [results, setResults] = useState(() => restoreSearch?.results || [])
+  const [grams, setGrams] = useState(() => restoreSearch?.grams || {})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilters, setShowFilters] = useState(() => !!restoreSearch?.showFilters)
   const [showMicros, setShowMicros] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
   const [manual, setManual] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', sugar: '', salt: '' })
-  const openProduct = (food, alternatives) => nav(`/nutrition/product/${encodeURIComponent(food.code || food.id)}`, { state: { food, alternatives, query } })
+  const searchSnapshot = () => ({
+    section: 'diary', date, meal, query, barcode, filters, results, grams, showFilters
+  })
+  const openProduct = (food, alternatives) => {
+    const snapshot = searchSnapshot()
+    // The product view is a separate route, so preserve the list before React
+    // unmounts this page. This also covers browser back, not only our button.
+    persistNutritionSearchState(snapshot)
+    nav(`/nutrition/product/${encodeURIComponent(food.code || food.id)}`, { state: { food, alternatives, query } })
+  }
   const runSearch = async () => {
     if (query.trim().length < 2) return
     setLoading(true); setError('')
@@ -326,7 +371,7 @@ function NutritionDiary({ C, S, date, setDate, meal, setMeal, dayEntries, totals
     <section className="card nutrition-goals" aria-labelledby="nutrition-goals-title"><div className="row between"><div><h2 id="nutrition-goals-title">{C.goal}</h2><span className="muted small">{C.goalsHint}</span></div><Button size="sm" variant="tinted" icon="target" onClick={() => nav('/goals')}>{C.goals}</Button></div><div className="nutrition-goal-grid nutrition-goal-readonly">{[['calories', C.calories, C.caloriesShort], ['protein', C.protein, 'g'], ['carbs', C.carbs, 'g'], ['fat', C.fat, 'g']].map(([key, label, unit]) => <div className="nutrition-goal-readonly-item" key={key}><span>{label}</span><strong>{nice(goal[key])}<i>{unit}</i></strong></div>)}</div></section>
     <NutritionPreferences C={C} S={S} update={update} />
     <SavedFoods C={C} foods={favoriteFoods} recentFoods={recentFoods} addFood={addFood} openProduct={openProduct} toggleFavorite={toggleFavorite} />
-    <section className="nutrition-search card" aria-labelledby="nutrition-add-title"><div className="row between"><h2 id="nutrition-add-title">{C.addFood}</h2></div><LocalCatalogNote C={C} /><div className="nutrition-search-row"><SearchField value={query} placeholder={C.searchPlaceholder} onChange={e => setQuery(e.target.value)} onClear={() => { setQuery(''); setResults([]); setError('') }} onKeyDown={e => { if (e.key === 'Enter') runSearch() }} /><Button variant="primary" size="sm" icon="magnifier" disabled={loading || query.trim().length < 2} onClick={runSearch}>{loading ? C.searching : C.search}</Button></div><div className="nutrition-meal-chips" role="group" aria-label={C.meals}>{MEALS.map(value => <button key={value} className={'chip' + (meal === value ? ' on' : '')} onClick={() => setMeal(value)}>{mealName(value, C)}</button>)}</div>{recentFoods.length > 0 && <div className="nutrition-recent"><div className="small muted">{C.recentFoods}</div><div className="nutrition-recent-list">{recentFoods.map(food => <button className="chip" key={food.id} onClick={() => addFood(food)}>{food.name}</button>)}</div></div>}<div className="nutrition-barcode-row"><label htmlFor="nutrition-barcode">{C.barcode}</label><TextField id="nutrition-barcode" value={barcode} inputMode="numeric" placeholder="e.g. 8412345678901" onChange={e => setBarcode(e.target.value.replace(/\D/g, ''))} /><Button size="sm" icon="search" disabled={loading || barcode.length < 6} onClick={() => runBarcode()}>{C.lookup}</Button><Button size="sm" variant="tinted" icon="camera" disabled={loading} onClick={() => setShowScanner(true)}>{C.scan}</Button></div>{showScanner && <BarcodeScanner C={C} onDetected={code => { setBarcode(code); setShowScanner(false); runBarcode(code) }} onClose={() => setShowScanner(false)} />}<p className="nutrition-source"><Icon name="info" /> {C.barcodeHint}</p><button className="nutrition-filter-toggle" aria-expanded={showFilters} onClick={() => setShowFilters(v => !v)}><Icon name="chevronDown" /> {showFilters ? C.hideFilters : C.filters}</button>{showFilters && <div className="nutrition-filters"><div className="nutrition-filter-grid"><label><span>{C.maxSugar}</span><NumberField value={filters.maxSugar} nullable decimal onChange={value => setFilters(f => ({ ...f, maxSugar: value ?? '' }))} /></label><label><span>{C.minProtein}</span><NumberField value={filters.minProtein} nullable decimal onChange={value => setFilters(f => ({ ...f, minProtein: value ?? '' }))} /></label><label className="nutrition-filter-wide"><span>{C.category}</span><TextField value={filters.category} placeholder="e.g. yogurt" onChange={e => setFilters(f => ({ ...f, category: e.target.value }))} /></label><label><span>{C.brand}</span><TextField value={filters.brand} placeholder="e.g. Hacendado" onChange={e => setFilters(f => ({ ...f, brand: e.target.value }))} /></label><label><span>{C.country}</span><TextField value={filters.country} placeholder="e.g. Spain" onChange={e => setFilters(f => ({ ...f, country: e.target.value }))} /></label></div><Button size="sm" variant="tinted" onClick={runSearch} disabled={loading || query.trim().length < 2}>{C.apply}</Button></div>}{error && <div className="nutrition-alert" role="alert"><Icon name="info" /> <span>{error}</span></div>}<FoodResults C={C} results={results} grams={grams} setGrams={setGrams} addFood={addFood} openProduct={openProduct} preferences={preferences} />{!results.length && !loading && !error && <p className="muted small nutrition-empty-search">{C.noResults}</p>}<Button size="sm" variant="plain" icon="plus" onClick={() => setManualOpen(v => !v)}>{manualOpen ? C.cancel : C.quickAdd}</Button>{manualOpen && <div className="nutrition-manual"><p className="muted small">{C.quickAddHint}</p><label><span>{C.name}</span><TextField value={manual.name} onChange={e => setManual(m => ({ ...m, name: e.target.value }))} /></label><div className="nutrition-manual-grid">{['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'salt'].map(key => <label key={key}><span>{C[key]} <i>/100g</i></span><NumberField value={manual[key]} nullable decimal onChange={value => setManual(m => ({ ...m, [key]: value ?? '' }))} /></label>)}</div><Button variant="primary" icon="check" onClick={saveManual}>{C.save}</Button></div>}<p className="nutrition-source"><Icon name="info" /> {C.localSource}</p></section>
+    <section className="nutrition-search card" aria-labelledby="nutrition-add-title"><div className="row between"><h2 id="nutrition-add-title">{C.addFood}</h2></div><LocalCatalogNote C={C} /><div className="nutrition-search-row"><SearchField value={query} placeholder={C.searchPlaceholder} onChange={e => setQuery(e.target.value)} onClear={() => { setQuery(''); setResults([]); setError(''); clearNutritionSearchState() }} onKeyDown={e => { if (e.key === 'Enter') runSearch() }} /><Button variant="primary" size="sm" icon="magnifier" disabled={loading || query.trim().length < 2} onClick={runSearch}>{loading ? C.searching : C.search}</Button></div><div className="nutrition-meal-chips" role="group" aria-label={C.meals}>{MEALS.map(value => <button key={value} className={'chip' + (meal === value ? ' on' : '')} onClick={() => setMeal(value)}>{mealName(value, C)}</button>)}</div>{recentFoods.length > 0 && <div className="nutrition-recent"><div className="small muted">{C.recentFoods}</div><div className="nutrition-recent-list">{recentFoods.map(food => <button className="chip" key={food.id} onClick={() => addFood(food)}>{food.name}</button>)}</div></div>}<div className="nutrition-barcode-row"><label htmlFor="nutrition-barcode">{C.barcode}</label><TextField id="nutrition-barcode" value={barcode} inputMode="numeric" placeholder="e.g. 8412345678901" onChange={e => setBarcode(e.target.value.replace(/\D/g, ''))} /><Button size="sm" icon="search" disabled={loading || barcode.length < 6} onClick={() => runBarcode()}>{C.lookup}</Button><Button size="sm" variant="tinted" icon="camera" disabled={loading} onClick={() => setShowScanner(true)}>{C.scan}</Button></div>{showScanner && <BarcodeScanner C={C} onDetected={code => { setBarcode(code); setShowScanner(false); runBarcode(code) }} onClose={() => setShowScanner(false)} />}<p className="nutrition-source"><Icon name="info" /> {C.barcodeHint}</p><button className="nutrition-filter-toggle" aria-expanded={showFilters} onClick={() => setShowFilters(v => !v)}><Icon name="chevronDown" /> {showFilters ? C.hideFilters : C.filters}</button>{showFilters && <div className="nutrition-filters"><div className="nutrition-filter-grid"><label><span>{C.maxSugar}</span><NumberField value={filters.maxSugar} nullable decimal onChange={value => setFilters(f => ({ ...f, maxSugar: value ?? '' }))} /></label><label><span>{C.minProtein}</span><NumberField value={filters.minProtein} nullable decimal onChange={value => setFilters(f => ({ ...f, minProtein: value ?? '' }))} /></label><label className="nutrition-filter-wide"><span>{C.category}</span><TextField value={filters.category} placeholder="e.g. yogurt" onChange={e => setFilters(f => ({ ...f, category: e.target.value }))} /></label><label><span>{C.brand}</span><TextField value={filters.brand} placeholder="e.g. Hacendado" onChange={e => setFilters(f => ({ ...f, brand: e.target.value }))} /></label><label><span>{C.country}</span><TextField value={filters.country} placeholder="e.g. Spain" onChange={e => setFilters(f => ({ ...f, country: e.target.value }))} /></label></div><Button size="sm" variant="tinted" onClick={runSearch} disabled={loading || query.trim().length < 2}>{C.apply}</Button></div>}{error && <div className="nutrition-alert" role="alert"><Icon name="info" /> <span>{error}</span></div>}<FoodResults C={C} results={results} grams={grams} setGrams={setGrams} addFood={addFood} openProduct={openProduct} preferences={preferences} />{!results.length && !loading && !error && <p className="muted small nutrition-empty-search">{C.noResults}</p>}<Button size="sm" variant="plain" icon="plus" onClick={() => setManualOpen(v => !v)}>{manualOpen ? C.cancel : C.quickAdd}</Button>{manualOpen && <div className="nutrition-manual"><p className="muted small">{C.quickAddHint}</p><label><span>{C.name}</span><TextField value={manual.name} onChange={e => setManual(m => ({ ...m, name: e.target.value }))} /></label><div className="nutrition-manual-grid">{['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'salt'].map(key => <label key={key}><span>{C[key]} <i>/100g</i></span><NumberField value={manual[key]} nullable decimal onChange={value => setManual(m => ({ ...m, [key]: value ?? '' }))} /></label>)}</div><Button variant="primary" icon="check" onClick={saveManual}>{C.save}</Button></div>}<p className="nutrition-source"><Icon name="info" /> {C.localSource}</p></section>
     <section aria-labelledby="nutrition-meals-title"><h2 className="nutrition-section-title" id="nutrition-meals-title">{C.meals}</h2>{MEALS.map(value => { const mealEntries = dayEntries.filter(entry => entry.meal === value); return <div className="card nutrition-meal" key={value}><div className="row between"><div><h2>{mealName(value, C)}</h2><span className="muted small">{mealEntries.length} {C.ingredients.toLowerCase()}</span></div><div className="row" style={{ gap: 6 }}><Button size="xs" icon="copy" disabled={!mealEntries.length} onClick={() => duplicateMeal(value)}>{C.duplicate}</Button><Button size="xs" icon="plus" onClick={() => setMeal(value)}>{C.add}</Button></div></div>{mealEntries.length ? mealEntries.map(entry => <div className="nutrition-entry" key={entry.id}><div className="nutrition-entry-main"><div>{entry.food.name}</div><MacroLine entry={entry} C={C} /></div><button className="iconbtn nutrition-remove" onClick={() => removeEntry(entry.id)} aria-label={`${C.remove} ${entry.food.name}`}><Icon name="trash" /></button></div>) : <p className="muted small nutrition-empty-meal">{C.noEntries}</p>}</div> })}</section>
   </>
 }
@@ -647,9 +692,13 @@ export default function Nutrition() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
-  const [section, setSection] = useState('diary')
-  const [date, setDate] = useState(todayISO())
-  const [meal, setMeal] = useState('breakfast')
+  // Product details are a separate route. Consume the short-lived search
+  // snapshot on mount so browser back restores the exact list the user left.
+  const [restoreSearch] = useState(() => readNutritionSearchState())
+  const [section, setSection] = useState(() => restoreSearch?.section || 'diary')
+  const [date, setDate] = useState(() => restoreSearch?.date || todayISO())
+  const [meal, setMeal] = useState(() => restoreSearch?.meal || 'breakfast')
+  useEffect(() => { if (restoreSearch) clearNutritionSearchState() }, [restoreSearch])
   const entries = S.nutritionEntries || []
   const personalFoods = useMemo(() => entries.map(entry => entry.food).filter(Boolean), [entries])
   const recentFoods = useMemo(() => {
@@ -673,5 +722,5 @@ export default function Nutrition() {
   const addFood = (food, selectedMeal = meal, selectedGrams = 100) => update(s => { s.nutritionEntries = [...(s.nutritionEntries || []), { id: idOf('nutrition'), date, meal: selectedMeal, grams: Math.max(1, roundNutrition(selectedGrams) || 100), food }] })
   const removeEntry = id => update(s => { s.nutritionEntries = (s.nutritionEntries || []).filter(entry => entry.id !== id) })
   const toggleFavorite = food => update(s => toggleFavoriteInState(s, food))
-  return <div className="narrow nutrition-view"><div className="hdr"><div><h1>{C.title}</h1><div className="sub">{C.subtitle}</div></div><div className="row" style={{ gap: 8 }}><Button size="sm" variant="tinted" icon="brain" onClick={() => nav('/coach')}>{C.coach}</Button><Icon name="forkKnife" className="nutrition-head-icon" /></div></div><div className="nutrition-tabs" role="tablist" aria-label={C.title}>{[['diary', C.diary, 'list'], ['recipes', C.recipes, 'forkKnife'], ['wellness', C.wellness, 'droplet'], ['insights', C.insights, 'chartLine']].map(([value, label, icon]) => <button key={value} role="tab" aria-selected={section === value} className={section === value ? 'on' : ''} onClick={() => setSection(value)}><Icon name={icon} /><span>{label}</span></button>)}</div>{section === 'diary' && <NutritionDiary C={C} S={S} date={date} setDate={setDate} meal={meal} setMeal={setMeal} dayEntries={dayEntries} totals={totals} goal={goal} update={update} addFood={addFood} removeEntry={removeEntry} personalFoods={personalFoods} recentFoods={recentFoods} favoriteFoods={favoriteFoods} preferences={preferences} favorites={favorites} toggleFavorite={toggleFavorite} />}{section === 'recipes' && <NutritionRecipes C={C} S={S} personalFoods={personalFoods} meal={meal} addFood={addFood} update={update} />}{section === 'wellness' && <NutritionWellness C={C} S={S} date={date} update={update} />}{section === 'insights' && <NutritionInsights C={C} S={S} date={date} setDate={setDate} entries={entries} goal={goal} />}</div>
+  return <div className="narrow nutrition-view"><div className="hdr"><div><h1>{C.title}</h1><div className="sub">{C.subtitle}</div></div><div className="row" style={{ gap: 8 }}><Button size="sm" variant="tinted" icon="brain" onClick={() => nav('/coach')}>{C.coach}</Button><Icon name="forkKnife" className="nutrition-head-icon" /></div></div><div className="nutrition-tabs" role="tablist" aria-label={C.title}>{[['diary', C.diary, 'list'], ['recipes', C.recipes, 'forkKnife'], ['wellness', C.wellness, 'droplet'], ['insights', C.insights, 'chartLine']].map(([value, label, icon]) => <button key={value} role="tab" aria-selected={section === value} className={section === value ? 'on' : ''} onClick={() => setSection(value)}><Icon name={icon} /><span>{label}</span></button>)}</div>{section === 'diary' && <NutritionDiary C={C} S={S} date={date} setDate={setDate} meal={meal} setMeal={setMeal} dayEntries={dayEntries} totals={totals} goal={goal} update={update} addFood={addFood} removeEntry={removeEntry} personalFoods={personalFoods} recentFoods={recentFoods} favoriteFoods={favoriteFoods} preferences={preferences} favorites={favorites} toggleFavorite={toggleFavorite} restoreSearch={restoreSearch} />}{section === 'recipes' && <NutritionRecipes C={C} S={S} personalFoods={personalFoods} meal={meal} addFood={addFood} update={update} />}{section === 'wellness' && <NutritionWellness C={C} S={S} date={date} update={update} />}{section === 'insights' && <NutritionInsights C={C} S={S} date={date} setDate={setDate} entries={entries} goal={goal} />}</div>
 }
