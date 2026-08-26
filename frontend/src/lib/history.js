@@ -18,6 +18,19 @@ export function modeOf(cfg) {
 }
 export const isTimed = cfg => modeOf(cfg) === 'time'
 
+// A missing setType is deliberately treated as working. That keeps every workout created
+// before schema 5 effective for progression, 1RM and volume while allowing new sessions and
+// imports to distinguish preparation work from the sets that carry the training signal.
+export const setTypeOf = set => set?.setType === 'warmup' ? 'warmup' : 'working'
+export const isWarmupSet = set => setTypeOf(set) === 'warmup'
+export const isWorkingSet = set => setTypeOf(set) === 'working'
+export const setsByType = (sets = [], type = 'working') => sets.filter(set => setTypeOf(set) === type)
+export const setVolume = set => isWorkingSet(set) ? Math.max(0, Number(set?.w) || 0) * Math.max(0, Number(set?.r) || 0) : 0
+export const warmupVolume = (workout, includeIncomplete = false) => (workout?.entries || []).reduce((total, entry) => total + (entry.sets || []).reduce((sum, set) => {
+  return sum + (setTypeOf(set) === 'warmup' && (includeIncomplete || set.done) ? Math.max(0, Number(set.w) || 0) * Math.max(0, Number(set.r) || 0) : 0)
+}, 0), 0)
+export const workingVolume = workout => (workout?.entries || []).reduce((total, entry) => total + (entry.sets || []).reduce((sum, set) => sum + setVolume(set) * (set.done ? 1 : 0), 0), 0)
+
 // Two flags that ride on top of a mode rather than making new ones (issues #31/#32), because
 // "bodyweight" and "per side" are true of a rep set and of a timed hold alike:
 //   bodyweight — the exercise carries no load of its own, so `w` means *added* weight and is
@@ -139,12 +152,12 @@ export function cleanupSg(ex) {
 }
 
 export function lastEntryFor(S, exId) {
-  for (let i = S.workouts.length - 1; i >= 0; i--) {
+  for (let i = (S.workouts || []).length - 1; i >= 0; i--) {
     const en = S.workouts[i].entries.find(e => e.id === exId)
     // `target` is what the session prescribed; finished workouts carry it so labels and the
     // progression engine can read a session back the way it was logged. Older workouts have
     // none — modeOf() falls back to the body part for them, which is what they were.
-    if (en && en.sets.some(s => s.done)) return { d: S.workouts[i].d, sets: en.sets.filter(s => s.done), target: en.target || null }
+    if (en && en.sets.some(s => s.done && isWorkingSet(s))) return { d: S.workouts[i].d, sets: en.sets.filter(s => s.done && isWorkingSet(s)), target: en.target || null }
   }
   return null
 }
@@ -174,6 +187,14 @@ export function buildSets(S, cfg) {
   const n = Math.max(1, cfg.sets || 1)
   const mode = modeOf(cfg)
   const sets = []
+  // Warm-ups are configured as a small count plus an optional percentage/repetition target.
+  // They are generated here, at session start, so editing a plan never rewrites history.
+  const warmupCount = Math.max(0, Math.min(10, Math.round(cfg.warmupSets || (Array.isArray(cfg.warmup) ? cfg.warmup.length : 0))))
+  const explicitWarmups = Array.isArray(cfg.warmup) ? cfg.warmup : []
+  const warmupWeight = cfg.warmupWeight != null ? Math.max(0, Number(cfg.warmupWeight) || 0)
+    : Math.round(Math.max(0, Number(cfg.weight) || 0) * Math.max(0, Math.min(100, Number(cfg.warmupPercent) || 50)) / 100 * 10) / 10
+  const warmupReps = Math.max(1, Math.round(cfg.warmupReps || Math.min(Number(cfg.reps) || 8, 8)))
+  const pushWarmup = (values = {}) => sets.push({ ...values, setType: 'warmup', done: false })
   // Last time's set at the same position, falling back to its final set when the plan grew.
   const prevAt = i => (last ? (last.sets[i] || last.sets[last.sets.length - 1]) : null)
 
@@ -185,6 +206,10 @@ export function buildSets(S, cfg) {
     return sets
   }
   if (mode === 'time') {
+    for (let i = 0; i < warmupCount; i++) {
+      const w = explicitWarmups[i] || {}
+      pushWarmup({ sec: Math.max(1, Math.round(w.sec || cfg.warmupSec || Math.min(cfg.sec || 45, 30))), w: Math.max(0, Number(w.w ?? warmupWeight) || 0) })
+    }
     for (let i = 0; i < n; i++) {
       // Only carry a previous value over when it came from a timed set — switching an
       // exercise from reps to time must not seed the duration from a rep count.
@@ -195,6 +220,10 @@ export function buildSets(S, cfg) {
     return sets
   }
   const conf = S.exWeights[cfg.id]
+  for (let i = 0; i < warmupCount; i++) {
+    const w = explicitWarmups[i] || {}
+    pushWarmup({ w: Math.max(0, Number(w.w ?? warmupWeight) || 0), r: Math.max(1, Math.round(w.r || warmupReps)) })
+  }
   for (let i = 0; i < n; i++) {
     const prev = prevAt(i)
     const usable = prev && prev.r > 0 ? prev : null
@@ -207,14 +236,18 @@ export function workoutVolume(w) {
   let v = 0
   // No special case for unilateral work: a per-side set logs its total, so both sides are
   // already in the rep count that arrives here.
-  w.entries.forEach(e => e.sets.forEach(s => { if (s.done) v += (s.w || 0) * (s.r || 0) }))
+  w.entries.forEach(e => e.sets.forEach(s => { if (s.done) v += setVolume(s) }))
   return v
 }
+export const workoutWarmupVolume = w => warmupVolume(w)
+export const workoutTotalVolume = w => workoutVolume(w) + workoutWarmupVolume(w)
 export function setsDone(w) {
   let n = 0
   w.entries.forEach(e => e.sets.forEach(s => { if (s.done) n++ }))
   return n
 }
+export const workingSetsDone = w => (w?.entries || []).reduce((n, e) => n + (e.sets || []).filter(s => s.done && isWorkingSet(s)).length, 0)
+export const warmupSetsDone = w => (w?.entries || []).reduce((n, e) => n + (e.sets || []).filter(s => s.done && isWarmupSet(s)).length, 0)
 export function setsDoneActive(A) {
   let n = 0
   if (A) A.entries.forEach(e => e.sets.forEach(s => { if (s.done) n++ }))

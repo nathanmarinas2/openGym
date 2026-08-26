@@ -44,6 +44,7 @@ const INVITE_ONLY = /^(1|true|yes|on)$/i.test(process.env.INVITE_ONLY || '');
 const SESSION_DAYS = Math.max(1, +(process.env.SESSION_DAYS || 90) || 90);
 const MAX_BODY = 5 * 1024 * 1024;
 const MAX_STATE_BYTES = 4 * 1024 * 1024;
+const STATE_SCHEMA_VERSION = 5;
 const OFF_TIMEOUT_MS = Math.max(2500, +(process.env.OFF_TIMEOUT_MS || 8000) || 8000);
 const OFF_RETRIES = Math.max(0, Math.min(3, +(process.env.OFF_RETRIES || 2) || 2));
 const OFF_CACHE_TTL_MS = Math.max(60000, +(process.env.OFF_CACHE_TTL_MS || 86400000) || 86400000);
@@ -113,8 +114,8 @@ function stateRevision(state) {
 }
 function validateState(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) return 'state must be an object';
-  if (Number(state.schemaVersion || 1) > 3) return 'state schema is newer than this server';
-  const arrayLimits = { routines: 500, workouts: 10000, bodyweight: 10000, customEx: 2000, bodyMeasurements: 10000, bodyPhotos: 2000, nutritionEntries: 100000, recipes: 2000, waterEntries: 50000, equipmentProfiles: 100, healthMetrics: 10000, nutritionFavorites: 10000, nutritionFavoriteFoods: 500, coachActionHistory: 10000 };
+  if (Number(state.schemaVersion || 1) > STATE_SCHEMA_VERSION) return 'state schema is newer than this server';
+  const arrayLimits = { routines: 500, workouts: 10000, bodyweight: 10000, customEx: 2000, bodyMeasurements: 10000, bodyPhotos: 2000, nutritionEntries: 100000, recipes: 2000, waterEntries: 50000, equipmentProfiles: 100, healthMetrics: 10000, nutritionFavorites: 10000, nutritionFavoriteFoods: 500, coachActionHistory: 10000, recoveryCheckins: 4000, planCycles: 100, coachDrafts: 100, coachSnapshots: 100, trainerLinks: 100, signedPlanPackages: 100 };
   for (const [key, limit] of Object.entries(arrayLimits)) {
     if (state[key] !== undefined && !Array.isArray(state[key])) return `${key} must be an array`;
     if (Array.isArray(state[key]) && state[key].length > limit) return `${key} is too large`;
@@ -128,13 +129,14 @@ function csvCell(value) {
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 function workoutsCsv(state) {
-  const rows = [['date', 'routine', 'exercise_id', 'exercise', 'set', 'reps', 'weight', 'seconds', 'speed', 'effort']];
+  const rows = [['date', 'routine', 'exercise_id', 'exercise', 'set', 'setType', 'reps', 'weight', 'seconds', 'speed', 'effort', 'averageHeartRate', 'maxHeartRate', 'restingHeartRate']];
   const routineNames = Object.fromEntries((state.routines || []).map(r => [r.id, r.name || r.id]));
   for (const workout of state.workouts || []) for (const entry of workout.entries || []) {
     for (const [index, set] of (entry.sets || []).filter(s => s.done).entries()) {
       rows.push([
         workout.d, routineNames[workout.routineId] || workout.name || '', entry.id, entry.n || '', index + 1,
-        set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? ''
+        set.setType || 'working', set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? '',
+        workout.averageHeartRate ?? '', workout.maxHeartRate ?? '', workout.restingHeartRate ?? ''
       ]);
     }
   }

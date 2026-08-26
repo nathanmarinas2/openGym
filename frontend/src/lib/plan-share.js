@@ -45,6 +45,10 @@ function cleanEx(e) {
   if (e.repsMin != null) o.repsMin = e.repsMin
   if (e.repsMax != null) o.repsMax = e.repsMax
   if (e.sg) o.sg = e.sg
+  if (e.warmupSets > 0) o.warmupSets = Math.min(10, Math.round(e.warmupSets))
+  if (e.warmupReps > 0) o.warmupReps = Math.round(e.warmupReps)
+  if (e.warmupPercent != null) o.warmupPercent = Math.max(0, Math.min(100, Number(e.warmupPercent) || 0))
+  if (Array.isArray(e.warmup) && e.warmup.length) o.warmup = e.warmup.slice(0, 10).map(s => ({ ...s, setType: 'warmup' }))
   return o
 }
 
@@ -59,7 +63,8 @@ export function buildPlanBundle(S, name) {
     .map(c => ({ id: c.id, n: c.n, bp: c.bp, ...(c.desc ? { desc: c.desc } : {}) }))
   const week = {}
   WEEK_ORDER.forEach(d => { if (S.week?.[d]) week[d] = S.week[d] })
-  return { opengym_plan: PLAN_FMT, exported: todayISO(), name: name || '', week, routines, customEx }
+  return { opengym_plan: PLAN_FMT, schema: 'liftnex-plan-v1', exported: todayISO(), name: name || '', week, routines, customEx,
+    planCycles: (S.planCycles || []).map(c => ({ ...c, phases: (c.phases || []).map(p => ({ ...p, routineIds: [...(p.routineIds || [])] })) })) }
 }
 
 /**
@@ -91,6 +96,7 @@ export function parsePlan(raw) {
     name: (data.name || '').trim(),
     routines,
     week: data.week || {},
+    planCycles: Array.isArray(data.planCycles) ? data.planCycles : [],
     customEx,
     dropped,
     routineCount: routines.length,

@@ -76,6 +76,9 @@ const COLUMNS = [
   ['seconds', ['seconds', 'duration seconds']],
   ['time', ['time', 'duration']],
   ['setType', ['set type']],
+  ['averageHeartRate', ['average heart rate', 'avg heart rate', 'average hr']],
+  ['maxHeartRate', ['max heart rate', 'maximum heart rate', 'peak heart rate', 'max hr']],
+  ['restingHeartRate', ['resting heart rate', 'resting hr', 'resting bpm']],
   ['note', ['comment', 'comments', 'notes', 'note']],
 ]
 
@@ -356,9 +359,11 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
     const isCardio = (km > 0 || mins > 0) && !reps
     // `u` carries the row's own unit into the conversion pass below and is dropped there —
     // it never reaches the stored set.
+    const importedSetType = /warm/i.test(cell(r, 'setType')) ? 'warmup' : 'working'
     const set = isCardio
       ? { min: mins || 0, speed: mins > 0 ? Math.round(km / (mins / 60) * 10) / 10 : 0, done: true }
       : { w, r: reps || 0, done: true, u: rowUnit }
+    if (importedSetType === 'warmup') set.setType = importedSetType
     // Effort rides along only where the app can show it again: a weighted rep set. A treadmill
     // row with an RPE would have nowhere to put it. A set is kept on one scale, so a file
     // carrying both columns is read as RIR — the same precedence setLabel reads them back with.
@@ -377,6 +382,9 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
     if (!day.name) day.name = cell(r, 'workoutName') || ''
     if (map.endTime !== undefined) { const e = parseWhen(cell(r, 'endTime')); if (e && e.t != null) day.end = e.t }
     else if (map.time !== undefined && !map.seconds && reps) { /* FitNotes' Time is per-set */ }
+    for (const field of ['averageHeartRate', 'maxHeartRate', 'restingHeartRate']) {
+      if (map[field] !== undefined) { const value = num(cell(r, field)); if (value > 0) day[field] = Math.round(value * 10) / 10 }
+    }
     if (!day.ex.has(id)) day.ex.set(id, [])
     day.ex.get(id).push(set)
     sets++
@@ -415,7 +423,8 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
       id: 'iw' + uid(), d, start, end: end > start ? end : start,
       routineId: null, name: day.name || 'Imported', entries, prs: [],
     }
-    w.vol = entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.w || 0) * (s.r || 0), 0), 0)
+    for (const field of ['averageHeartRate', 'maxHeartRate', 'restingHeartRate']) if (day[field] != null) w[field] = day[field]
+    w.vol = entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.setType === 'warmup' ? 0 : (s.w || 0) * (s.r || 0)), 0), 0)
     return w
   })
 
@@ -502,6 +511,8 @@ const HEALTH_COLUMNS = {
   sleepHours: ['sleep hours', 'sleep duration', 'sleep', 'asleep hours'],
   activeCalories: ['active calories', 'active energy', 'move calories', 'calories burned'],
   restingHeartRate: ['resting heart rate', 'resting hr', 'resting bpm', 'heart rate'],
+  averageHeartRate: ['average heart rate', 'avg heart rate', 'average hr', 'average bpm'],
+  maxHeartRate: ['max heart rate', 'maximum heart rate', 'peak heart rate', 'max hr'],
 }
 
 function firstColumn(header, aliases) {

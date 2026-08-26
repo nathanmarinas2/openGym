@@ -16,6 +16,7 @@ const MAX_BODY_BYTES = 5 * 1024 * 1024
 // D1 limits a single string/row to 2 MB. Keep a margin for SQLite/D1 overhead;
 // body photos are already kept device-local and are removed before sync.
 const MAX_STATE_BYTES = 1.9 * 1024 * 1024
+const STATE_SCHEMA_VERSION = 5
 const SESSION_DAYS = 90
 const PASSWORD_ITERATIONS = 100000
 const OFF_TIMEOUT_MS = 8000
@@ -202,12 +203,13 @@ async function requireAdmin(request, env) {
 
 function stateError(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) return 'state must be an object'
-  if (Number(state.schemaVersion || 1) > 3) return 'state schema is newer than this server'
+  if (Number(state.schemaVersion || 1) > STATE_SCHEMA_VERSION) return 'state schema is newer than this server'
   const limits = {
     routines: 500, workouts: 10000, bodyweight: 10000, customEx: 2000,
     bodyMeasurements: 10000, bodyPhotos: 2000, nutritionEntries: 100000,
     recipes: 2000, waterEntries: 50000, equipmentProfiles: 100,
-    healthMetrics: 10000, nutritionFavorites: 10000, nutritionFavoriteFoods: 500, coachActionHistory: 10000
+    healthMetrics: 10000, nutritionFavorites: 10000, nutritionFavoriteFoods: 500, coachActionHistory: 10000,
+    recoveryCheckins: 4000, planCycles: 100, coachDrafts: 100, coachSnapshots: 100, trainerLinks: 100, signedPlanPackages: 100
   }
   for (const [key, limit] of Object.entries(limits)) {
     if (state[key] !== undefined && !Array.isArray(state[key])) return `${key} must be an array`
@@ -229,13 +231,14 @@ function csvCell(value) {
 }
 
 function workoutsCsv(state) {
-  const rows = [['date', 'routine', 'exercise_id', 'exercise', 'set', 'reps', 'weight', 'seconds', 'speed', 'effort']]
+  const rows = [['date', 'routine', 'exercise_id', 'exercise', 'set', 'setType', 'reps', 'weight', 'seconds', 'speed', 'effort', 'averageHeartRate', 'maxHeartRate', 'restingHeartRate']]
   const routineNames = Object.fromEntries((state.routines || []).map(item => [item.id, item.name || item.id]))
   for (const workout of state.workouts || []) for (const entry of workout.entries || []) {
     for (const [index, set] of (entry.sets || []).filter(item => item.done).entries()) {
       rows.push([
         workout.d, routineNames[workout.routineId] || workout.name || '', entry.id, entry.n || '', index + 1,
-        set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? ''
+        set.setType || 'working', set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? '',
+        workout.averageHeartRate ?? '', workout.maxHeartRate ?? '', workout.restingHeartRate ?? ''
       ])
     }
   }

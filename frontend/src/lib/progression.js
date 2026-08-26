@@ -16,7 +16,7 @@
 //   · fewer sets than prescribed                       → miss
 // So a session that fell apart can never advance the load as though it had succeeded.
 
-import { modeOf, repStep } from './history.js'
+import { modeOf, repStep, isWorkingSet } from './history.js'
 import { EXIDX } from './exercises.js'
 
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'time']
@@ -107,23 +107,25 @@ export function readSession(entry, fallback) {
 
   if (mode === 'time') {
     const goal = target.sec || 0
-    const held = sets.map(s => (s.done ? (s.sec || 0) : 0))
+    const working = sets.filter(isWorkingSet)
+    const held = working.map(s => (s.done ? (s.sec || 0) : 0))
     return {
       mode, goal, held,
-      weight: Math.max(0, ...sets.filter(s => s.done).map(s => s.w || 0)),
+      weight: Math.max(0, ...working.filter(s => s.done).map(s => s.w || 0)),
       best: Math.max(0, ...held),
-      ok: goal > 0 && enough && held.length > 0 && held.every(h => h >= goal)
+      ok: goal > 0 && working.length >= planned && held.length > 0 && held.every(h => h >= goal)
     }
   }
   const goal = target.reps || 0
-  const reps = sets.map(s => (s.done ? (s.r || 0) : 0))
+  const working = sets.filter(isWorkingSet)
+  const reps = working.map(s => (s.done ? (s.r || 0) : 0))
   return {
     mode, goal, reps,
-    weight: Math.max(0, ...sets.filter(s => s.done).map(s => s.w || 0)),
+    weight: Math.max(0, ...working.filter(s => s.done).map(s => s.w || 0)),
     count: reps.length,                                   // the dimension bodyweight work grows (#33)
     low: reps.length ? Math.min(...reps) : 0,
     amrap: reps.length ? reps[reps.length - 1] : 0,       // Greyskull's final set
-    ok: goal > 0 && enough && reps.length > 0 && reps.every(r => r >= goal)
+    ok: goal > 0 && working.length >= planned && reps.length > 0 && reps.every(r => r >= goal)
   }
 }
 
@@ -250,7 +252,7 @@ export function nextPrescription(S, cfg, routine) {
 export function applyPrescription(sets, p) {
   if (!p || p.kind === 'off' || p.kind === 'first') return sets
   const out = sets.map(s => {
-    if (s.done) return s
+    if (s.done || !isWorkingSet(s)) return s
     const o = { ...s }
     if (p.weight != null) o.w = p.weight
     if (p.reps != null) o.r = p.reps
