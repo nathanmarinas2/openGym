@@ -1,0 +1,25 @@
+name = "liftnex-api"
+main = "worker.js"
+compatibility_date = "2026-08-26"
+
+# Replace this placeholder with the ID returned by `wrangler d1 create liftnex`.
+[[d1_databases]]
+binding = "DB"
+database_name = "liftnex"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# Serve the production frontend from the same Worker as the API. Keeping both
+# on one origin makes password sessions reliable on mobile browsers.
+[assets]
+directory = "../frontend/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[vars]
+APP_ORIGIN = "https://nathanmarinas2.github.io"
+CORS_ORIGINS = "https://nathanmarinas2.github.io"
+COOKIE_SAMESITE = "None"
+INVITE_ONLY = "0"
+GEMINI_MODEL = "gemini-3.5-flash-lite"

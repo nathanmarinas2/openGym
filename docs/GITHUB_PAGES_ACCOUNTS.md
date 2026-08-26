@@ -1,10 +1,15 @@
 # Accounts on the GitHub Pages app
 
+The recommended public setup is now **Cloudflare Workers + D1**. See
+[CLOUDFLARE_ACCOUNTS.md](CLOUDFLARE_ACCOUNTS.md) for the free persistent option.
+The Render setup below remains available for people who prefer the existing
+Docker API.
+
 The public URL is a static demo by default. GitHub Pages can serve React, but it cannot run
 the Node API that stores accounts, sessions, nutrition cache and per-user history. That is why
 the demo shows **Start the demo** instead of the registration form.
 
-To make the same public URL support accounts:
+To make the same public URL support accounts with Render:
 
 1. Deploy `render-api.yaml` as a new Render Blueprint, or create a Docker Web Service from
    `./api/Dockerfile` with `./api` as its Docker context. Attach a persistent disk mounted at

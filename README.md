@@ -39,11 +39,10 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 
 <div align="center">
 
-### [🌐 LiftNex website](https://nathanmarinas2.github.io/openGym/) · [▶ Try the live demo](https://nathanmarinas2.github.io/openGym/app/)
+### [🌐 LiftNex website](https://nathanmarinas2.github.io/openGym/) · [▶ Open the app](https://nathanmarinas2.github.io/openGym/app/)
 
-No signup, nothing to install — it runs entirely in your browser on example data.<br>
-<sub>There's no server behind the demo, so account sign-in, sync across devices and the
-admin dashboard only exist in a self-hosted instance.</sub>
+The app can run as a local Docker installation or with a public Cloudflare Workers + D1 API.<br>
+<sub>Without configuring the API origin, GitHub Pages intentionally falls back to the local demo.</sub>
 
 </div>
 
@@ -119,6 +118,14 @@ mobile app is the install-and-done flavor.
 - **iPhone:** Apple doesn't allow installing apps outside the App Store, so there is no iOS
   download. Self-host and add it to your home screen from Safari (it's a full PWA), or build
   the native app onto your own device from Xcode — see **[docs/MOBILE.md](docs/MOBILE.md)**.
+
+## Public deployment with Cloudflare
+
+For a free public deployment with persistent users, deploy the Worker, D1 schema
+and frontend in [docs/CLOUDFLARE_ACCOUNTS.md](docs/CLOUDFLARE_ACCOUNTS.md).
+The resulting `workers.dev` URL serves the full app and API from one origin, so
+registration, sync, nutrition and coach routes work on mobile browsers too.
+GitHub Pages remains available as an optional static frontend fallback.
 
 ## How it works
 
