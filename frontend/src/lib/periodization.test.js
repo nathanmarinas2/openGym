@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyPhaseAdjustment, currentCyclePhase, periodizationStats } from './periodization.js'
+import { applyPhaseAdjustment, currentCyclePhase, periodizationStats, phaseAppliesToRoutine } from './periodization.js'
 
 describe('periodization', () => {
   const S = { planCycles: [{ id: 'c1', name: 'Block', goal: 'strength', startDate: '2026-01-05', phases: [{ id: 'p1', name: 'Build', weekCount: 4, routineIds: ['r1'] }, { id: 'p2', name: 'Deload', focus: 'deload', weekCount: 1, routineIds: ['r1'] }] }], workouts: [{ id: 'w1', d: '2026-01-12', vol: 100, entries: [{ sets: [{ done: true, setType: 'working' }] }] }] }
@@ -12,5 +12,11 @@ describe('periodization', () => {
   })
   it('groups finished sessions by cycle and phase', () => {
     expect(periodizationStats(S)[0]).toMatchObject({ cycleId: 'c1', phaseId: 'p1', workouts: 1, volume: 100 })
+  })
+  it('only applies a phase to routines selected by that phase', () => {
+    const phase = currentCyclePhase(S, '2026-01-20')
+    expect(phaseAppliesToRoutine(phase, 'r1')).toBe(true)
+    expect(phaseAppliesToRoutine(phase, 'r2')).toBe(false)
+    expect(phaseAppliesToRoutine(phase, null)).toBe(true)
   })
 })

@@ -45,6 +45,11 @@ export function currentCyclePhase(S = {}, targetDate = new Date().toISOString().
     .sort((a, b) => atNoon(b.startDate) - atNoon(a.startDate)).map(cycle => resolveCyclePhase(cycle, targetDate)).find(Boolean) || null
 }
 
+export function phaseAppliesToRoutine(phaseResult, routineId) {
+  const routineIds = phaseResult?.phase?.routineIds
+  return !Array.isArray(routineIds) || routineIds.length === 0 || !routineId || routineIds.includes(String(routineId))
+}
+
 export function phaseForWorkout(workout, S = {}) {
   if (workout?.phaseId || workout?.cycleId) return { cycleId: workout.cycleId || null, phaseId: workout.phaseId || null, phaseName: workout.phaseName || null }
   const phase = currentCyclePhase(S, workout?.d)

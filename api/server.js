@@ -135,10 +135,13 @@ function workoutsCsv(state) {
   const rows = [['date', 'routine', 'exercise_id', 'exercise', 'set', 'setType', 'reps', 'weight', 'seconds', 'speed', 'effort', 'averageHeartRate', 'maxHeartRate', 'restingHeartRate']];
   const routineNames = Object.fromEntries((state.routines || []).map(r => [r.id, r.name || r.id]));
   for (const workout of state.workouts || []) for (const entry of workout.entries || []) {
-    for (const [index, set] of (entry.sets || []).filter(s => s.done).entries()) {
+    let workingSetNumber = 0; let warmupSetNumber = 0;
+    for (const set of (entry.sets || []).filter(s => s.done)) {
+      const setType = set.setType === 'warmup' ? 'warmup' : 'working';
+      const setNumber = setType === 'warmup' ? ++warmupSetNumber : ++workingSetNumber;
       rows.push([
-        workout.d, routineNames[workout.routineId] || workout.name || '', entry.id, entry.n || '', index + 1,
-        set.setType || 'working', set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? '',
+        workout.d, routineNames[workout.routineId] || workout.name || '', entry.id, entry.n || '', setNumber,
+        setType, set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? '',
         workout.averageHeartRate ?? '', workout.maxHeartRate ?? '', workout.restingHeartRate ?? ''
       ]);
     }
@@ -1124,7 +1127,7 @@ const routes = {
     if (!isTrainer(trainer)) return json(res, 403, { error: 'trainer role required' });
     const athleteId = new URL(req.url, 'http://x').searchParams.get('athleteId');
     const packages = db.signedPlanPackages.filter(item => (isAdmin(trainer) || item.trainerId === trainer.id) && (!athleteId || item.athleteId === athleteId)).slice(-100);
-    json(res, 200, { packages });
+    json(res, 200, { packages: packages.map(item => ({ ...item, valid: item.signature === signPlanPackagePayload(item.payload) })) });
   },
 
   /* ---------- admin dashboard ---------- */

@@ -20,4 +20,15 @@ describe('recovery orientation', () => {
     expect(calculateRecovery(trained, '2026-08-26').status).toBe('detraining')
     expect(calculateRecovery({}, '2026-08-26').status).toBe('insufficient')
   })
+
+  it('uses recorded RIR/RPE as an effort signal while ignoring warm-ups', () => {
+    const S = { customEx: [{ id: 'press', n: 'Press', bp: 'chest', tg: 'chest' }], workouts: [{ d: '2026-08-25', entries: [{ id: 'press', sets: [
+      { setType: 'warmup', w: 100, r: 10, rir: 0, done: true },
+      { w: 50, r: 8, rir: 1, done: true }, { w: 50, r: 8, rpe: 9, done: true }, { w: 50, r: 8, rir: 1, done: true }
+    ] }] }] }
+    const result = calculateRecovery(S, '2026-08-26')
+    expect(result.status).toBe('fatigued')
+    expect(result.metrics.recentRatedSets).toBe(3)
+    expect(result.metrics.recentRir).toBeCloseTo(1)
+  })
 })

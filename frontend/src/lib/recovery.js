@@ -48,11 +48,22 @@ function loadForWorkouts(S, workouts) {
   return load
 }
 
+function effortForWorkouts(workouts) {
+  const values = []
+  for (const workout of workouts) for (const entry of workout.entries || []) for (const set of entry.sets || []) {
+    if (!set.done || !isWorkingSet(set)) continue
+    const raw = set.rir != null ? n(set.rir) : set.rpe != null ? n(set.rpe) : null
+    const value = raw == null ? null : set.rir != null ? raw : 10 - raw
+    if (value != null && value >= 0 && value <= 10) values.push(value)
+  }
+  return { rated: values.length, averageRir: values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null }
+}
+
 function latestCheckin(S, date) {
   return (S.recoveryCheckins || []).filter(item => iso(item.date) <= date).sort((a, b) => iso(a.date).localeCompare(iso(b.date))).at(-1) || null
 }
 
-function statusFor({ history, recent, average, checkin, latestMetric, date }) {
+function statusFor({ history, recent, average, effort, checkin, latestMetric, date }) {
   if (!history.length && !checkin && !latestMetric) return { status: 'insufficient', reasons: ['No training or recovery data is available yet.'] }
   const reasons = []
   const pain = (checkin?.painfulMuscles || []).filter(item => item.until >= date)
@@ -69,6 +80,7 @@ function statusFor({ history, recent, average, checkin, latestMetric, date }) {
   if (hrHigh) reasons.push('Resting heart rate is above the recorded baseline.')
   const volumeHigh = average > 0 && recent > average * 1.35
   if (volumeHigh) reasons.push('Recent volume is above the four-week average.')
+  if (effort?.rated >= 3 && effort.averageRir <= 1.5) reasons.push('Recent rated sets were close to failure.')
   const lastDate = history.at(-1)?.date
   const daysSince = lastDate ? Math.max(0, Math.round((dateAtNoon(date) - dateAtNoon(lastDate)) / dayMs)) : Infinity
   if (daysSince >= 21 && history.length) return { status: 'detraining', reasons: ['No completed session recorded for at least three weeks.', ...reasons] }
@@ -87,15 +99,17 @@ export function calculateRecovery(S = {}, date = iso(new Date().toISOString())) 
   const latestMetric = (S.healthMetrics || []).filter(item => iso(item.d) <= date).sort((a, b) => iso(a.d).localeCompare(iso(b.d))).at(-1) || null
   const recentLoad = loadForWorkouts(S, recentWorkouts)
   const fourWeekLoad = loadForWorkouts(S, fourWeekWorkouts)
+  const recentEffort = effortForWorkouts(recentWorkouts)
+  const fourWeekEffort = effortForWorkouts(fourWeekWorkouts)
   const recentTotal = Object.values(recentLoad).reduce((a, b) => a + b, 0)
   const averageTotal = Object.values(fourWeekLoad).reduce((a, b) => a + b, 0) / 4
   const allHistory = workouts.length ? [{ date: iso(workouts.at(-1).d), volume: recentTotal }] : []
-  const statuses = statusFor({ history: allHistory, recent: recentTotal, average: averageTotal, checkin, latestMetric, date })
+  const statuses = statusFor({ history: allHistory, recent: recentTotal, average: averageTotal, effort: recentEffort, checkin, latestMetric, date })
   const muscles = Object.fromEntries(MUSCLES.map(muscle => {
     const last = workouts.filter(workout => loadForWorkouts(S, [workout])[muscle] > 0).at(-1)
     const recent = recentLoad[muscle] || 0
     const average = (fourWeekLoad[muscle] || 0) / 4
-    const local = statusFor({ history: last ? [{ date: workoutDate(last, workouts) }] : [], recent, average, checkin, latestMetric, date })
+    const local = statusFor({ history: last ? [{ date: workoutDate(last, workouts) }] : [], recent, average, effort: recentEffort, checkin, latestMetric, date })
     return [muscle, { status: local.status, recentVolume: Math.round(recent * 10) / 10, fourWeekAverage: Math.round(average * 10) / 10, lastTrained: last ? workoutDate(last, workouts) : null, reasons: local.reasons }]
   }))
   // A recent, sore/painful individual group should remain visible even if whole-body data is
@@ -105,7 +119,7 @@ export function calculateRecovery(S = {}, date = iso(new Date().toISOString())) 
   return {
     date, status: overall, reasons: statuses.reasons, checkin, recentVolume: Math.round(recentTotal * 10) / 10,
     fourWeekAverage: Math.round(averageTotal * 10) / 10, workoutsLast7: recentWorkouts.length,
-    metrics: { sleepHours: n(checkin?.sleepHours ?? latestMetric?.sleepHours), energy: n(checkin?.energy), restingHeartRate: n(latestMetric?.restingHeartRate), steps: n(latestMetric?.steps) },
+    metrics: { sleepHours: n(checkin?.sleepHours ?? latestMetric?.sleepHours), energy: n(checkin?.energy), restingHeartRate: n(latestMetric?.restingHeartRate), steps: n(latestMetric?.steps), recentRir: recentEffort.averageRir, recentRatedSets: recentEffort.rated, fourWeekRir: fourWeekEffort.averageRir },
     muscles
   }
 }

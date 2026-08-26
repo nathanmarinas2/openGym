@@ -78,10 +78,11 @@ export function mergePlanImport(S, plan) {
   const routineIds = new Map()
   for (const routine of plan.routines || []) {
     const id = uid(); routineIds.set(routine.id, id); if (routine.sourceId) routineIds.set(routine.sourceId, id)
-    S.routines.push({ ...routine, id, ex: (routine.ex || []).map(item => ({ ...item, id: customIds.get(item.id) || item.id })) })
+    const { sourceId, ...routineData } = routine
+    S.routines.push({ ...routineData, id, ex: (routine.ex || []).map(item => ({ ...item, id: customIds.get(item.id) || item.id })) })
   }
-  const firstCycle = plan.planCycles?.[0] || plan.cycle
-  if (firstCycle) S.planCycles = [...(S.planCycles || []), { ...firstCycle, id: uid(), phases: (firstCycle.phases || []).map(phase => ({ ...phase, id: uid(), routineIds: (phase.routineIds || []).map(id => routineIds.get(id) || id) })) }]
+  const cycles = plan.planCycles?.length ? plan.planCycles : plan.cycle ? [plan.cycle] : []
+  if (cycles.length) S.planCycles = [...(S.planCycles || []), ...cycles.map(cycle => ({ ...cycle, id: uid(), phases: (cycle.phases || []).map(phase => ({ ...phase, id: uid(), routineIds: (phase.routineIds || []).map(id => routineIds.get(id) || id) })) }))]
   if (plan.week && typeof plan.week === 'object') for (const [day, routineId] of Object.entries(plan.week)) if (routineIds.has(routineId)) S.week[day] = routineIds.get(routineId)
   return { routines: plan.routines?.length || 0, exercises: plan.routines?.reduce((sum, routine) => sum + routine.ex.length, 0) || 0, warnings: plan.warnings || [] }
 }

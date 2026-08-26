@@ -26,7 +26,7 @@ import { createApiToken, listApiTokens, revokeApiToken } from './lib/api.js'
 import { equipmentCatalog, activeProfile, profileWithItems, newProfile, availableExercise, substitutionsFor } from './lib/equipment.js'
 import { replaceActiveEntry, substitutionCandidates } from './lib/substitutions.js'
 import { MEASURE_FIELDS, createMeasurement } from './lib/body.js'
-import { currentCyclePhase, applyPhaseAdjustment } from './lib/periodization.js'
+import { currentCyclePhase, applyPhaseAdjustment, phaseAppliesToRoutine } from './lib/periodization.js'
 import { normalizeRecoveryCheckin } from './lib/recovery.js'
 import { MUSCLES, MUSCLE_NAME } from './lib/muscles.js'
 
@@ -1033,7 +1033,8 @@ export function startFlow(routineId) {
 export function beginWorkout(routineId, bw) {
   const st = S()
   const r = routineId ? st.routines.find(x => x.id === routineId) : null
-  const phase = currentCyclePhase(st, todayISO())
+  const phaseCandidate = currentCyclePhase(st, todayISO())
+  const phase = phaseAppliesToRoutine(phaseCandidate, routineId) ? phaseCandidate : null
   // The prescription is applied as the session is built, so you walk up to the bar with the
   // right weight already on the screen instead of being told about it afterwards. `plan` is
   // kept on the entry purely so the workout can explain the number it chose.

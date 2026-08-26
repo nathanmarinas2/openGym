@@ -234,10 +234,13 @@ function workoutsCsv(state) {
   const rows = [['date', 'routine', 'exercise_id', 'exercise', 'set', 'setType', 'reps', 'weight', 'seconds', 'speed', 'effort', 'averageHeartRate', 'maxHeartRate', 'restingHeartRate']]
   const routineNames = Object.fromEntries((state.routines || []).map(item => [item.id, item.name || item.id]))
   for (const workout of state.workouts || []) for (const entry of workout.entries || []) {
-    for (const [index, set] of (entry.sets || []).filter(item => item.done).entries()) {
+    let workingSetNumber = 0; let warmupSetNumber = 0
+    for (const set of (entry.sets || []).filter(item => item.done)) {
+      const setType = set.setType === 'warmup' ? 'warmup' : 'working'
+      const setNumber = setType === 'warmup' ? ++warmupSetNumber : ++workingSetNumber
       rows.push([
-        workout.d, routineNames[workout.routineId] || workout.name || '', entry.id, entry.n || '', index + 1,
-        set.setType || 'working', set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? '',
+        workout.d, routineNames[workout.routineId] || workout.name || '', entry.id, entry.n || '', setNumber,
+        setType, set.r ?? '', set.w ?? '', set.sec ?? '', set.speed ?? '', set.rir ?? set.rpe ?? '',
         workout.averageHeartRate ?? '', workout.maxHeartRate ?? '', workout.restingHeartRate ?? ''
       ])
     }
@@ -345,6 +348,8 @@ function listOfCoachItems(value) {
   return value.map(item => typeof item === 'string' ? item.trim() : item && typeof item === 'object' ? String(item.text || item.title || item.detail || '').trim() : '').filter(Boolean).slice(0, 8)
 }
 
+const COACH_ACTION_TYPES = new Set(['review_week', 'log_food', 'create_menu', 'adapt_training', 'missing_data', 'suggest_deload', 'suggest_routine', 'suggest_cycle'])
+
 function listOfCoachActions(value) {
   if (!Array.isArray(value)) return []
   return value.map(item => {
@@ -355,7 +360,7 @@ function listOfCoachActions(value) {
       description: String(item.description || item.detail || '').trim().slice(0, 500), payload: item.payload && typeof item.payload === 'object' ? item.payload : {},
       requiresConfirmation: item.requiresConfirmation !== false
     }
-  }).filter(item => item?.title).slice(0, 6)
+  }).filter(item => item?.title && COACH_ACTION_TYPES.has(item.type)).slice(0, 6)
 }
 
 function parseCoachJson(raw) {
@@ -835,7 +840,12 @@ routes.set('GET /api/trainer/packages', async (request, env, url) => {
   if (!trainer) return json(request, env, { error: 'not signed in' }, 401)
   if (!isTrainer(trainer, env)) return json(request, env, { error: 'trainer role required' }, 403)
   const athleteId = url.searchParams.get('athleteId'); const rows = isAdmin(trainer, env) ? await env.DB.prepare('SELECT * FROM signed_plan_packages WHERE revoked = 0 AND (? IS NULL OR athlete_id = ?) ORDER BY created DESC LIMIT 100').bind(athleteId, athleteId).all() : await env.DB.prepare('SELECT * FROM signed_plan_packages WHERE trainer_id = ? AND revoked = 0 AND (? IS NULL OR athlete_id = ?) ORDER BY created DESC LIMIT 100').bind(trainer.id, athleteId, athleteId).all()
-  return json(request, env, { packages: (rows.results || []).map(row => ({ id: row.id, trainerId: row.trainer_id, athleteId: row.athlete_id, payload: JSON.parse(row.package_json), signature: row.signature, created: row.created })) })
+  const secret = String(env.PACKAGE_SIGNING_SECRET || '')
+  const packages = await Promise.all((rows.results || []).map(async row => {
+    const payload = JSON.parse(row.package_json)
+    return { id: row.id, trainerId: row.trainer_id, athleteId: row.athlete_id, payload, signature: row.signature, created: row.created, valid: row.signature === await sha256(`${row.package_json}:${secret}`) }
+  }))
+  return json(request, env, { packages })
 })
 
 routes.set('GET /api/admin/users', async (request, env) => {

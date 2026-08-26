@@ -11,7 +11,7 @@ import { t, LANGS, INSTR_LANGS, getLang, useLang } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
 import { clearPhotos } from '../lib/offline.js'
-import { encryptBackup } from '../lib/secure-export.js'
+import { decryptBackup, encryptBackup } from '../lib/secure-export.js'
 import { loadStarterPlan, confirmSheet, importFromApp, equipmentSheet, apiTokenSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, NumberField } from '../components/ui.jsx'
@@ -68,9 +68,15 @@ export default function Settings() {
   const doImport = ev => {
     const f = ev.target.files[0]; if (!f) return
     const rd = new FileReader()
-    rd.onload = () => {
+    rd.onload = async () => {
       try {
-        const data = JSON.parse(rd.result)
+        const payload = JSON.parse(rd.result)
+        let data = payload
+        if (payload?.schema === 'liftnex-encrypted-backup-v1') {
+          const password = window.prompt(t('Enter the local password for this encrypted backup.'))
+          if (password == null) return
+          data = await decryptBackup(payload, password)
+        }
         if (!data.workouts || !data.routines) throw new Error('not a LiftNex backup')
         confirmSheet({ title: t('Import backup?'), message: t('This replaces all current data with the backup file.'), confirmText: t('Import'), danger: true, onConfirm: () => { replaceState(Object.assign(JSON.parse(JSON.stringify(DEF)), data), true); toast(t('Backup imported')) } })
       } catch (e) { toast(t('Import failed: {0}', e.message)) }

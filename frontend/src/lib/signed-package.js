@@ -1,7 +1,11 @@
 const encoder = new TextEncoder()
 const toB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)))
 const fromB64 = value => Uint8Array.from(atob(value), char => char.charCodeAt(0))
-const canonical = value => JSON.stringify(value, Object.keys(value || {}).sort())
+const canonical = value => {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`
+  if (value && typeof value === 'object') return `{${Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+  return JSON.stringify(value)
+}
 
 async function keyFor(secret) {
   return crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])
