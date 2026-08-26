@@ -24,6 +24,7 @@ export const DEF = {
   nutritionSettings: { calorieTargetIncludesActivity: true },
   nutritionPreferences: { diet: 'none', allergens: '', avoidAdditives: false },
   nutritionFavorites: [],
+  nutritionFavoriteFoods: [],
   recipes: [],
   waterEntries: [], waterGoal: 2000,
   fasting: { goalHours: 16, active: false, startedAt: null, history: [] },
@@ -40,7 +41,7 @@ const migrateState = input => {
   state.nutritionPreferences = { ...DEF.nutritionPreferences, ...(input?.nutritionPreferences || {}) }
   state.nutritionSettings = { ...DEF.nutritionSettings, ...(input?.nutritionSettings || {}) }
   state.coachProfile = { ...DEF.coachProfile, ...(input?.coachProfile || {}) }
-  for (const key of ['nutritionFavorites', 'coachActionHistory', 'healthMetrics']) if (!Array.isArray(state[key])) state[key] = []
+  for (const key of ['nutritionFavorites', 'nutritionFavoriteFoods', 'coachActionHistory', 'healthMetrics']) if (!Array.isArray(state[key])) state[key] = []
   state.schemaVersion = STATE_SCHEMA_VERSION
   return state
 }
@@ -56,7 +57,7 @@ const mergeArray = (local = [], remote = []) => {
 }
 const mergeStates = (local, remote) => {
   const merged = migrateState(Object.assign(clone(DEF), remote, local))
-  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'nutritionEntries', 'nutritionFavorites', 'recipes', 'waterEntries', 'equipmentProfiles', 'coachActionHistory', 'healthMetrics']) {
+  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'nutritionEntries', 'nutritionFavorites', 'nutritionFavoriteFoods', 'recipes', 'waterEntries', 'equipmentProfiles', 'coachActionHistory', 'healthMetrics']) {
     if (Array.isArray(local?.[key]) || Array.isArray(remote?.[key])) merged[key] = mergeArray(local?.[key], remote?.[key])
   }
   for (const key of ['exWeights', 'week', 'dayPlan']) merged[key] = { ...(remote?.[key] || {}), ...(local?.[key] || {}) }

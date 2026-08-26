@@ -114,7 +114,7 @@ function stateRevision(state) {
 function validateState(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) return 'state must be an object';
   if (Number(state.schemaVersion || 1) > 3) return 'state schema is newer than this server';
-  const arrayLimits = { routines: 500, workouts: 10000, bodyweight: 10000, customEx: 2000, bodyMeasurements: 10000, bodyPhotos: 2000, nutritionEntries: 100000, recipes: 2000, waterEntries: 50000, equipmentProfiles: 100, healthMetrics: 10000, nutritionFavorites: 10000, coachActionHistory: 10000 };
+  const arrayLimits = { routines: 500, workouts: 10000, bodyweight: 10000, customEx: 2000, bodyMeasurements: 10000, bodyPhotos: 2000, nutritionEntries: 100000, recipes: 2000, waterEntries: 50000, equipmentProfiles: 100, healthMetrics: 10000, nutritionFavorites: 10000, nutritionFavoriteFoods: 500, coachActionHistory: 10000 };
   for (const [key, limit] of Object.entries(arrayLimits)) {
     if (state[key] !== undefined && !Array.isArray(state[key])) return `${key} must be an array`;
     if (Array.isArray(state[key]) && state[key].length > limit) return `${key} is too large`;

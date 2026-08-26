@@ -141,11 +141,26 @@ export default function Home() {
           </div>
           <label className="home-steps-input"><span>{S.lang === 'es' ? 'Total' : 'Total'}</span><NumberField nullable value={steps} decimal={false} aria-label={S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'} onChange={setSteps} /></label>
         </div>
-        <button type="button" className="home-goals-hint" onClick={() => nav('/goals')}><Icon name="target" />{S.lang === 'es' ? 'Objetivos centralizados' : 'Manage all goals'}<Icon name="chevronRight" /></button>
       </div>
       <div className="home-balance-note"><Icon name="info" />{includesActivity
         ? (S.lang === 'es' ? 'Las kcal de actividad son orientativas y no se suman a tu objetivo de comida.' : 'Activity kcal are estimates and are not added to your food target.')
         : (S.lang === 'es' ? 'Tu objetivo permite sumar la actividad estimada cuando hay datos disponibles.' : 'Your target allows estimated activity to extend the available intake when data is available.')}</div>
+    </section>
+
+    <section className="card home-goals-card" aria-labelledby="home-goals-title">
+      <div className="row between home-goals-head">
+        <div className="row" style={{ gap: 9, minWidth: 0 }}>
+          <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="target" /></span>
+          <div><h2 id="home-goals-title" style={{ margin: 0 }}>{S.lang === 'es' ? 'Objetivos' : 'Goals'}</h2><div className="small muted">{S.lang === 'es' ? 'Tus metas de entrenamiento, cuerpo y nutrición' : 'Your training, body and nutrition targets'}</div></div>
+        </div>
+        <Button size="sm" variant="tinted" icon="chevronRight" onClick={() => nav('/goals')}>{S.lang === 'es' ? 'Ver todos' : 'View all'}</Button>
+      </div>
+      <div className="home-goals-grid">
+        <div className="home-goal-item"><span>{S.lang === 'es' ? 'Peso objetivo' : 'Target weight'}</span><strong>{S.targetW ? `${fmtNum(S.targetW)} ${S.unit}` : '—'}</strong><small>{S.targetW ? (S.lang === 'es' ? 'Meta corporal' : 'Body target') : (S.lang === 'es' ? 'Sin definir' : 'Not set')}</small></div>
+        <div className="home-goal-item"><span>{S.lang === 'es' ? 'Calorías' : 'Calories'}</span><strong>{roundNutrition(nutritionGoal.calories)} kcal</strong><small>{S.lang === 'es' ? 'Objetivo diario' : 'Daily target'}</small></div>
+        <div className="home-goal-item"><span>{S.lang === 'es' ? 'Proteína' : 'Protein'}</span><strong>{roundNutrition(nutritionGoal.protein)} g</strong><small>{S.lang === 'es' ? 'Objetivo diario' : 'Daily target'}</small></div>
+        <div className="home-goal-item"><span>{S.lang === 'es' ? 'Pasos' : 'Steps'}</span><strong>{stepsGoal.toLocaleString()}</strong><small>{S.lang === 'es' ? 'Objetivo diario' : 'Daily target'}</small></div>
+      </div>
     </section>
 
     {!S.routines.length && !S.active && (
