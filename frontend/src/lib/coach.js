@@ -1,5 +1,6 @@
 import { EXIDX } from './exercises.js'
 import { entryNutrients, roundNutrition } from './nutrition.js'
+import { isWorkingSet } from './history.js'
 
 const number = value => {
   const n = typeof value === 'number' ? value : parseFloat(String(value ?? '').replace(',', '.'))
@@ -49,7 +50,7 @@ const workoutSummary = (workout, custom) => {
     reason: rest.reason || 'stopped'
   }))
   const exercises = entries.map(entry => {
-    const doneSets = (entry.sets || []).filter(set => set?.done !== false)
+    const doneSets = (entry.sets || []).filter(set => set?.done !== false && isWorkingSet(set))
     const sets = doneSets.map(set => setSummary(set, entry.target || {}))
     const volume = doneSets.reduce((sum, set) => sum + number(set.w) * number(set.r), 0)
     const bestWeight = Math.max(0, ...doneSets.map(set => number(set.w)), number(entry.topW))
@@ -72,7 +73,7 @@ const workoutSummary = (workout, custom) => {
     }
   }).filter(item => item.sets > 0)
   const completedSets = exercises.reduce((sum, entry) => sum + entry.sets, 0)
-  const plannedSets = entries.reduce((sum, entry) => sum + (entry.sets || []).length, 0)
+  const plannedSets = entries.reduce((sum, entry) => sum + (entry.sets || []).filter(isWorkingSet).length, 0)
   return {
     id: workout?.id || `${workout?.d}-${workout?.start || ''}`,
     date: dayOf(workout?.d),
