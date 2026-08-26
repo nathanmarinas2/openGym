@@ -9,7 +9,8 @@ import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, NumberField, Tappable } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
-import { DEFAULT_NUTRITION_GOAL, dailyTotals, roundNutrition } from '../lib/nutrition.js'
+import { DEFAULT_NUTRITION_GOAL, roundNutrition } from '../lib/nutrition.js'
+import { buildDailyBriefing } from '../lib/briefing.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -43,8 +44,12 @@ export default function Home() {
   const wThisWeek = S.workouts.filter(w => weekKey(w.d) === weekKey(todayISO())).length
   const plannedPerWeek = Object.keys(S.week).filter(k => S.week[k]).length
   const bwPoints = S.bodyweight.slice(-30).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
-  const nutrition = dailyTotals(S.nutritionEntries || [], todayISO())
+  const briefing = buildDailyBriefing(S, todayISO())
+  const activity = briefing.activity
+  const dailyWorkout = briefing.workout
+  const nutrition = briefing.nutrition.totals
   const nutritionGoal = { ...DEFAULT_NUTRITION_GOAL, ...(S.nutritionGoal || {}) }
+  const includesActivity = briefing.nutrition.includesActivity
   const stepRow = (S.healthMetrics || []).find(item => item?.d === todayISO() && item.steps != null)
   const steps = stepRow ? Math.max(0, Math.round(+stepRow.steps || 0)) : null
   const stepsGoal = Math.max(500, Math.round(+S.stepsGoal || 10000))
@@ -96,22 +101,51 @@ export default function Home() {
       </Tappable>
     </div>
 
-    <section className="card home-steps-card" aria-labelledby="home-steps-title">
-      <div className="row between home-steps-head">
+    <section className="card home-balance-card" aria-labelledby="home-balance-title">
+      <div className="row between home-balance-head">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="footprints" /></span>
-          <div><h2 id="home-steps-title" style={{ margin: 0 }}>{S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'}</h2><div className="small muted">{S.lang === 'es' ? 'Regístralos aquí, sin entrar en otro apartado' : 'Log them here without opening another section'}</div></div>
+          <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="dashboard" /></span>
+          <div><h2 id="home-balance-title" style={{ margin: 0 }}>{S.lang === 'es' ? 'Balance de hoy' : 'Today’s balance'}</h2><div className="small muted">{S.lang === 'es' ? 'Actividad, comida y objetivos en una sola vista' : 'Activity, food and goals in one view'}</div></div>
         </div>
-        <div className="home-steps-number">{steps == null ? '—' : steps.toLocaleString()}<span> / {stepsGoal.toLocaleString()}</span></div>
+        <button className="iconbtn home-balance-detail" onClick={() => nav('/briefing')} aria-label={S.lang === 'es' ? 'Abrir detalle del balance' : 'Open balance details'}><Icon name="chevronRight" /></button>
       </div>
-      <div className="nutrition-track home-steps-track"><span style={{ width: `${stepsGoal ? Math.min(100, (steps || 0) / stepsGoal * 100) : 0}`, background: 'var(--blue)' }} /></div>
-      <div className="home-steps-actions">
-        <div className="home-steps-quick" aria-label={S.lang === 'es' ? 'Añadir pasos' : 'Add steps'}>
-          {[500, 1000, 2500].map(amount => <Button key={amount} size="sm" variant="tinted" onClick={() => addSteps(amount)}>+{amount.toLocaleString()}</Button>)}
+      <div className="home-balance-grid">
+        <div className="home-balance-metric steps">
+          <div className="home-balance-label"><Icon name="footprints" />{S.lang === 'es' ? 'Pasos' : 'Steps'}</div>
+          <strong>{steps == null ? '—' : steps.toLocaleString()}<span> / {stepsGoal.toLocaleString()}</span></strong>
+          <small>{activity.stepsCalories == null ? (S.lang === 'es' ? 'kcal: —' : 'kcal: —') : `≈ ${roundNutrition(activity.stepsCalories)} kcal`}</small>
         </div>
-        <label className="home-steps-input"><span>{S.lang === 'es' ? 'Editar' : 'Edit'}</span><NumberField nullable value={steps} decimal={false} aria-label={S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'} onChange={setSteps} /></label>
+        <div className="home-balance-metric workout">
+          <div className="home-balance-label"><Icon name="dumbbell" />{S.lang === 'es' ? 'Gimnasio' : 'Gym'}</div>
+          <strong>{dailyWorkout.completed ? (S.lang === 'es' ? '1 sesión' : '1 session') : '—'}</strong>
+          <small>{activity.workoutCalories == null ? (dailyWorkout.completed ? (S.lang === 'es' ? 'kcal: —' : 'kcal: —') : (S.lang === 'es' ? 'Sin sesión' : 'No session')) : `≈ ${roundNutrition(activity.workoutCalories)} kcal`}</small>
+        </div>
+        <div className="home-balance-metric food">
+          <div className="home-balance-label"><Icon name="forkKnife" />{S.lang === 'es' ? 'Comida' : 'Food'}</div>
+          <strong>{roundNutrition(nutrition.calories)}<span> / {roundNutrition(briefing.nutrition.effectiveCaloriesGoal)} kcal</span></strong>
+          <small>{briefing.nutrition.over.calories > 0 ? `${roundNutrition(briefing.nutrition.over.calories)} ${S.lang === 'es' ? 'sobre objetivo' : 'over target'}` : `${roundNutrition(briefing.nutrition.remaining.calories)} ${S.lang === 'es' ? 'restantes' : 'remaining'}`}</small>
+        </div>
+        <div className="home-balance-metric protein">
+          <div className="home-balance-label"><Icon name="target" />{S.lang === 'es' ? 'Proteína' : 'Protein'}</div>
+          <strong>{roundNutrition(nutrition.protein)}<span> / {roundNutrition(nutritionGoal.protein)} g</span></strong>
+          <small>{briefing.nutrition.over.protein > 0 ? `${roundNutrition(briefing.nutrition.over.protein)} g ${S.lang === 'es' ? 'sobre objetivo' : 'over target'}` : `${roundNutrition(briefing.nutrition.remaining.protein)} g ${S.lang === 'es' ? 'restantes' : 'remaining'}`}</small>
+        </div>
       </div>
-      <div className="home-steps-goal"><span>{S.lang === 'es' ? 'Objetivo diario' : 'Daily goal'}</span><NumberField value={stepsGoal} decimal={false} aria-label={S.lang === 'es' ? 'Objetivo diario de pasos' : 'Daily steps goal'} onChange={value => update(s => { s.stepsGoal = Math.max(500, Math.min(100000, Math.round(value || 10000))) })} /><span>{S.lang === 'es' ? 'pasos' : 'steps'}</span></div>
+      <div className="nutrition-track home-balance-track"><span style={{ width: `${stepsGoal ? Math.min(100, (steps || 0) / stepsGoal * 100) : 0}`, background: 'var(--blue)' }} /></div>
+      <div className="home-balance-activity-total"><span>{S.lang === 'es' ? 'Actividad del día' : 'Today’s activity'}</span><strong>{activity.activeCalories == null ? '—' : `≈ ${roundNutrition(activity.activeCalories)} kcal`}</strong><small>{activity.activeCaloriesSource === 'device' ? (S.lang === 'es' ? 'Dato importado' : 'Imported data') : activity.activeCalories == null ? (S.lang === 'es' ? 'Añade pasos o termina una sesión' : 'Add steps or finish a session') : (S.lang === 'es' ? 'Pasos + sesión estimados' : 'Estimated steps + session')}</small></div>
+      <div className="home-balance-step-editor">
+        <div className="home-balance-step-title"><span>{S.lang === 'es' ? 'Registrar pasos' : 'Log steps'}</span><span className="muted">{S.lang === 'es' ? 'sin salir de Inicio' : 'without leaving Home'}</span></div>
+        <div className="home-steps-actions">
+          <div className="home-steps-quick" aria-label={S.lang === 'es' ? 'Añadir pasos' : 'Add steps'}>
+            {[500, 1000, 2500].map(amount => <Button key={amount} size="sm" variant="tinted" onClick={() => addSteps(amount)}>+{amount.toLocaleString()}</Button>)}
+          </div>
+          <label className="home-steps-input"><span>{S.lang === 'es' ? 'Total' : 'Total'}</span><NumberField nullable value={steps} decimal={false} aria-label={S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'} onChange={setSteps} /></label>
+        </div>
+        <div className="home-steps-goal"><span>{S.lang === 'es' ? 'Objetivo diario' : 'Daily goal'}</span><NumberField value={stepsGoal} decimal={false} aria-label={S.lang === 'es' ? 'Objetivo diario de pasos' : 'Daily steps goal'} onChange={value => update(s => { s.stepsGoal = Math.max(500, Math.min(100000, Math.round(value || 10000))) })} /><span>{S.lang === 'es' ? 'pasos' : 'steps'}</span></div>
+      </div>
+      <div className="home-balance-note"><Icon name="info" />{includesActivity
+        ? (S.lang === 'es' ? 'Las kcal de actividad son orientativas y no se suman a tu objetivo de comida.' : 'Activity kcal are estimates and are not added to your food target.')
+        : (S.lang === 'es' ? 'Tu objetivo permite sumar la actividad estimada cuando hay datos disponibles.' : 'Your target allows estimated activity to extend the available intake when data is available.')}</div>
     </section>
 
     {!S.routines.length && !S.active && (

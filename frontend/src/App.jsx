@@ -67,6 +67,11 @@ function Shell() {
 
   return (
     <>
+      <div className="liftnex-ambient" aria-hidden="true">
+        <span className="liftnex-ambient-orb one" />
+        <span className="liftnex-ambient-orb two" />
+        <span className="liftnex-ambient-sweep" />
+      </div>
       {/* keyed on the route: a view that throws is contained, and switching tabs
           re-mounts the boundary, so the tab bar is always a way out */}
       <div id="app" className="vfade" key={loc.pathname}>

@@ -7,7 +7,7 @@ import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
 import { clearPhotos, readSnapshot, writeSnapshot } from '../lib/offline.js'
 
 const KEY = 'gym_state_v1'
-export const STATE_SCHEMA_VERSION = 3
+export const STATE_SCHEMA_VERSION = 4
 export const DEF = {
   unit: 'kg', restSec: 90, exerciseRestSec: 120, stepsGoal: 10000, sound: true, keepAwake: true, lang: 'en',
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
@@ -21,6 +21,7 @@ export const DEF = {
   bodyMeasurements: [], bodyPhotos: [],
   nutritionEntries: [],
   nutritionGoal: { calories: 2200, protein: 150, carbs: 250, fat: 70 },
+  nutritionSettings: { calorieTargetIncludesActivity: true },
   nutritionPreferences: { diet: 'none', allergens: '', avoidAdditives: false },
   nutritionFavorites: [],
   recipes: [],
@@ -37,6 +38,7 @@ const clone = o => JSON.parse(JSON.stringify(o))
 const migrateState = input => {
   const state = Object.assign(clone(DEF), input || {})
   state.nutritionPreferences = { ...DEF.nutritionPreferences, ...(input?.nutritionPreferences || {}) }
+  state.nutritionSettings = { ...DEF.nutritionSettings, ...(input?.nutritionSettings || {}) }
   state.coachProfile = { ...DEF.coachProfile, ...(input?.coachProfile || {}) }
   for (const key of ['nutritionFavorites', 'coachActionHistory', 'healthMetrics']) if (!Array.isArray(state[key])) state[key] = []
   state.schemaVersion = STATE_SCHEMA_VERSION

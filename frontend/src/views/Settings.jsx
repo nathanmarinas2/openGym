@@ -125,6 +125,28 @@ export default function Settings() {
       </Row>
     </Section>
 
+    <Section
+      title={getLang() === 'es' ? 'Balance diario' : 'Daily balance'}
+      footer={getLang() === 'es'
+        ? 'Las calorías de pasos y entrenamiento son estimaciones informativas; no sustituyen una indicación médica.'
+        : 'Step and workout calories are informative estimates; they are not medical guidance.'}
+    >
+      <Row
+        icon="flame"
+        iconTint="var(--orange)"
+        title={getLang() === 'es' ? 'El objetivo calórico ya incluye actividad' : 'Calorie target already includes activity'}
+        subtitle={getLang() === 'es'
+          ? 'Recomendado para evitar contar dos veces pasos y entrenamientos.'
+          : 'Recommended to avoid counting steps and workouts twice.'}
+      >
+        <Switch
+          checked={S.nutritionSettings?.calorieTargetIncludesActivity !== false}
+          ariaLabel={getLang() === 'es' ? 'El objetivo calórico incluye actividad' : 'Calorie target includes activity'}
+          onChange={v => update(s => { s.nutritionSettings = { ...(s.nutritionSettings || {}), calorieTargetIncludesActivity: v } })}
+        />
+      </Row>
+    </Section>
+
     {/* ---------- during a workout ---------- */}
     <Section title={t('During a workout')} footer={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : null}>
       <SelectRow icon="timer" iconTint="var(--orange)" title={t('Rest timer')}
