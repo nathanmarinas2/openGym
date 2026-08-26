@@ -251,6 +251,16 @@ h4.sec{
   display:flex;align-items:center;justify-content:center;
   background:color-mix(in srgb,var(--tint,var(--acc)) 24%,var(--surface-2));color:var(--tint,var(--acc));
 }
+/* Solid semantic badges use a high-contrast foreground. The old inline accent
+   backgrounds inherited the same green as their SVG, making the artwork vanish. */
+.lrow-i.solid-icon{
+  width:40px;height:40px;border-radius:12px;font-size:20px;
+  color:var(--label);--icon-stroke:2.25;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 5px 12px rgba(0,0,0,.16);
+}
+.lrow-i.solid-icon.accent-badge{color:var(--on-acc)}
+.lrow-i.solid-icon.blue-badge{color:#06131e}
+.lrow-i.solid-icon .icn{filter:none}
 .lrow-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .lrow-t{font-size:17px;letter-spacing:-.012em;line-height:1.25}
 .lrow-s{font-size:13px;color:var(--label-2);line-height:1.3}
@@ -276,11 +286,12 @@ h4.sec{
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;
   min-height:48px;padding:12px 18px;border:1px solid transparent;border-radius:14px;
-  font-size:17px;font-weight:650;letter-spacing:-.012em;background:var(--surface-2);color:var(--label);
+  font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:16px;font-weight:600;letter-spacing:.005em;background:var(--surface-2);color:var(--label);
   box-shadow:var(--shadow-control);
   transition:transform var(--fast) var(--ease),background var(--fast),border-color var(--fast),box-shadow var(--fast),opacity var(--fast),filter var(--fast);
 }
-.btn .icn{font-size:19px}
+.btn .icn{font-size:19px;--icon-stroke:2.1}
 .btn:hover{filter:brightness(1.06)}
 .btn:active{transform:scale(.975)}
 .btn.primary{background:var(--acc);color:var(--on-acc);box-shadow:0 8px 18px color-mix(in srgb,var(--acc) 22%,transparent)}
@@ -289,37 +300,44 @@ h4.sec{
 .btn.danger{background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red);border-color:color-mix(in srgb,var(--red) 25%,transparent);box-shadow:none}
 .btn.ghost,.btn.plain{background:transparent;color:var(--acc-text);font-weight:550;box-shadow:none}
 .btn.ghost:active,.btn.plain:active{background:var(--surface-2)}
-.btn.sm{min-height:44px;padding:8px 14px;width:auto;font-size:15px;border-radius:12px;gap:5px}
+.btn.sm{min-height:44px;padding:8px 14px;width:auto;font-size:14px;border-radius:12px;gap:5px}
 .btn.sm .icn{font-size:16px}
-.btn.xs{min-height:44px;padding:6px 10px;width:auto;font-size:13px;border-radius:10px;gap:4px}
+.btn.xs{min-height:44px;padding:6px 11px;width:auto;font-size:13px;border-radius:11px;gap:4px}
 .btn:disabled{opacity:.32;pointer-events:none}
 
 /* ----------------------------------------------------------- tab bar ----- */
 #tabbar{
   position:fixed;left:10px;right:10px;bottom:calc(8px + var(--sab));z-index:50;
   display:flex;justify-content:space-around;align-items:flex-end;
-  padding:7px 8px 8px;
-  background:color-mix(in srgb,var(--bg-el) 72%,transparent);
+  padding:8px 9px 9px;
+  background:color-mix(in srgb,var(--bg-el) 90%,transparent);
   backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
-  border:1px solid var(--sep-op);border-radius:24px;
-  box-shadow:0 14px 34px rgba(0,0,0,.26);
+  border:1px solid color-mix(in srgb,var(--label) 12%,var(--sep-op));border-radius:24px;
+  box-shadow:0 14px 34px rgba(0,0,0,.30),inset 0 1px 0 color-mix(in srgb,var(--label) 7%,transparent);
 }
 :root[data-theme="light"] #tabbar{background:rgba(248,251,249,.88);box-shadow:0 12px 28px rgba(22,63,40,.12)}
 #tabbar button{
   flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  color:var(--label-3);font-size:10px;font-weight:550;letter-spacing:.005em;padding:5px 2px 2px;
-  min-height:52px;border-radius:16px;transition:color var(--fast),background var(--fast),transform var(--fast);
+  color:var(--label-2);font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:.01em;padding:4px 2px 2px;
+  min-height:56px;border-radius:16px;transition:color var(--fast),background var(--fast),transform var(--fast);
 }
 /* The inactive tint is semi-transparent, so wherever two strokes cross inside an
    icon (the calendar's hangers over its frame, the divider's caps on its sides)
    the alpha doubled up and the icon read as a stack of loose layers. Carrying the
    fade on the <svg> instead of in the stroke colour flattens the icon first and
    fades it as one shape — and it does that for every icon, not just this one. */
-#tabbar button .icn{font-size:25px;--icon-stroke:1.65;color:var(--label)}
+#tabbar button .tab-icon{
+  width:36px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  color:var(--label-2);transition:background var(--fast),border-color var(--fast),color var(--fast);
+}
+#tabbar button .tab-icon .icn{font-size:25px;--icon-stroke:2.05;color:inherit}
+#tabbar button .tab-label{font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.1}
 #tabbar button.on{color:var(--acc)}
-#tabbar button:not(.start).on{background:var(--acc-soft)}
+#tabbar button:not(.start).on{background:transparent}
+#tabbar button:not(.start).on .tab-icon{background:var(--acc-soft);border:1px solid var(--acc-line);color:var(--acc)}
 #tabbar button:not(.start):active{background:var(--surface-2);transform:scale(.97)}
-#tabbar button.on .icn{--icon-stroke:2;color:inherit;opacity:1}
+#tabbar button.on .tab-icon .icn{--icon-stroke:2.25;color:inherit;opacity:1}
 #tabbar button.start{margin-top:-24px}
 #tabbar button.start .cir{
   width:58px;height:58px;border-radius:50%;background:var(--acc);color:var(--on-acc);
@@ -329,7 +347,7 @@ h4.sec{
 }
 #tabbar button.start:active .cir{transform:scale(.93)}
 #tabbar button.start .cir .icn{font-size:26px;--icon-stroke:2;color:inherit;opacity:1}
-#tabbar button.start span{color:var(--acc);font-weight:600}
+#tabbar button.start span:last-child{font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--acc);font-size:11px;font-weight:650;line-height:1.1}
 /* `.cir` is itself a <span>, so the label rules above and below reach it too and
    outrank the `.cir` block — which is how the running state ended up painting an
    orange play glyph onto an orange disc. Both states restate their own colour.
@@ -396,8 +414,9 @@ h4.sec{
 .chips::-webkit-scrollbar{display:none}
 .chip{
   flex:none;min-height:44px;padding:6px 13px;border-radius:99px;background:var(--surface);
-  border:1px solid var(--surface-line);font-size:14px;font-weight:450;color:var(--label);text-transform:capitalize;
-  letter-spacing:-.006em;transition:background var(--fast),color var(--fast),border-color var(--fast),transform var(--fast);
+  border:1px solid var(--surface-line);font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:14px;font-weight:550;color:var(--label);text-transform:capitalize;
+  letter-spacing:.005em;transition:background var(--fast),color var(--fast),border-color var(--fast),transform var(--fast);
 }
 .chip:active{background:var(--surface-2)}
 .chip.on{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:600;box-shadow:0 5px 14px color-mix(in srgb,var(--acc) 18%,transparent)}
@@ -492,8 +511,8 @@ input.num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),ins
 }
 :root[data-theme="light"] .seg-sel{background:#fff}
 .seg button{
-  position:relative;z-index:1;padding:6px 8px;font-size:14px;font-weight:500;
-  letter-spacing:-.006em;color:var(--label);display:flex;align-items:center;
+  position:relative;z-index:1;padding:6px 8px;font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:14px;font-weight:550;letter-spacing:.005em;color:var(--label);display:flex;align-items:center;
   justify-content:center;gap:5px;min-height:38px;border-radius:9px;transition:opacity var(--fast),color var(--fast);
 }
 .seg button .icn{font-size:16px}

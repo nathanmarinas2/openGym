@@ -87,7 +87,7 @@ export default function Home() {
       <div className="week">{strip}</div>
     <Tappable className="today-row" onClick={onToday}>
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: S.active ? 'var(--orange)' : routine ? 'var(--acc)' : 'var(--surface-3)' }}>
+          <span className="lrow-i solid-icon" style={{ background: S.active ? 'var(--orange)' : routine ? 'var(--acc)' : 'var(--surface-3)', color: S.active || routine ? 'var(--on-acc)' : 'var(--label)' }}>
             <Icon name={S.active ? 'timer' : routine ? glyphOf(routine.emoji) : 'moon'} />
           </span>
           <div style={{ minWidth: 0 }}>
@@ -104,7 +104,7 @@ export default function Home() {
     <section className="card home-balance-card" aria-labelledby="home-balance-title">
       <div className="row between home-balance-head">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="dashboard" /></span>
+          <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="dashboard" /></span>
           <div><h2 id="home-balance-title" style={{ margin: 0 }}>{S.lang === 'es' ? 'Balance de hoy' : 'Today’s balance'}</h2><div className="small muted">{S.lang === 'es' ? 'Actividad, comida y objetivos en una sola vista' : 'Activity, food and goals in one view'}</div></div>
         </div>
         <button className="iconbtn home-balance-detail" onClick={() => nav('/briefing')} aria-label={S.lang === 'es' ? 'Abrir detalle del balance' : 'Open balance details'}><Icon name="chevronRight" /></button>
@@ -193,7 +193,7 @@ export default function Home() {
     <Tappable className="card tappable nutrition-home-card" onClick={() => nav('/nutrition')}>
       <div className="row between">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="forkKnife" /></span>
+          <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="forkKnife" /></span>
           <div><div className="lbl2">{S.lang === 'es' ? 'Nutrición' : t('Nutrition')}</div><div className="ttl">{roundNutrition(nutrition.calories)} / {roundNutrition(nutritionGoal.calories)} kcal</div></div>
         </div>
         <Icon name="chevronRight" className="chev" />
@@ -204,12 +204,12 @@ export default function Home() {
 
     <div className="home-action-grid">
       <Tappable className="card tappable home-action-card" onClick={() => nav('/briefing')}>
-        <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="dashboard" /></span>
+        <span className="lrow-i solid-icon blue-badge" style={{ background: 'var(--blue)' }}><Icon name="dashboard" /></span>
         <div><div className="ttl">{S.lang === 'es' ? 'Resumen diario' : 'Daily briefing'}</div><div className="small muted">{S.lang === 'es' ? 'Entrenamiento, combustible y tendencia' : 'Training, fuel and trend'}</div></div>
         <Icon name="chevronRight" className="chev" />
       </Tappable>
       <Tappable className="card tappable home-action-card" onClick={() => nav('/coach')}>
-        <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="brain" /></span>
+        <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="brain" /></span>
         <div><div className="ttl">{S.lang === 'es' ? 'Coach personal' : 'Personal coach'}</div><div className="small muted">{S.lang === 'es' ? 'Revisión de todo tu historial' : 'Review your full history'}</div></div>
         <Icon name="chevronRight" className="chev" />
       </Tappable>

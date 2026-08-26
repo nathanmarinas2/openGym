@@ -24,7 +24,7 @@ export default function TabBar({ onStart }) {
   }
   const Tab = ({ k, icon, to, label }) => (
     <button className={on(k) ? 'on' : ''} onClick={() => nav(to)}>
-      <Icon name={icon} /><span>{label}</span>
+      <span className="tab-icon"><Icon name={icon} /></span><span className="tab-label">{label}</span>
     </button>
   )
 
@@ -37,7 +37,7 @@ export default function TabBar({ onStart }) {
         <span>{S.active ? t('Resume') : t('Start')}</span>
       </button>
       <Tab k="stats" icon="chart" to="/stats" label={t('Stats')} />
-      <Tab k="nutrition" icon="plate" to="/nutrition" label={S.lang === 'es' ? 'Nutrición' : t('Nutrition')} />
+      <Tab k="nutrition" icon="forkKnife" to="/nutrition" label={S.lang === 'es' ? 'Nutrición' : t('Nutrition')} />
     </nav>
   )
 }
