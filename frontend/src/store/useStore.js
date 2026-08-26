@@ -7,7 +7,7 @@ import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
 import { clearPhotos, readSnapshot, writeSnapshot } from '../lib/offline.js'
 
 const KEY = 'gym_state_v1'
-export const STATE_SCHEMA_VERSION = 4
+export const STATE_SCHEMA_VERSION = 5
 export const DEF = {
   unit: 'kg', restSec: 90, exerciseRestSec: 120, stepsGoal: 10000, sound: true, keepAwake: true, lang: 'en',
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
@@ -31,17 +31,41 @@ export const DEF = {
   coachProfile: { objective: 'performance', notes: '' },
   coachActionHistory: [],
   healthMetrics: [],
+  recoveryCheckins: [],
+  hrProfile: { age: null, maxHr: null, maxHrMethod: 'tanaka', zoneMethod: 'percent-max' },
+  aiConsent: false,
+  coachMode: 'athlete',
+  role: 'athlete',
+  trainerLinks: [],
+  signedPlanPackages: [],
+  coachDrafts: [],
+  coachSnapshots: [],
+  planCycles: [],
   schemaVersion: STATE_SCHEMA_VERSION,
   equipmentProfiles: [{ id: 'home', name: 'Home', items: ['body weight'] }],
   activeEquipmentProfile: 'home'
 }
 const clone = o => JSON.parse(JSON.stringify(o))
-const migrateState = input => {
-  const state = Object.assign(clone(DEF), input || {})
-  state.nutritionPreferences = { ...DEF.nutritionPreferences, ...(input?.nutritionPreferences || {}) }
-  state.nutritionSettings = { ...DEF.nutritionSettings, ...(input?.nutritionSettings || {}) }
-  state.coachProfile = { ...DEF.coachProfile, ...(input?.coachProfile || {}) }
-  for (const key of ['nutritionFavorites', 'nutritionFavoriteFoods', 'coachActionHistory', 'healthMetrics']) if (!Array.isArray(state[key])) state[key] = []
+export const migrateState = input => {
+  const source = clone(input || {})
+  const state = Object.assign(clone(DEF), source)
+  state.nutritionPreferences = { ...DEF.nutritionPreferences, ...(source.nutritionPreferences || {}) }
+  state.nutritionSettings = { ...DEF.nutritionSettings, ...(source.nutritionSettings || {}) }
+  state.coachProfile = { ...DEF.coachProfile, ...(source.coachProfile || {}) }
+  state.hrProfile = { ...DEF.hrProfile, ...(source.hrProfile || {}) }
+  for (const key of ['nutritionFavorites', 'nutritionFavoriteFoods', 'coachActionHistory', 'healthMetrics', 'recoveryCheckins', 'trainerLinks', 'signedPlanPackages', 'coachDrafts', 'coachSnapshots', 'planCycles']) if (!Array.isArray(state[key])) state[key] = []
+  state.role = ['athlete', 'trainer', 'admin'].includes(state.role) ? state.role : 'athlete'
+  state.coachMode = state.coachMode === 'trainer' ? 'trainer' : 'athlete'
+  // Legacy workouts were all effective sets. Canonicalising them makes exports explicit while
+  // setTypeOf() still protects callers that hold an old object in memory.
+  state.workouts = (state.workouts || []).map(workout => ({ ...workout, entries: (workout.entries || []).map(entry => ({
+    ...entry, sets: (entry.sets || []).map(set => ({ ...set, setType: set.setType === 'warmup' ? 'warmup' : 'working' }))
+  })) }))
+  state.healthMetrics = state.healthMetrics.map(item => ({ ...item,
+    averageHeartRate: item.averageHeartRate ?? item.avgHeartRate ?? item.heartRate ?? undefined,
+    maxHeartRate: item.maxHeartRate ?? item.peakHeartRate ?? undefined,
+    restingHeartRate: item.restingHeartRate ?? item.restingHr ?? undefined
+  }))
   state.schemaVersion = STATE_SCHEMA_VERSION
   return state
 }
@@ -57,10 +81,10 @@ const mergeArray = (local = [], remote = []) => {
 }
 const mergeStates = (local, remote) => {
   const merged = migrateState(Object.assign(clone(DEF), remote, local))
-  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'nutritionEntries', 'nutritionFavorites', 'nutritionFavoriteFoods', 'recipes', 'waterEntries', 'equipmentProfiles', 'coachActionHistory', 'healthMetrics']) {
+  for (const key of ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'nutritionEntries', 'nutritionFavorites', 'nutritionFavoriteFoods', 'recipes', 'waterEntries', 'equipmentProfiles', 'coachActionHistory', 'healthMetrics', 'recoveryCheckins', 'trainerLinks', 'signedPlanPackages', 'coachDrafts', 'coachSnapshots', 'planCycles']) {
     if (Array.isArray(local?.[key]) || Array.isArray(remote?.[key])) merged[key] = mergeArray(local?.[key], remote?.[key])
   }
-  for (const key of ['exWeights', 'week', 'dayPlan']) merged[key] = { ...(remote?.[key] || {}), ...(local?.[key] || {}) }
+  for (const key of ['exWeights', 'week', 'dayPlan', 'hrProfile', 'coachProfile']) merged[key] = { ...(remote?.[key] || {}), ...(local?.[key] || {}) }
   return migrateState(merged)
 }
 
@@ -72,7 +96,7 @@ function loadState() {
   return migrateState(DEF)
 }
 
-  const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.bodyMeasurements || []).length || (st.nutritionEntries || []).length || (st.recipes || []).length || (st.waterEntries || []).length || (st.healthMetrics || []).length || (st.fasting?.history || []).length || st.fasting?.active || (st.equipmentProfiles || []).some(p => p.name !== 'Home' || (p.items || []).length > 1))
+  const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.bodyMeasurements || []).length || (st.nutritionEntries || []).length || (st.recipes || []).length || (st.waterEntries || []).length || (st.healthMetrics || []).length || (st.recoveryCheckins || []).length || (st.planCycles || []).length || (st.fasting?.history || []).length || st.fasting?.active || (st.equipmentProfiles || []).some(p => p.name !== 'Home' || (p.items || []).length > 1))
 
 export const useStore = create((set, get) => {
   let pushTm = null
