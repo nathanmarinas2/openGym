@@ -1428,3 +1428,117 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
   .exmedia img{height:380px}
   .hm-wrap{display:flex;flex-direction:column;align-items:center}
 }
+
+/* -------------------------------------------------------------------------
+   Visual polish / narrow-screen correction pass
+   The previous system had good tokens, but the default graphite was too close
+   to pure black and the nutrition controls were trying to stay on one line.
+   These layers give the app a calmer material backdrop and let mobile actions
+   reflow instead of shrinking into unusable slivers.
+   ------------------------------------------------------------------------- */
+body{
+  background:
+    radial-gradient(circle at 96% -8%, rgba(126,235,96,.14), transparent 28%),
+    radial-gradient(circle at -12% 42%, rgba(58,149,198,.12), transparent 30%),
+    linear-gradient(180deg,#142127 0%,#10191e 43%,#0c1317 100%);
+  background-attachment:fixed;
+}
+:root[data-theme="light"] body{
+  background:
+    radial-gradient(circle at 96% -8%, rgba(85,207,113,.15), transparent 28%),
+    radial-gradient(circle at -12% 42%, rgba(62,145,205,.09), transparent 30%),
+    linear-gradient(180deg,#f5faf6 0%,#edf5f0 48%,#e6f0ea 100%);
+}
+.card,.item,.sect-b,.nutrition-food-result{
+  background:linear-gradient(145deg,color-mix(in srgb,var(--surface) 94%,white 6%),var(--surface));
+  border-color:color-mix(in srgb,var(--surface-line) 82%,var(--acc-line) 18%);
+}
+:root[data-theme="light"] .card,
+:root[data-theme="light"] .item,
+:root[data-theme="light"] .sect-b,
+:root[data-theme="light"] .nutrition-food-result{
+  background:linear-gradient(145deg,#fff,var(--surface));
+}
+.lrow-i,.nutrition-food-icon,.nutrition-alternative-image,.nutrition-score-row-icon{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 5px 12px rgba(0,0,0,.12);
+}
+.lrow-i .icn,.nutrition-coach-orb .icn{--icon-stroke:2.05;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
+.btn{min-width:0;white-space:normal}
+.btn.sm,.btn.xs{white-space:nowrap}
+.nutrition-search-row .btn{min-width:92px}
+
+/* The barcode entry is a two-row action group on phones. The old four-column
+   grid gave the text field the leftover width (sometimes 8–20px). */
+.nutrition-barcode-row{
+  grid-template-columns:minmax(0,1fr) minmax(0,1.45fr);
+  grid-template-areas:"label field" "lookup scan";
+  gap:8px;
+  padding:11px;
+  border:1px solid var(--surface-line);
+  border-radius:14px;
+  background:color-mix(in srgb,var(--surface-2) 68%,transparent);
+}
+.nutrition-barcode-row label{grid-area:label;min-width:0;display:flex;align-items:center;line-height:1.15}
+.nutrition-barcode-row > .field{grid-area:field;width:100%;min-width:0}
+.nutrition-barcode-row > .btn:nth-of-type(1){grid-area:lookup;width:100%;min-width:0}
+.nutrition-barcode-row > .btn:nth-of-type(2){grid-area:scan;width:100%;min-width:0}
+.nutrition-barcode-row > .btn{min-height:48px}
+.nutrition-barcode-row .field{min-height:48px}
+
+/* Food actions keep the same order on every viewport: favourite, grams and add. */
+.nutrition-food-result .nutrition-add-controls{min-width:0}
+.nutrition-food-result .nutrition-add-controls .btn{min-width:94px}
+
+/* Quick step chips get a real row of equal controls instead of a clipped
+   horizontal scroller beside the edit field. */
+.home-steps-quick .btn{min-width:0}
+
+@media (min-width:520px){
+  .nutrition-barcode-row{
+    grid-template-columns:minmax(104px,.62fr) minmax(140px,1fr) auto auto;
+    grid-template-areas:none;
+  }
+  .nutrition-barcode-row label,
+  .nutrition-barcode-row > .field,
+  .nutrition-barcode-row > .btn:nth-of-type(1),
+  .nutrition-barcode-row > .btn:nth-of-type(2){grid-area:auto;width:auto}
+  .nutrition-barcode-row > .btn{min-width:0}
+}
+
+@media (max-width:519px){
+  .home-steps-actions{display:grid;grid-template-columns:1fr;gap:10px;align-items:stretch}
+  .home-steps-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;gap:7px}
+  .home-steps-quick .btn{width:100%;padding-inline:5px}
+  .home-steps-input{justify-content:space-between;width:100%;padding-top:2px}
+  .home-steps-input .num{width:112px}
+
+  .nutrition-search-row{align-items:stretch}
+  .nutrition-search-row .searchf{min-width:0}
+  .nutrition-search-row .btn{min-width:92px;padding-inline:10px}
+
+  .nutrition-food-result{display:grid;padding:13px}
+  .nutrition-food-result .nutrition-food-open{min-width:0}
+  .nutrition-food-result .nutrition-add-controls{
+    grid-column:1;
+    grid-row:2;
+    display:grid;
+    grid-template-columns:44px minmax(72px,1fr) auto minmax(94px,1.2fr);
+    align-items:center;
+    gap:7px;
+    width:100%;
+    margin-top:12px;
+  }
+  .nutrition-food-result .nutrition-add-controls .nutrition-favorite{width:44px;min-width:44px}
+  .nutrition-food-result .nutrition-add-controls .num{width:100%;min-width:0}
+  .nutrition-food-result .nutrition-add-controls .btn{width:100%;min-width:0;padding-inline:8px}
+  .nutrition-food-result .nutrition-add-controls>span{font-size:13px}
+
+  .nutrition-tabs button{font-size:11px}
+  .nutrition-head-icon{display:none}
+}
+
+@media (max-width:370px){
+  .nutrition-search-row .btn{min-width:84px;padding-inline:7px}
+  .nutrition-food-result .nutrition-add-controls{grid-template-columns:42px minmax(58px,1fr) auto minmax(86px,1.2fr);gap:5px}
+  .nutrition-food-result .nutrition-add-controls .btn{font-size:12px}
+}

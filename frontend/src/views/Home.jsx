@@ -99,7 +99,7 @@ export default function Home() {
     <section className="card home-steps-card" aria-labelledby="home-steps-title">
       <div className="row between home-steps-head">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="figureRun" /></span>
+          <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="footprints" /></span>
           <div><h2 id="home-steps-title" style={{ margin: 0 }}>{S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'}</h2><div className="small muted">{S.lang === 'es' ? 'Regístralos aquí, sin entrar en otro apartado' : 'Log them here without opening another section'}</div></div>
         </div>
         <div className="home-steps-number">{steps == null ? '—' : steps.toLocaleString()}<span> / {stepsGoal.toLocaleString()}</span></div>
@@ -159,7 +159,7 @@ export default function Home() {
     <Tappable className="card tappable nutrition-home-card" onClick={() => nav('/nutrition')}>
       <div className="row between">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="plate" /></span>
+          <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="forkKnife" /></span>
           <div><div className="lbl2">{S.lang === 'es' ? 'Nutrición' : t('Nutrition')}</div><div className="ttl">{roundNutrition(nutrition.calories)} / {roundNutrition(nutritionGoal.calories)} kcal</div></div>
         </div>
         <Icon name="chevronRight" className="chev" />
@@ -170,12 +170,12 @@ export default function Home() {
 
     <div className="home-action-grid">
       <Tappable className="card tappable home-action-card" onClick={() => nav('/briefing')}>
-        <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="sparkles" /></span>
+        <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="dashboard" /></span>
         <div><div className="ttl">{S.lang === 'es' ? 'Resumen diario' : 'Daily briefing'}</div><div className="small muted">{S.lang === 'es' ? 'Entrenamiento, combustible y tendencia' : 'Training, fuel and trend'}</div></div>
         <Icon name="chevronRight" className="chev" />
       </Tappable>
       <Tappable className="card tappable home-action-card" onClick={() => nav('/coach')}>
-        <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="sparkles" /></span>
+        <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="brain" /></span>
         <div><div className="ttl">{S.lang === 'es' ? 'Coach personal' : 'Personal coach'}</div><div className="small muted">{S.lang === 'es' ? 'Revisión de todo tu historial' : 'Review your full history'}</div></div>
         <Icon name="chevronRight" className="chev" />
       </Tappable>
