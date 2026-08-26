@@ -19,6 +19,51 @@ import {
 import { Button, Segmented, SelectRow } from '../components/ui.jsx'
 import { latestMeasurement, measurementLabel } from '../lib/body.js'
 import { putPhoto, readPhoto } from '../lib/offline.js'
+import { calculateRecovery } from '../lib/recovery.js'
+import { heartRateSummary, heartRateZones } from '../lib/heart-rate.js'
+import { periodizationStats } from '../lib/periodization.js'
+import { recoveryCheckinSheet } from '../sheets.jsx'
+
+const RECOVERY_LABEL = { prepared: 'Prepared', recovering: 'Recovering', fatigued: 'Fatigued', detraining: 'Detraining estimated', insufficient: 'Not enough data' }
+
+function RecoveryCard({ S }) {
+  const recovery = calculateRecovery(S, todayISO())
+  const status = RECOVERY_LABEL[recovery.status] || RECOVERY_LABEL.insufficient
+  const muscleRows = Object.entries(recovery.muscles).filter(([, item]) => item.status !== 'insufficient').sort((a, b) => (b[1].recentVolume || 0) - (a[1].recentVolume || 0)).slice(0, 4)
+  return <div className="card">
+    <div className="row between" style={{ marginBottom: 8 }}><div><h2 style={{ margin: 0 }}>{t('Recovery')}</h2><div className="small dim">{t('Training signals, sleep and manual soreness')}</div></div><Button size="sm" variant="tinted" icon="heart" onClick={recoveryCheckinSheet}>{t('Check in')}</Button></div>
+    <div className={'progline' + (recovery.status === 'fatigued' ? ' warn' : '')}><Icon name={recovery.status === 'prepared' ? 'checkCircle' : recovery.status === 'detraining' ? 'chartLine' : 'heart'} /><span><b>{t(status)}</b> · {t('orientation only, not a medical diagnosis')}</span></div>
+    <div className="tiles" style={{ marginTop: 12 }}>
+      <div className="tile"><div className="l">{t('Recent volume')}</div><div className="v" style={{ fontSize: '1.05rem' }}>{fmtNum(recovery.recentVolume)}</div></div>
+      <div className="tile"><div className="l">{t('4-week average')}</div><div className="v" style={{ fontSize: '1.05rem' }}>{fmtNum(recovery.fourWeekAverage)}</div></div>
+      <div className="tile"><div className="l">{t('Sleep')}</div><div className="v" style={{ fontSize: '1.05rem' }}>{recovery.metrics.sleepHours == null ? '—' : fmtNum(recovery.metrics.sleepHours) + 'h'}</div></div>
+      <div className="tile"><div className="l">{t('Resting HR')}</div><div className="v" style={{ fontSize: '1.05rem' }}>{recovery.metrics.restingHeartRate == null ? '—' : recovery.metrics.restingHeartRate}</div></div>
+    </div>
+    <div className="small dim" style={{ marginTop: 10 }}>{recovery.reasons[0] ? t(recovery.reasons[0]) : t('Add a check-in or health data for a clearer signal.')}</div>
+    {muscleRows.length > 0 && <><h4 className="sec" style={{ marginTop: 12 }}>{t('Muscle recovery')}</h4>{muscleRows.map(([muscle, item]) => <div key={muscle} className="mrow"><span className="nm">{t(MUSCLE_NAME[muscle])}</span><span className={'tag ' + (item.status === 'fatigued' ? 'warn' : 'acc')}>{t(RECOVERY_LABEL[item.status] || RECOVERY_LABEL.insufficient)}</span><span className="v">{fmtNum(item.recentVolume)}</span></div>)}</>}
+  </div>
+}
+
+function HeartRateCard({ S }) {
+  const latestRest = [...(S.healthMetrics || [])].reverse().find(item => item.restingHeartRate != null)?.restingHeartRate
+  const profile = { ...(S.hrProfile || {}), restingHr: latestRest }
+  const summary = heartRateSummary(S.workouts, profile)
+  const zones = heartRateZones(profile)
+  return <div className="card">
+    <div className="row between" style={{ marginBottom: 8 }}><div><h2 style={{ margin: 0 }}>{t('Heart rate')}</h2><div className="small dim">{t('Recorded sessions only — no zones are invented')}</div></div><Icon name="heart" style={{ color: 'var(--red)' }} /></div>
+    <div className="tiles"><div className="tile"><div className="l">{t('Max HR')}</div><div className="v" style={{ fontSize: '1.05rem' }}>{summary.maxHr.value == null ? '—' : summary.maxHr.value}</div></div><div className="tile"><div className="l">{t('Session average')}</div><div className="v" style={{ fontSize: '1.05rem' }}>{summary.average == null ? '—' : summary.average}</div></div><div className="tile"><div className="l">{t('Sessions logged')}</div><div className="v" style={{ fontSize: '1.05rem' }}>{summary.recordedSessions}</div></div></div>
+    {summary.maxHr.value == null && <div className="small dim" style={{ marginTop: 10 }}>{t('Set your age or a manual maximum in Settings to calculate zones.')}</div>}
+    {zones.length > 0 && <><h4 className="sec" style={{ marginTop: 12 }}>{t('Training zones')}</h4>{zones.map(zone => <div key={zone.zone} className="mrow"><span className="nm">Z{zone.zone}</span><span className="bar"><i style={{ width: (zone.zone * 20) + '%', background: 'var(--red)' }} /></span><span className="v">{zone.min}–{zone.max}</span></div>)}</>}
+    {summary.recordedSessions > 0 && <div className="small dim" style={{ marginTop: 10 }}>{t('{0} workout(s) include heart-rate data.', summary.recordedSessions)}</div>}
+  </div>
+}
+
+function PhaseAnalysis({ S }) {
+  const rows = periodizationStats(S).filter(item => item.cycleId)
+  return <div className="card"><div className="row between"><div><h2 style={{ margin: 0 }}>{t('Phase analysis')}</h2><div className="small dim">{t('Working volume grouped by cycle and phase')}</div></div><Icon name="chartLine" style={{ color: 'var(--blue)' }} /></div>
+    {rows.length ? <div style={{ marginTop: 10 }}>{rows.slice(0, 8).map(item => <div key={item.key} className="mrow"><span className="nm">{item.phaseName}</span><span className="bar"><i style={{ width: Math.min(100, item.workouts * 14) + '%', background: 'var(--blue)' }} /></span><span className="v">{item.workouts} · {fmtNum(item.volume)}</span></div>)}</div> : <div className="small muted" style={{ marginTop: 12 }}>{t('Create a cycle in Plan to compare phases here.')}</div>}
+  </div>
+}
 
 function BodyTracking({ S }) {
   const fileRef = useRef(null)
@@ -244,6 +289,9 @@ export default function Stats() {
       <div className="tile"><div className="l"><Icon name="flame" />{t('Week streak')}</div><div className="v">{streakWeeks(S)}</div></div>
       <div className="tile"><div className="l"><Icon name="scale" />{t('Weight 30d')}</div><div className="v" style={{ fontSize: 22, color: bwDelta30 === null ? 'inherit' : bwDeltaColor(bwDelta30, (lastBW(S) || {}).w || 0) }}>{bwDelta30 === null ? '—' : (bwDelta30 > 0 ? '+' : '') + fmtNum(bwDelta30) + ' ' + S.unit}</div></div>
     </div>
+
+    <div className="cols"><RecoveryCard S={S} /><HeartRateCard S={S} /></div>
+    <PhaseAnalysis S={S} />
 
     <div className="card">
       <h2>{t('Activity — last 12 months')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {t('by time trained')}</span></h2>

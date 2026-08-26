@@ -11,9 +11,10 @@ import { t, LANGS, INSTR_LANGS, getLang, useLang } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
 import { clearPhotos } from '../lib/offline.js'
+import { encryptBackup } from '../lib/secure-export.js'
 import { loadStarterPlan, confirmSheet, importFromApp, equipmentSheet, apiTokenSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
-import { Section, Row, SelectRow, Switch, Segmented, Button } from '../components/ui.jsx'
+import { Section, Row, SelectRow, Switch, Segmented, Button, NumberField } from '../components/ui.jsx'
 import AccountForm from '../components/AccountForm.jsx'
 
 export default function Settings() {
@@ -67,6 +68,18 @@ export default function Settings() {
     setUser(u)
     if (hasData(useStore.getState().S)) { await pushState(); toast(t('Profile created — data moved into it')) }
     else { await pullState(); toast(t('Welcome, {0}', u.name)) }
+  }
+  const doEncryptedExport = async () => {
+    const password = window.prompt(t('Choose a local password for this encrypted backup (minimum 8 characters).'))
+    if (password == null) return
+    if (password.length < 8) { toast(t('Password must be at least 8 characters.')); return }
+    try {
+      const payload = await encryptBackup(S, password)
+      const json = JSON.stringify(payload, null, 2)
+      const name = 'liftnex-encrypted-backup-' + todayISO() + '.json'
+      if (MOBILE) { await shareExport(json, name) } else { const blob = new Blob([json], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href) }
+      toast(t('Encrypted backup exported'))
+    } catch (e) { toast(t('Export failed')) }
   }
   // Ends the profile's sessions on every device — this one included, so on success it lands in
   // the same place as the plain sign-out above (home, local data cleared). On failure nothing
@@ -127,6 +140,26 @@ export default function Settings() {
 
     <Section title={getLang() === 'es' ? 'Objetivos' : 'Goals'} footer={getLang() === 'es' ? 'Se aplican a Inicio, Entrenamiento, Progreso, Nutrición y Coach.' : 'Used across Home, Training, Progress, Nutrition and Coach.'}>
       <Row icon="target" iconTint="var(--acc)" title={getLang() === 'es' ? 'Objetivos centralizados' : 'Centralized goals'} subtitle={getLang() === 'es' ? 'Peso, nutrición, actividad y entrenamiento en un solo lugar.' : 'Weight, nutrition, activity and training in one place.'} accessory="chevron" onClick={() => nav('/goals')} />
+    </Section>
+
+    <Section title={t('Heart-rate profile')} footer={t('Manual maximum takes priority. Karvonen uses the latest resting heart rate when available; these are training estimates, not medical advice.')}>
+      <Row icon="person" iconTint="var(--red)" title={t('Age')} subtitle={t('Used for the selected maximum-heart-rate formula')}>
+        <NumberField nullable decimal={false} value={S.hrProfile?.age ?? null} aria-label={t('Age')} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), age: v } })} />
+      </Row>
+      <Row icon="heart" iconTint="var(--red)" title={t('Manual max HR')} subtitle={t('Optional · beats per minute')}>
+        <NumberField nullable decimal={false} value={S.hrProfile?.maxHr ?? null} aria-label={t('Manual max HR')} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), maxHr: v } })} />
+      </Row>
+      <SelectRow icon="target" iconTint="var(--orange)" title={t('Maximum HR method')} value={S.hrProfile?.maxHrMethod || 'tanaka'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), maxHrMethod: v } })} options={[{ value: 'tanaka', label: 'Tanaka' }, { value: 'fox', label: 'Fox' }, { value: 'gulati', label: 'Gulati' }]} />
+      <SelectRow icon="chartLine" iconTint="var(--orange)" title={t('Zone method')} value={S.hrProfile?.zoneMethod || 'percent-max'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), zoneMethod: v } })} options={[{ value: 'percent-max', label: t('Percent of max HR') }, { value: 'karvonen', label: 'Karvonen / heart-rate reserve' }]} />
+    </Section>
+
+    <Section title={t('Coach & privacy')} footer={t('AI is optional. Your history is never sent until you give explicit consent. Plans returned by Coach are drafts and require your confirmation.')}>
+      <Row icon="shield" iconTint="var(--indigo)" title={t('AI history consent')} subtitle={t('Allow Coach to use the selected training, nutrition, recovery and goal context')}>
+        <Switch checked={!!S.aiConsent} ariaLabel={t('AI history consent')} onChange={v => update(s => { s.aiConsent = v })} />
+      </Row>
+      <Row icon="personCircle" iconTint="var(--teal)" title={t('Coach mode')} subtitle={S.role === 'admin' ? t('Administrator') : S.role === 'trainer' ? t('Trainer account') : t('Athlete account')}>
+        <Segmented className="seg-inline" options={[{ value: 'athlete', label: t('Athlete') }, { value: 'trainer', label: t('Trainer') }]} value={S.coachMode === 'trainer' ? 'trainer' : 'athlete'} onChange={v => update(s => { s.coachMode = v })} />
+      </Row>
     </Section>
 
     <Section
@@ -219,6 +252,7 @@ export default function Settings() {
         accessory="chevron" onClick={() => importRef.current.click()} />
       <Row icon="upload" iconTint="var(--blue)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
       <Row icon="download" iconTint="var(--blue)" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
+      <Row icon="lock" iconTint="var(--indigo)" title={t('Export encrypted backup')} subtitle={t('Encrypted locally with a password; the password never reaches the server.')} accessory="chevron" onClick={doEncryptedExport} />
       {user && <Row icon="chartLine" iconTint="var(--teal)" title={t('Export training history (CSV)')} subtitle={t('One row per completed set for spreadsheets and analysis.')} accessory="chevron" onClick={doHistoryExport} />}
       <Row icon="trash" iconTint="var(--red)" title={t('Reset everything')} danger onClick={() => confirmSheet({ title: t('Reset everything?'), message: t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'), confirmText: t('Delete everything'), danger: true, onConfirm: () => { clearPhotos(); replaceState(JSON.parse(JSON.stringify(DEF)), true); nav('/home'); toast(t('All data reset')) } })} />
     </Section>
