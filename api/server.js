@@ -93,11 +93,14 @@ if (!fs.existsSync(secretFile)) fs.writeFileSync(secretFile, crypto.randomBytes(
 const SECRET = fs.readFileSync(secretFile, 'utf8').trim();
 
 const dbFile = path.join(DATA, 'db.json');
-let db = { users: [], creds: [], subs: [], invites: [], tokens: [] };
+let db = { users: [], creds: [], subs: [], invites: [], tokens: [], trainerInvites: [], trainerLinks: [], signedPlanPackages: [] };
 try { db = JSON.parse(fs.readFileSync(dbFile, 'utf8')); } catch {}
 db.subs = db.subs || [];
 db.invites = db.invites || [];
 db.tokens = db.tokens || [];
+db.trainerInvites = db.trainerInvites || [];
+db.trainerLinks = db.trainerLinks || [];
+db.signedPlanPackages = db.signedPlanPackages || [];
 const isAdmin = user => !!user && (user.admin === true || ADMIN_UIDS.includes(user.id));
 function saveDb() { atomicWrite(dbFile, JSON.stringify(db, null, 2)); }
 function atomicWrite(file, content) {
@@ -595,7 +598,7 @@ function passwordMatches(password, user) {
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 function publicUser(user) {
-  return { id: user.id, name: user.name, username: user.username || null, admin: isAdmin(user) };
+  return { id: user.id, name: user.name, username: user.username || null, admin: isAdmin(user), role: isAdmin(user) ? 'admin' : (user.role === 'trainer' ? 'trainer' : 'athlete') };
 }
 
 /* ---------- challenge store (in-memory, 5 min TTL) ---------- */
@@ -649,6 +652,50 @@ function livePresence(uid) {
 }
 setInterval(() => { for (const [k, v] of presence) if (Date.now() - v.updatedAt > PRESENCE_TTL) presence.delete(k); }, 30000).unref();
 
+/* ---------- bounded trainer and MCP contracts ---------- */
+const isTrainer = user => !!user && (isAdmin(user) || user.role === 'trainer');
+const roleName = user => isAdmin(user) ? 'admin' : user?.role === 'trainer' ? 'trainer' : 'athlete';
+const linked = (trainerId, athleteId) => db.trainerLinks.some(link => link.trainerId === trainerId && link.athleteId === athleteId);
+function trainerSummary(user) {
+  const state = readState(user.id) || {};
+  const workouts = Array.isArray(state.workouts) ? state.workouts : [];
+  return {
+    id: user.id, name: user.name, role: roleName(user), unit: state.unit || 'kg',
+    workouts: workouts.length, lastWorkout: workouts.at(-1)?.d || null,
+    recentWorkouts: workouts.slice(-12).map(workout => ({ id: workout.id, date: workout.d, name: workout.name, volume: workout.vol || 0, phaseId: workout.phaseId || null, phaseName: workout.phaseName || null })),
+    recovery: { checkins: (state.recoveryCheckins || []).slice(-30), latestHealth: (state.healthMetrics || []).at(-1) || null },
+    progress: { bodyweight: (state.bodyweight || []).slice(-30), planCycles: (state.planCycles || []).map(cycle => ({ id: cycle.id, name: cycle.name, goal: cycle.goal, startDate: cycle.startDate })) }
+  };
+}
+function signPlanPackagePayload(payload) {
+  return sign(JSON.stringify(payload)).split('.').at(-1);
+}
+function validSignedPlanPayload(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
+  if (JSON.stringify(payload).length > 300000) return false;
+  if (payload.schema && payload.schema !== 'liftnex-plan-draft-v1') return false;
+  if (payload.routines && (!Array.isArray(payload.routines) || payload.routines.length > 50)) return false;
+  return true;
+}
+function mcpError(res, id, code, message) { return json(res, code === -32601 ? 200 : 400, { jsonrpc: '2.0', id: id ?? null, error: { code, message } }); }
+async function handleMcp(req, res) {
+  const user = readApiToken(req);
+  if (!user) return json(res, 401, { error: 'read-only token required' });
+  const body = await readBody(req);
+  if (body.jsonrpc !== '2.0' || typeof body.method !== 'string') return mcpError(res, body.id, -32600, 'invalid JSON-RPC request');
+  const state = readState(user.id) || {};
+  const workouts = Array.isArray(state.workouts) ? state.workouts : [];
+  const result = {
+    get_profile: () => ({ id: user.id, name: user.name, role: roleName(user), unit: state.unit || 'kg', goals: { targetWeight: state.targetW ?? null, steps: state.stepsGoal ?? null }, aiConsent: !!state.aiConsent }),
+    get_training_summary: () => ({ workouts: workouts.length, recent: workouts.slice(-30).map(workout => ({ date: workout.d, name: workout.name, volume: workout.vol || 0, phaseId: workout.phaseId || null, phaseName: workout.phaseName || null })), totalVolume: workouts.reduce((sum, workout) => sum + (Number(workout.vol) || 0), 0) }),
+    get_nutrition_summary: () => ({ entries: (state.nutritionEntries || []).length, days: new Set((state.nutritionEntries || []).map(entry => entry.date).filter(Boolean)).size, goal: state.nutritionGoal || null, waterEntries: (state.waterEntries || []).length }),
+    get_recovery: () => ({ checkins: (state.recoveryCheckins || []).slice(-30), healthMetrics: (state.healthMetrics || []).slice(-30) }),
+    get_progress: () => ({ bodyweight: (state.bodyweight || []).slice(-60), cycles: (state.planCycles || []).map(cycle => ({ id: cycle.id, name: cycle.name, goal: cycle.goal, startDate: cycle.startDate, phases: cycle.phases || [] })), workoutsByPhase: workouts.reduce((groups, workout) => { const key = workout.phaseId || 'unassigned'; groups[key] = (groups[key] || 0) + 1; return groups; }, {}) })
+  };
+  if (!Object.prototype.hasOwnProperty.call(result, body.method)) return mcpError(res, body.id, -32601, 'method not found');
+  try { return json(res, 200, { jsonrpc: '2.0', id: body.id ?? null, result: result[body.method]() }); } catch { return mcpError(res, body.id, -32603, 'internal error'); }
+}
+
 /* ---------- routes ---------- */
 const routes = {
   'GET /api/health': async (req, res) => json(res, 200, { ok: true, users: db.users.length }),
@@ -674,7 +721,7 @@ const routes = {
       if (!invite) return json(res, 403, { error: 'a valid invite code is required' });
     }
     const user = {
-      id: crypto.randomBytes(12).toString('base64url'), name, username,
+      id: crypto.randomBytes(12).toString('base64url'), name, username, role: 'athlete',
       ...passwordRecord(password), created: new Date().toISOString()
     };
     if (invite) { user.invitedBy = invite.code; invite.usedBy = user.id; invite.usedAt = user.created; }
@@ -695,7 +742,7 @@ const routes = {
   'GET /api/me': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
-    json(res, 200, { user: { id: user.id, name: user.name, admin: isAdmin(user) } });
+    json(res, 200, { user: publicUser(user) });
   },
 
   'POST /api/register/options': async (req, res) => {
@@ -1004,6 +1051,82 @@ const routes = {
     json(res, 200, { ok: true });
   },
 
+  'POST /api/mcp': async (req, res) => handleMcp(req, res),
+
+  'POST /api/admin/user/role': async (req, res) => {
+    const admin = requireAdmin(req, res); if (!admin) return;
+    const body = await readBody(req);
+    const role = ['athlete', 'trainer', 'admin'].includes(body.role) ? body.role : null;
+    if (!role) return json(res, 400, { error: 'role must be athlete, trainer or admin' });
+    const user = db.users.find(item => item.id === body.id);
+    if (!user) return json(res, 404, { error: 'no such user' });
+    if (user.id === admin.id && role !== 'admin') return json(res, 400, { error: 'cannot remove your own admin role' });
+    user.role = role; if (role === 'admin') user.admin = true; else if (!ADMIN_UIDS.includes(user.id)) user.admin = false;
+    saveDb(); json(res, 200, { ok: true, user: publicUser(user) });
+  },
+
+  'POST /api/trainer/invites': async (req, res) => {
+    const trainer = readSession(req);
+    if (!trainer) return json(res, 401, { error: 'not signed in' });
+    if (!isTrainer(trainer)) return json(res, 403, { error: 'trainer role required' });
+    let code; do { code = crypto.randomBytes(8).toString('hex').toUpperCase(); } while (db.trainerInvites.some(item => item.code === code));
+    const invite = { id: crypto.randomBytes(9).toString('base64url'), code, trainerId: trainer.id, created: new Date().toISOString(), expiresAt: new Date(Date.now() + 14 * 86400000).toISOString() };
+    db.trainerInvites.push(invite); saveDb(); json(res, 200, { invite: { code: invite.code, expiresAt: invite.expiresAt } });
+  },
+
+  'POST /api/trainer/accept': async (req, res) => {
+    const athlete = readSession(req);
+    if (!athlete) return json(res, 401, { error: 'not signed in' });
+    if (isTrainer(athlete)) return json(res, 400, { error: 'only an athlete can accept a trainer invite' });
+    const body = await readBody(req); const code = String(body.code || '').trim().toUpperCase();
+    const invite = db.trainerInvites.find(item => item.code === code && !item.usedBy && item.expiresAt > new Date().toISOString());
+    if (!invite) return json(res, 404, { error: 'invite is invalid or expired' });
+    if (linked(invite.trainerId, athlete.id)) return json(res, 409, { error: 'athlete is already linked' });
+    const link = { id: crypto.randomBytes(9).toString('base64url'), trainerId: invite.trainerId, athleteId: athlete.id, created: new Date().toISOString() };
+    db.trainerLinks.push(link); invite.usedBy = athlete.id; invite.usedAt = link.created; saveDb();
+    json(res, 200, { ok: true, link: { trainerId: link.trainerId, athleteId: link.athleteId, created: link.created } });
+  },
+
+  'GET /api/trainer/clients': async (req, res) => {
+    const trainer = readSession(req);
+    if (!trainer) return json(res, 401, { error: 'not signed in' });
+    if (!isTrainer(trainer)) return json(res, 403, { error: 'trainer role required' });
+    const ids = isAdmin(trainer) ? db.users.filter(user => user.id !== trainer.id).map(user => user.id) : db.trainerLinks.filter(link => link.trainerId === trainer.id).map(link => link.athleteId);
+    const clients = ids.map(id => db.users.find(user => user.id === id)).filter(Boolean).map(trainerSummary);
+    json(res, 200, { clients });
+  },
+
+  'GET /api/trainer/client': async (req, res) => {
+    const trainer = readSession(req);
+    if (!trainer) return json(res, 401, { error: 'not signed in' });
+    if (!isTrainer(trainer)) return json(res, 403, { error: 'trainer role required' });
+    const athleteId = new URL(req.url, 'http://x').searchParams.get('id');
+    if (!isAdmin(trainer) && !linked(trainer.id, athleteId)) return json(res, 403, { error: 'athlete is not linked to this trainer' });
+    const athlete = db.users.find(user => user.id === athleteId);
+    if (!athlete) return json(res, 404, { error: 'no such athlete' });
+    json(res, 200, { client: trainerSummary(athlete), readOnly: true });
+  },
+
+  'POST /api/trainer/packages': async (req, res) => {
+    const trainer = readSession(req);
+    if (!trainer) return json(res, 401, { error: 'not signed in' });
+    if (!isTrainer(trainer)) return json(res, 403, { error: 'trainer role required' });
+    const body = await readBody(req); const athleteId = String(body.athleteId || '');
+    if (!isAdmin(trainer) && !linked(trainer.id, athleteId)) return json(res, 403, { error: 'athlete is not linked to this trainer' });
+    if (!db.users.some(user => user.id === athleteId) || !validSignedPlanPayload(body.payload)) return json(res, 400, { error: 'invalid plan package' });
+    const packageValue = { id: crypto.randomBytes(9).toString('base64url'), trainerId: trainer.id, athleteId, payload: body.payload, signature: signPlanPackagePayload(body.payload), created: new Date().toISOString() };
+    db.signedPlanPackages.push(packageValue); saveDb(); json(res, 200, { package: { id: packageValue.id, athleteId, signature: packageValue.signature, created: packageValue.created, payload: packageValue.payload } });
+  },
+
+  'GET /api/trainer/packages': async (req, res) => {
+    const trainer = readSession(req);
+    if (!trainer) return json(res, 401, { error: 'not signed in' });
+    if (!isTrainer(trainer)) return json(res, 403, { error: 'trainer role required' });
+    const athleteId = new URL(req.url, 'http://x').searchParams.get('athleteId');
+    const packages = db.signedPlanPackages.filter(item => (isAdmin(trainer) || item.trainerId === trainer.id) && (!athleteId || item.athleteId === athleteId)).slice(-100);
+    json(res, 200, { packages });
+  },
+
   /* ---------- admin dashboard ---------- */
   // One row per user, cheap enough for a personal instance (reads each state file once).
   'GET /api/admin/users': async (req, res) => {
@@ -1014,7 +1137,7 @@ const routes = {
       const last = workouts[workouts.length - 1];
       return {
         id: u.id, name: u.name, created: u.created || null,
-        disabled: !!u.disabled, admin: isAdmin(u), invitedBy: u.invitedBy || null,
+        disabled: !!u.disabled, admin: isAdmin(u), role: roleName(u), invitedBy: u.invitedBy || null,
         workouts: workouts.length,
         lastWorkout: last ? last.d : null,
         lastSync: S._ts || null,
@@ -1033,7 +1156,7 @@ const routes = {
     if (!u) return json(res, 404, { error: 'no such user' });
     const S = readState(u.id) || {};
     json(res, 200, {
-      user: { id: u.id, name: u.name, created: u.created || null, disabled: !!u.disabled, admin: isAdmin(u), invitedBy: u.invitedBy || null },
+      user: { id: u.id, name: u.name, created: u.created || null, disabled: !!u.disabled, admin: isAdmin(u), role: roleName(u), invitedBy: u.invitedBy || null },
       unit: S.unit || 'kg',
       lastSync: S._ts || null,
       routines: (S.routines || []).map(r => ({ id: r.id, name: r.name, emoji: r.emoji, count: (r.ex || []).length })),

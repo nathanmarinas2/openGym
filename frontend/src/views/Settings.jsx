@@ -17,6 +17,27 @@ import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, NumberField } from '../components/ui.jsx'
 import AccountForm from '../components/AccountForm.jsx'
 
+function TrainerArea({ user, S, update, toast }) {
+  const [clients, setClients] = useState(null)
+  const trainer = user?.admin || user?.role === 'trainer'
+  const loadClients = () => api('/api/trainer/clients').then(result => setClients(result.clients || [])).catch(() => setClients([]))
+  useEffect(() => { if (trainer) loadClients() }, [trainer])
+  if (!user) return null
+  const createInvite = () => api('/api/trainer/invites', { method: 'POST', body: '{}' }).then(({ invite }) => { navigator.clipboard?.writeText(invite.code).catch(() => {}); toast(t('Trainer invite created: {0}', invite.code)) }).catch(error => toast(error.message || t('Could not create trainer invite')))
+  const acceptInvite = () => {
+    const code = window.prompt(t('Enter the trainer invitation code.'))
+    if (!code) return
+    api('/api/trainer/accept', { method: 'POST', body: JSON.stringify({ code }) }).then(({ link }) => { update(s => { s.trainerLinks = [...(s.trainerLinks || []).filter(item => item.trainerId !== link.trainerId), link] }); toast(t('Trainer linked')) }).catch(error => toast(error.message || t('Could not accept trainer invite')))
+  }
+  return <Section title={t('Trainer mode')} footer={t('Read-only client summaries and signed plan packages only. No remote editing, chat or comments.')}>
+    {trainer ? <>
+      <Row icon="personCircle" iconTint="var(--teal)" title={t('Professional trainer account')} subtitle={t('{0} linked clients', clients == null ? '—' : clients.length)} />
+      <Row icon="key" iconTint="var(--indigo)" title={t('Create athlete invitation')} subtitle={t('Single-use code, valid for 14 days')} accessory="chevron" onClick={createInvite} />
+      {clients?.slice(0, 8).map(client => <Row key={client.id} icon="person" iconTint="var(--grey)" title={client.name} subtitle={t('{0} workouts · last {1}', client.workouts, client.lastWorkout || '—')} />)}
+    </> : <Row icon="link" iconTint="var(--teal)" title={t('Link a trainer')} subtitle={t('Accept an invitation to share a read-only training summary.')} accessory="chevron" onClick={acceptInvite} />}
+  </Section>
+}
+
 export default function Settings() {
   useLang()
   const nav = useNavigate()
@@ -157,10 +178,11 @@ export default function Settings() {
       <Row icon="shield" iconTint="var(--indigo)" title={t('AI history consent')} subtitle={t('Allow Coach to use the selected training, nutrition, recovery and goal context')}>
         <Switch checked={!!S.aiConsent} ariaLabel={t('AI history consent')} onChange={v => update(s => { s.aiConsent = v })} />
       </Row>
-      <Row icon="personCircle" iconTint="var(--teal)" title={t('Coach mode')} subtitle={S.role === 'admin' ? t('Administrator') : S.role === 'trainer' ? t('Trainer account') : t('Athlete account')}>
+      <Row icon="personCircle" iconTint="var(--teal)" title={t('Coach mode')} subtitle={(user?.role || S.role) === 'admin' ? t('Administrator') : (user?.role || S.role) === 'trainer' ? t('Trainer account') : t('Athlete account')}>
         <Segmented className="seg-inline" options={[{ value: 'athlete', label: t('Athlete') }, { value: 'trainer', label: t('Trainer') }]} value={S.coachMode === 'trainer' ? 'trainer' : 'athlete'} onChange={v => update(s => { s.coachMode = v })} />
       </Row>
     </Section>
+    <TrainerArea user={user} S={S} update={update} toast={toast} />
 
     <Section
       title={getLang() === 'es' ? 'Balance diario' : 'Daily balance'}
