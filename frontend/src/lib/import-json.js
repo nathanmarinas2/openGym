@@ -37,12 +37,14 @@ function normalizeRoutine(S, routine, warnings, routineIndex) {
     return cfg
   })
   if (items.length > MAX_EXERCISES) warnings.push(`Routine ${routineIndex + 1} exceeded the exercise limit; extra exercises were ignored.`)
-  return { id: uid(), name: clean(routine?.name || routine?.title || `Imported routine ${routineIndex + 1}`, 100), emoji: clean(routine?.emoji, 30), prog: clean(routine?.prog, 30) || undefined, ex }
+  return { id: uid(), sourceId: clean(routine?.id, 80) || undefined, name: clean(routine?.name || routine?.title || `Imported routine ${routineIndex + 1}`, 100), emoji: clean(routine?.emoji, 30), prog: clean(routine?.prog, 30) || undefined, ex }
 }
 
 export function normalizePlanImport(raw, S = {}) {
   const data = typeof raw === 'string' ? JSON.parse(raw) : raw
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('JSON must contain an object')
+  const sourceCustom = Array.isArray(data.customEx) ? data.customEx.filter(item => item && item.id).map(item => ({ ...item, n: item.n || item.name || item.exercise || 'Imported exercise' })) : []
+  const resolverState = { ...S, customEx: [...(S.customEx || []), ...sourceCustom] }
   const draft = data.schema === 'liftnex-plan-draft-v1'
     ? validatePlanDraft(data).value
     : { schema: 'liftnex-plan-draft-v1', title: data.title || data.name || 'Imported plan', rationale: data.rationale || '', routines: data.routines || data.plans || [], cycle: data.cycle || null, warnings: [], confidence: 'low' }
@@ -52,12 +54,13 @@ export function normalizePlanImport(raw, S = {}) {
   const warnings = [...(validation.value.warnings || [])]
   const customEx = []
   const routines = validation.value.routines.slice(0, MAX_ROUTINES).map((routine, index) => {
-    const next = normalizeRoutine(S, routine, warnings, index)
-    next.ex.forEach(item => { if (item.id.startsWith('custom-import-')) customEx.push({ id: item.id, n: item.name || 'Imported exercise', bp: item.bp || 'upper legs', eq: 'custom', custom: true }) })
+    const next = normalizeRoutine(resolverState, routine, warnings, index)
+    next.ex.forEach(item => { if (item.id.startsWith('custom-import-')) customEx.push({ id: item.id, n: item.name || item.exercise || item.exerciseName || 'Imported exercise', bp: item.bp || 'upper legs', eq: 'custom', custom: true }) })
     return next
   })
+  const importedCustom = sourceCustom.filter(item => routines.some(routine => routine.ex.some(exercise => exercise.id === item.id)))
   const cycles = validation.value.cycle ? [normalizeCycle({ ...validation.value.cycle, id: uid(), phases: validation.value.cycle.phases || [] })] : Array.isArray(data.planCycles) ? data.planCycles.slice(0, 20).map(normalizeCycle) : []
-  return { schema: 'liftnex-plan-import-v1', title: validation.value.title, routines, customEx, cycle: cycles[0] || null, planCycles: cycles, week: data.week || {}, warnings: [...new Set(warnings)].slice(0, 30), confidence: validation.value.confidence }
+  return { schema: 'liftnex-plan-import-v1', title: validation.value.title, routines, customEx: [...importedCustom, ...customEx], cycle: cycles[0] || null, planCycles: cycles, week: data.week || {}, warnings: [...new Set(warnings)].slice(0, 30), confidence: validation.value.confidence }
 }
 
 export function previewPlanImport(raw, S = {}) {
@@ -70,11 +73,11 @@ export function mergePlanImport(S, plan) {
   for (const exercise of plan.customEx || []) {
     const same = (S.customEx || []).find(item => item.n?.toLowerCase() === exercise.n?.toLowerCase() && item.bp === exercise.bp)
     if (same) customIds.set(exercise.id, same.id)
-    else { const id = uid(); customIds.set(exercise.id, id); S.customEx = [...(S.customEx || []), { ...exercise, id }] }
+    else { const id = uid(); customIds.set(exercise.id, id); S.customEx = [...(S.customEx || []), { ...exercise, n: exercise.n || exercise.name || 'Imported exercise', id }] }
   }
   const routineIds = new Map()
   for (const routine of plan.routines || []) {
-    const id = uid(); routineIds.set(routine.id, id)
+    const id = uid(); routineIds.set(routine.id, id); if (routine.sourceId) routineIds.set(routine.sourceId, id)
     S.routines.push({ ...routine, id, ex: (routine.ex || []).map(item => ({ ...item, id: customIds.get(item.id) || item.id })) })
   }
   const firstCycle = plan.planCycles?.[0] || plan.cycle

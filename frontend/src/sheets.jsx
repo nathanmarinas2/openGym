@@ -17,6 +17,7 @@ import BodyMap from './components/BodyMap.jsx'
 import { loadOfWorkouts } from './lib/muscles.js'
 import { parseImport, mergeImport } from './lib/import-csv.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-share.js'
+import { previewPlanImport, mergePlanImport } from './lib/import-json.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
 import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS } from './lib/progression.js'
 import { MOBILE, shareExport } from './lib/mobile.js'
@@ -810,7 +811,7 @@ function PlanTools({ close }) {
     const f = ev.target.files[0]; ev.target.value = ''; if (!f) return
     const rd = new FileReader()
     rd.onload = () => {
-      try { const bundle = parsePlan(rd.result); close(); planImportSheet(bundle) }
+      try { const plan = previewPlanImport(rd.result, st); close(); planJsonImportSheet(plan) }
       catch (e) { toast(t('Import failed: {0}', e.message)) }
     }
     rd.readAsText(f)
@@ -835,6 +836,22 @@ function PlanTools({ close }) {
     <h4 className="sec">{t('Got a plan from a friend?')}</h4>
     <Button variant="ghost" icon="folder" onClick={() => fileRef.current?.click()}>{t('Import a plan file')}</Button>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
+  </>
+}
+
+export const planJsonImportSheet = plan => ui().openSheet(close => <PlanJsonImport plan={plan} close={close} />)
+
+function PlanJsonImport({ plan, close }) {
+  const apply = () => {
+    update(s => mergePlanImport(s, plan))
+    close(); toast(t('Added {0} routines to your plan', plan.routineCount)); nav('/plan')
+  }
+  return <>
+    <h3>{plan.title ? t('Import “{0}”', plan.title) : t('Import this plan')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{t('{0} routines', plan.routineCount)} · {t('{0} exercises', plan.exerciseCount)} · {t('Existing routines will not be overwritten.')}</div>
+    {plan.warnings.length > 0 && <div className="notice warn" style={{ marginBottom: 12 }}><b>{t('Review before importing')}</b><ul style={{ margin: '7px 0 0 18px' }}>{plan.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></div>}
+    <Button variant="primary" icon="download" onClick={apply}>{t('Import and merge')}</Button>
+    <div className="dim small" style={{ marginTop: 8 }}>{t('New IDs are generated. Workouts and nutrition history are never changed.')}</div>
   </>
 }
 
