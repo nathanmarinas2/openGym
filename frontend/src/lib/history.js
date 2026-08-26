@@ -135,13 +135,15 @@ export function defaultConfig(id, mode) {
 export function exLine(cfg, unit) {
   const mode = modeOf(cfg)
   const n = cfg.sets || 1
+  const warmupCount = Math.max(0, Math.min(10, Math.round(cfg.warmupSets || (Array.isArray(cfg.warmup) ? cfg.warmup.length : 0))))
+  const warmupTail = warmupCount ? ' · ' + t('{0} warm-up', warmupCount) : ''
   // Added weight reads as added: "+10 kg" on a dip belt, "60 kg" on a barbell.
   const load = cfg.weight ? ' · ' + (isBw(cfg) ? '+' : '') + fmtNum(cfg.weight) + ' ' + unit : ''
-  if (mode === 'cardio') return `${n} × ${cfg.min || 20} min @ ${fmtNum(cfg.speed || 8)} km/h`
-  if (mode === 'time') return `${n} × ${fmtSec(cfg.sec || 45)}${load}`
+  if (mode === 'cardio') return `${n} × ${cfg.min || 20} min @ ${fmtNum(cfg.speed || 8)} km/h${warmupTail}`
+  if (mode === 'time') return `${n} × ${fmtSec(cfg.sec || 45)}${load}${warmupTail}`
   // This is the line with room for it, so the split is spelled out: "3 × 16 · 8/side".
   const split = isPerSide(cfg) ? ' · ' + t('{0}/side', fmtNum(sideReps(cfg.reps))) : ''
-  return `${n} × ${cfg.reps}${load}${split}`
+  return `${n} × ${cfg.reps}${load}${split}${warmupTail}`
 }
 
 // Drop superset ids that no longer have an adjacent partner (after unlink/reorder/remove).
@@ -165,7 +167,7 @@ export function bestWeightFor(S, exId) {
   let best = 0
   S.workouts.forEach(w => w.entries.forEach(e => {
     if (e.id === exId) {
-      e.sets.forEach(s => { if (s.done && s.w > best) best = s.w })
+      e.sets.forEach(s => { if (s.done && isWorkingSet(s) && s.w > best) best = s.w })
       if (e.topW && e.topW > best) best = e.topW
     }
   }))
@@ -199,6 +201,10 @@ export function buildSets(S, cfg) {
   const prevAt = i => (last ? (last.sets[i] || last.sets[last.sets.length - 1]) : null)
 
   if (mode === 'cardio') {
+    for (let i = 0; i < warmupCount; i++) {
+      const w = explicitWarmups[i] || {}
+      pushWarmup({ min: Math.max(1, Math.round(w.min || cfg.warmupMin || Math.min(cfg.min || 20, 10))), speed: Math.max(0, Number(w.speed ?? cfg.warmupSpeed ?? Math.min(cfg.speed || 8, 5)) || 0) })
+    }
     for (let i = 0; i < n; i++) {
       const prev = prevAt(i)
       sets.push({ min: prev ? prev.min : (cfg.min || 20), speed: prev ? prev.speed : (cfg.speed || 8), done: false })

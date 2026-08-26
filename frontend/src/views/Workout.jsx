@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
-import { effectiveRoutine, lastEntryFor, bestWeightFor, buildSets, setsDoneActive, supersetUnits, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
+import { effectiveRoutine, lastEntryFor, bestWeightFor, buildSets, setsDoneActive, supersetUnits, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort, setTypeOf, isWarmupSet } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { beep, vibrate } from '../lib/sound.js'
 import { t } from '../lib/i18n.js'
 import { api } from '../lib/api.js'
 import Media from '../components/Media.jsx'
-import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, topWeightSheet, finishWorkout, workoutCompleteSheet, confirmSheet } from '../sheets.jsx'
+import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, topWeightSheet, finishWorkout, workoutCompleteSheet, confirmSheet, recoveryCheckinSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField, Tappable } from '../components/ui.jsx'
 import { nextPrescription, applyPrescription } from '../lib/progression.js'
@@ -38,6 +38,8 @@ function StartChooser() {
         <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
         <span className="tag acc">{t('Start')}</span></Tappable>)}</div></>}
     <div style={{ height: 14 }} />
+    <Button variant="tinted" icon="heart" onClick={recoveryCheckinSheet}>{t('Recovery check-in')}</Button>
+    <div style={{ height: 8 }} />
     <Button icon="shuffle" onClick={() => startFlow(null)}>{t('Freestyle workout (pick as you go)')}</Button>
     {!S.routines.length && <><div style={{ height: 10 }} /><Button variant="primary" onClick={() => nav('/plan')}>{t('Build a plan first')}</Button></>}
   </div>
@@ -54,7 +56,7 @@ function Elapsed({ start }) {
 }
 
 /* ---------- one exercise block (reps: weight×reps · time: a held duration · cardio: duration+speed) ---------- */
-function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemoveSet, onStartTimed }) {
+function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveWarmup, onStartTimed }) {
   const S = useStore(s => s.S)
   const working = useUI(s => s.work)
   const entry = S.active.entries[entryIdx]
@@ -131,21 +133,29 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
     <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3 sizing as the rows, or the labels drift off their columns */}
       <div className={'sethead' + (col3 ? ' eff3' : '')}><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{col3 && <span className="eff-sp">{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
-      {entry.sets.map((s, i) => <div key={i} className={'setrow' + (s.done ? ' done' : '') + (col3 ? ' eff3' : '')}>
-        <div className="n">{i + 1}</div>
-        {cell(s, i, col1, 'w')}
-        {col2 && cell(s, i, col2, 'r')}
-        {col3 && cell(s, i, col3, 'eff')}
-        {/* A timed set is started, not typed: the timer counts the hold down and checks the
-            set off itself. The checkbox stays for anyone who timed it on their own watch. */}
-        {timed && <button className="setgo" aria-label={t('Start set')} disabled={s.done || !!working}
-          onClick={() => onStartTimed(i)}><Icon name="play" /></button>}
-        <Check checked={s.done} onChange={() => onToggle(i)} />
-      </div>)}
+      {entry.sets.map((s, i) => {
+        const type = setTypeOf(s)
+        const number = entry.sets.slice(0, i + 1).filter(item => setTypeOf(item) === type).length
+        const previousType = i > 0 ? setTypeOf(entry.sets[i - 1]) : null
+        return <div key={i}>
+          {(i === 0 || type !== previousType) && <div className={'set-group-label ' + (isWarmupSet(s) ? 'warmup' : 'working')}><span>{isWarmupSet(s) ? t('Warm-up') : t('Working sets')}</span><span className="dim">{isWarmupSet(s) ? t('preparation only') : t('counts for progress')}</span></div>}
+          <div className={'setrow' + (s.done ? ' done' : '') + (col3 ? ' eff3' : '')}>
+            <div className="n">{number}</div>
+            {cell(s, i, col1, 'w')}
+            {col2 && cell(s, i, col2, 'r')}
+            {col3 && cell(s, i, col3, 'eff')}
+            {timed && <button className="setgo" aria-label={t('Start set')} disabled={s.done || !!working}
+              onClick={() => onStartTimed(i)}><Icon name="play" /></button>}
+            <Check checked={s.done} onChange={() => onToggle(i)} />
+          </div>
+        </div>
+      })}
       <div style={{ height: 8 }} />
       <div className="row">
-        <Button size="sm" icon="minus" disabled={entry.sets.length <= 1} onClick={onRemoveSet}>{t('Remove set')}</Button>
+        <Button size="sm" icon="minus" disabled={entry.sets.filter(s => !isWarmupSet(s)).length <= 1} onClick={onRemoveSet}>{t('Remove set')}</Button>
         <Button size="sm" icon="plus" onClick={onAddSet}>{t('Add set')}</Button>
+        <Button size="sm" variant="tinted" icon="flame" onClick={onAddWarmup}>{t('Add warm-up')}</Button>
+        {entry.sets.some(isWarmupSet) && <Button size="sm" icon="trash" onClick={onRemoveWarmup}>{t('Remove warm-up')}</Button>}
       </div>
     </div>
   </>
@@ -175,13 +185,22 @@ function ActiveWorkout() {
   })
   const modeAt = idx => modeOf({ ...(A.entries[idx].target || {}), id: A.entries[idx].id })
   const addSet = idx => mutEntry(idx, e => {
-    const l = e.sets[e.sets.length - 1]
+    const l = [...e.sets].reverse().find(s => !isWarmupSet(s)) || e.sets[e.sets.length - 1]
     const m = modeOf({ ...(e.target || {}), id: e.id })
     if (m === 'cardio') e.sets.push({ min: l ? l.min : (e.target.min || 20), speed: l ? l.speed : (e.target.speed || 8), done: false })
     else if (m === 'time') e.sets.push({ sec: l ? l.sec : (e.target.sec || 45), w: l ? (l.w || 0) : (e.target.weight || 0), done: false })
     else e.sets.push({ w: l ? l.w : 0, r: l ? l.r : e.target.reps, done: false })
   })
-  const removeSet = idx => mutEntry(idx, e => { if (e.sets.length > 1) e.sets.pop() })
+  const addWarmup = idx => mutEntry(idx, e => {
+    const existing = e.sets.find(isWarmupSet)
+    const lastWorking = [...e.sets].reverse().find(s => !isWarmupSet(s))
+    const m = modeOf({ ...(e.target || {}), id: e.id })
+    if (m === 'cardio') e.sets.unshift({ min: existing?.min || e.target.min || 10, speed: existing?.speed || e.target.speed || 5, setType: 'warmup', done: false })
+    else if (m === 'time') e.sets.unshift({ sec: existing?.sec || Math.min(e.target.sec || 45, 30), w: existing?.w || 0, setType: 'warmup', done: false })
+    else e.sets.unshift({ w: existing?.w || Math.round((lastWorking?.w || e.target.weight || 0) * .5 * 10) / 10, r: existing?.r || Math.min(e.target.reps || 8, 8), setType: 'warmup', done: false })
+  })
+  const removeWarmup = idx => mutEntry(idx, e => { const i = [...e.sets].map((s, index) => ({ s, index })).reverse().find(item => isWarmupSet(item.s))?.index; if (i != null) e.sets.splice(i, 1) })
+  const removeSet = idx => mutEntry(idx, e => { const i = [...e.sets].map((s, index) => ({ s, index })).reverse().find(item => !isWarmupSet(item.s))?.index; if (i != null && e.sets.filter(s => !isWarmupSet(s)).length > 1) e.sets.splice(i, 1) })
 
   // A timed set is held, not typed. The work timer records what was actually held — an early
   // finish logs 0:38 of a 0:45 target rather than crediting the full prescription — and then
@@ -270,11 +289,11 @@ function ActiveWorkout() {
           {unit.map((idx, k) => <div key={idx} className="ss-ex">
             {k > 0 && <div className="ss-amp">+</div>}
             <ExerciseBlock entryIdx={idx} compact
-              onToggle={i => toggle(idx, i)} onField={(i, f, v) => setField(idx, i, f, v)} onAddSet={() => addSet(idx)} onRemoveSet={() => removeSet(idx)} onStartTimed={i => startTimed(idx, i)} />
+              onToggle={i => toggle(idx, i)} onField={(i, f, v) => setField(idx, i, f, v)} onAddSet={() => addSet(idx)} onRemoveSet={() => removeSet(idx)} onAddWarmup={() => addWarmup(idx)} onRemoveWarmup={() => removeWarmup(idx)} onStartTimed={i => startTimed(idx, i)} />
           </div>)}
         </div>
       ) : (
-        <ExerciseBlock entryIdx={cur} onToggle={i => toggle(cur, i)} onField={(i, f, v) => setField(cur, i, f, v)} onAddSet={() => addSet(cur)} onRemoveSet={() => removeSet(cur)} onStartTimed={i => startTimed(cur, i)} />
+        <ExerciseBlock entryIdx={cur} onToggle={i => toggle(cur, i)} onField={(i, f, v) => setField(cur, i, f, v)} onAddSet={() => addSet(cur)} onRemoveSet={() => removeSet(cur)} onAddWarmup={() => addWarmup(cur)} onRemoveWarmup={() => removeWarmup(cur)} onStartTimed={i => startTimed(cur, i)} />
       )}
     </> : <div className="empty"><div className="ico"><Icon name="shuffle" /></div>{t('Freestyle workout — add your first exercise.')}</div>}
 

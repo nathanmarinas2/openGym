@@ -3,7 +3,7 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf } from './lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, uid, exCount, DAYN, MONTHS_LONG, ACCENTS } from './lib/format.js'
-import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolume, setsDone, setsDoneActive, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, isBw, isPerSide, sideReps } from './lib/history.js'
+import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolume, warmupVolume, workingSetsDone, warmupSetsDone, setsDoneActive, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, isBw, isPerSide, sideReps, isWarmupSet, isWorkingSet } from './lib/history.js'
 import { beep, vibrate } from './lib/sound.js'
 import { t, instrFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
@@ -24,6 +24,9 @@ import { copyPlanLink } from './lib/plan-share.js'
 import { createApiToken, listApiTokens, revokeApiToken } from './lib/api.js'
 import { equipmentCatalog, activeProfile, profileWithItems, newProfile, availableExercise, substitutionsFor } from './lib/equipment.js'
 import { MEASURE_FIELDS, createMeasurement } from './lib/body.js'
+import { currentCyclePhase, applyPhaseAdjustment } from './lib/periodization.js'
+import { normalizeRecoveryCheckin } from './lib/recovery.js'
+import { MUSCLES, MUSCLE_NAME } from './lib/muscles.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -133,6 +136,39 @@ export function bwSheet(opts = {}) {
   const h = ui().openSheet(close => <BwSheet {...opts} close={close} />, { locked: !!opts.required })
   return h
 }
+
+/* ============================ daily recovery check-in ============================ */
+function RecoveryCheckin({ close }) {
+  const st = useStore(s => s.S)
+  const today = todayISO()
+  const current = (st.recoveryCheckins || []).find(item => item.date === today) || {}
+  const [energy, setEnergy] = useState(current.energy || 3)
+  const [sleepHours, setSleepHours] = useState(current.sleepHours ?? '')
+  const [muscle, setMuscle] = useState(current.soreness?.[0]?.muscle || '')
+  const [soreness, setSoreness] = useState(current.soreness?.[0]?.level || 1)
+  const [painUntil, setPainUntil] = useState(current.painfulMuscles?.[0]?.until || '')
+  const [notes, setNotes] = useState(current.notes || '')
+  const save = () => {
+    const item = normalizeRecoveryCheckin({ id: current.id || uid(), date: today, energy, sleepHours: sleepHours === '' ? undefined : sleepHours,
+      soreness: muscle ? [{ muscle, level: soreness }] : [], painfulMuscles: muscle && painUntil ? [{ muscle, until: painUntil }] : [], notes })
+    update(s => { s.recoveryCheckins = [...(s.recoveryCheckins || []).filter(entry => entry.date !== today), item].sort((a, b) => a.date.localeCompare(b.date)) })
+    close(); toast(t('Recovery check-in saved'))
+  }
+  return <>
+    <h3>{t('Recovery check-in')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{t('Optional signals for today. This is an orientation, not a medical diagnosis.')}</div>
+    <div className="small dim">{t('Energy · 1 low, 5 high')}</div>
+    <div className="chips" style={{ margin: '7px 0 14px' }}>{[1, 2, 3, 4, 5].map(value => <button key={value} className={'chip' + (energy === value ? ' on' : '')} onClick={() => setEnergy(value)}>{value}</button>)}</div>
+    <div className="row cfgrow" style={{ marginBottom: 14 }}><Stepper label={t('Sleep hours')} value={sleepHours || 0} step={0.5} onChange={setSleepHours} /></div>
+    <label className="small dim" htmlFor="recovery-muscle">{t('Most sore muscle (optional)')}</label>
+    <div className="chips" style={{ margin: '7px 0 10px' }}>{MUSCLES.map(value => <button key={value} className={'chip' + (muscle === value ? ' on' : '')} onClick={() => setMuscle(value)}>{t(MUSCLE_NAME[value])}</button>)}</div>
+    {muscle && <div className="row cfgrow" style={{ marginBottom: 10 }}><Stepper label={t('Soreness 1–5')} value={soreness} step={1} decimal={false} onChange={v => setSoreness(Math.min(5, Math.max(1, v)))} /></div>}
+    {muscle && <label className="field-label"><span>{t('Painful until (optional)')}</span><input className="field" type="date" value={painUntil} onChange={event => setPainUntil(event.target.value)} /></label>}
+    <TextField value={notes} maxLength={500} placeholder={t('Notes (optional)')} aria-label={t('Notes (optional)')} onChange={event => setNotes(event.target.value)} />
+    <div style={{ height: 14 }} /><Button variant="primary" icon="check" onClick={save}>{t('Save check-in')}</Button>
+  </>
+}
+export const recoveryCheckinSheet = () => ui().openSheet(close => <RecoveryCheckin close={close} />)
 
 /* ============================ import from another app ============================ */
 // Shows what a parsed export would actually do before anything is written. An import is
@@ -628,15 +664,17 @@ function ExConfig({ ex, existing, onSave, onDelete, close, routine }) {
     // reps, and a timed hold has none. Switching an exercise to Time therefore drops it
     // rather than carrying a flag nothing downstream can read.
     const flags = {}
+    const warmupCount = Math.max(0, Math.min(10, Math.round(Number(c.warmupSets) || 0)))
+    const warmup = warmupCount ? { warmupSets: warmupCount, warmupReps: Math.max(1, Math.round(Number(c.warmupReps) || Math.min(c.reps || 8, 8))), warmupPercent: Math.max(0, Math.min(100, Number(c.warmupPercent) || 50)) } : {}
     if (bw !== isBodyweightEq(ex.id)) flags.bodyweight = bw
-    if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), speed: Math.max(0, c.speed || 8) })
-    else if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...prog })
+    if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), speed: Math.max(0, c.speed || 8), ...warmup })
+    else if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...prog, ...warmup })
     else {
       // A unilateral target is stored even: the split has to divide, and a typed 15 would
       // otherwise plan seven reps on one side and eight on the other, every session.
       const typed = Math.max(1, Math.round(c.reps) || 10)
       const reps = perSide ? Math.ceil(typed / 2) * 2 : typed
-      const out = { sets, mode: 'reps', reps, weight: Math.max(0, c.weight || 0), ...flags, ...(perSide ? { side: true } : {}), ...prog }
+      const out = { sets, mode: 'reps', reps, weight: Math.max(0, c.weight || 0), ...flags, ...(perSide ? { side: true } : {}), ...prog, ...warmup }
       if (policyFor({ ...c, id: ex.id }, routine, 'reps') === 'double') out.repsMin = Math.min(reps, Math.max(1, Math.round(c.repsMin) || Math.max(1, reps - 2)))
       // A ceiling below the working reps would tell you to add a set on day one.
       if (bw && !(out.weight > 0) && c.repsMax > 0) out.repsMax = Math.max(reps, Math.round(c.repsMax))
@@ -671,6 +709,14 @@ function ExConfig({ ex, existing, onSave, onDelete, close, routine }) {
             until there is a belt to describe — see the added-weight row below. */}
         {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
       </>}
+    </div>
+    <div className="card" style={{ marginBottom: 14, padding: 14 }}>
+      <div className="row between"><div><h4 style={{ margin: 0 }}>{t('Warm-up sets')}</h4><div className="small dim">{t('Optional preparation sets stay separate from strength metrics.')}</div></div><Icon name="flame" style={{ color: 'var(--orange)' }} /></div>
+      <div className="row cfgrow" style={{ marginTop: 12 }}>
+        <Stepper label={t('Sets')} value={c.warmupSets || 0} step={1} decimal={false} onChange={v => setC(x => ({ ...x, warmupSets: Math.min(10, v) }))} />
+        <Stepper label={mode === 'time' ? t('Seconds') : t('Reps')} value={c.warmupReps || Math.min(c.reps || 8, 8)} step={1} decimal={false} onChange={v => setC(x => ({ ...x, warmupReps: v }))} />
+        <Stepper label={t('Load %')} value={c.warmupPercent || 50} step={5} decimal={false} onChange={v => setC(x => ({ ...x, warmupPercent: Math.min(100, v) }))} />
+      </div>
     </div>
     {mode === 'time' && !bw && <div className="small dim" style={{ marginBottom: 18 }}>
       {t('A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.')}
@@ -938,7 +984,7 @@ export function WorkoutRow({ w, onClick }) {
   return <Tappable className="item" onClick={onClick}>
     <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
     <div className="grow"><div className="tt">{w.name}</div>
-      <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), t('{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
+      <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), t('{0} working sets', workingSetsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
     {w.prs && w.prs.length > 0 && <span className="pr"><Icon name="trophy" />{w.prs.length} PR</span>}
     <Icon name="chevronRight" className="chev" />
   </Tappable>
@@ -951,16 +997,18 @@ export function startFlow(routineId) {
 export function beginWorkout(routineId, bw) {
   const st = S()
   const r = routineId ? st.routines.find(x => x.id === routineId) : null
+  const phase = currentCyclePhase(st, todayISO())
   // The prescription is applied as the session is built, so you walk up to the bar with the
   // right weight already on the screen instead of being told about it afterwards. `plan` is
   // kept on the entry purely so the workout can explain the number it chose.
   const entries = (r ? r.ex : []).map(cfg => {
-    const plan = nextPrescription(st, cfg, r)
-    return { id: cfg.id, sg: cfg.sg, target: { ...cfg }, plan, sets: applyPrescription(buildSets(st, cfg), plan) }
+    const sessionCfg = applyPhaseAdjustment(cfg, phase)
+    const plan = nextPrescription(st, sessionCfg, r)
+    return { id: cfg.id, sg: cfg.sg, target: { ...sessionCfg }, plan, sets: applyPrescription(buildSets(st, sessionCfg), plan) }
   })
   useUI.getState().stopRest('new_workout')
   update(s => {
-    s.active = { id: uid(), d: todayISO(), start: Date.now(), routineId, name: r ? r.name : t('Freestyle'), bw: bw || null, cur: 0, entries, restLog: [] }
+    s.active = { id: uid(), d: todayISO(), start: Date.now(), routineId, name: r ? r.name : t('Freestyle'), bw: bw || null, cur: 0, entries, restLog: [], cycleId: phase?.cycle?.id || null, phaseId: phase?.phase?.id || null, phaseName: phase?.phase?.name || null }
   })
   nav('/workout')
 }
@@ -974,7 +1022,7 @@ function TopWeight({ entryIdx, close }) {
   // to sit after every one of them.
   const entry = A ? A.entries[entryIdx] : null
   const ex = entry && EXIDX[entry.id]
-  const maxSet = entry ? Math.max(0, ...entry.sets.filter(s => s.done).map(s => s.w || 0)) : 0
+  const maxSet = entry ? Math.max(0, ...entry.sets.filter(s => s.done && isWorkingSet(s)).map(s => s.w || 0)) : 0
   const prevBest = entry ? Math.max((st.exWeights[entry.id] || {}).w || 0, bestWeightFor(st, entry.id)) : 0
   const [v, setV] = useState(entry ? (Math.max(maxSet, prevBest) || entry.target.weight || 0) : 0)
   useEffect(() => { if (!entry) close() }, [!entry])
@@ -1037,9 +1085,10 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     <div className="tiles" style={{ textAlign: 'left' }}>
       <div className="tile"><div className="l">{t('Duration')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtDur(w.end - w.start)}</div></div>
       <div className="tile"><div className="l">{t('Volume')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtVol(w.vol, st.unit)}</div></div>
-      <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{setsDone(w)}</div></div>
+      <div className="tile"><div className="l">{t('Working sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{workingSetsDone(w)}</div></div>
       <div className="tile"><div className="l">{t('PRs')}</div><div className="v" style={{ fontSize: 20 }}>{prs.length || '—'}</div></div>
     </div>
+    {warmupSetsDone(w) > 0 && <div className="small muted" style={{ margin: '10px 0 14px' }}>{t('Warm-up')}: {warmupSetsDone(w)} {t('sets')}{warmupVolume(w) > 0 ? ' · ' + fmtVol(warmupVolume(w), st.unit) : ''} · {t('kept separate from progress')}</div>}
     {rests.length > 0 && <div className="small muted" style={{ margin: '10px 0 14px' }}>{t('Rest tracked')}: {rests.length} · {t('Average rest')}: {Math.floor(averageRest / 60)}:{String(averageRest % 60).padStart(2, '0')}</div>}
     {(prs.length > 0 || e1prs.length > 0) && <div style={{ textAlign: 'left', marginBottom: 12 }}>
       {prs.map(id => <div key={id} className="small accent capitalize row" style={{ gap: 5 }}><Icon name="trophy" style={{ fontSize: 13 }} />{t('New PR:')} {(EXIDX[id] || {}).n || id}</div>)}
@@ -1069,7 +1118,7 @@ function doFinishWorkout() {
   const prs = []
   const e1prs = []
   A.entries.forEach(e => {
-    const mx = Math.max(0, ...e.sets.filter(s => s.done).map(s => s.w))
+    const mx = Math.max(0, ...e.sets.filter(s => s.done && isWorkingSet(s)).map(s => s.w))
     if (mx > 0 && mx > bestWeightFor(st, e.id)) prs.push(e.id)
     // A heavier estimate without a heavier top set is its own kind of progress —
     // same weight for more reps. Reported separately so it can't be read as a load PR.
@@ -1078,6 +1127,7 @@ function doFinishWorkout() {
   })
   const w = {
     id: A.id, d: A.d, start: A.start, end: Date.now(), routineId: A.routineId, name: A.name, bw: A.bw,
+    cycleId: A.cycleId || null, phaseId: A.phaseId || null, phaseName: A.phaseName || null,
     // `target` (what the session prescribed) is kept alongside the sets: without it a
     // finished workout cannot say whether it hit its reps, and a timed session reads back
     // as "0 reps". It is what the progression engine works from.
@@ -1086,9 +1136,10 @@ function doFinishWorkout() {
     restLog: (A.restLog || []).map(rest => ({ ...rest })),
   }
   w.vol = workoutVolume(w)
+  w.warmupVol = warmupVolume(w)
   update(s => {
     w.entries.forEach(e => {
-      const mx = Math.max(0, ...e.sets.filter(x => x.done).map(x => x.w || 0), e.topW || 0)
+      const mx = Math.max(0, ...e.sets.filter(x => x.done && isWorkingSet(x)).map(x => x.w || 0), e.topW || 0)
       if (mx > 0) { const cur = s.exWeights[e.id]; if (!cur || mx > cur.w) s.exWeights[e.id] = { w: mx, d: w.d } }
     })
     s.workouts.push(w)

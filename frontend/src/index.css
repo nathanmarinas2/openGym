@@ -643,6 +643,11 @@ input.num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),ins
 .setrow.eff3 .stp .num{font-size:14px}
 .setrow.done .n{background:var(--acc);color:var(--on-acc)}
 .setrow.done{opacity:.45}
+.set-group-label{display:flex;justify-content:space-between;gap:8px;padding:10px 2px 4px;border-top:var(--hair) solid var(--sep);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.set-group-label:first-child{border-top:0;padding-top:2px}
+.set-group-label.warmup{color:var(--orange)}
+.set-group-label.working{color:var(--acc)}
+.set-group-label .dim{font-size:10px;letter-spacing:.02em;text-transform:none;font-weight:500}
 /* why the next target is what it is (issue #17) */
 .progline{
   display:flex;align-items:flex-start;gap:7px;margin:6px 0 2px;
