@@ -152,7 +152,7 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
         </div>
       })}
       <div style={{ height: 8 }} />
-      <div className="row">
+      <div className="workout-set-actions">
         <Button size="sm" icon="minus" disabled={entry.sets.filter(s => !isWarmupSet(s)).length <= 1} onClick={onRemoveSet}>{t('Remove set')}</Button>
         <Button size="sm" icon="plus" onClick={onAddSet}>{t('Add set')}</Button>
         <Button size="sm" variant="tinted" icon="flame" onClick={onAddWarmup}>{t('Add warm-up')}</Button>

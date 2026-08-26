@@ -683,6 +683,16 @@ input.num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),ins
 .cfgrow>div{flex:1;min-width:0}
 .cfgrow .stp button{width:30px}
 .cfgrow .stp-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Workout set actions need their own layout: four labelled controls cannot share
+   one flex line on a phone without collapsing into each other. Keep each hit
+   target full-width in a compact 2×2 grid, then return to a single row when
+   there is enough room. */
+.workout-set-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.workout-set-actions .btn{width:100%;min-width:0;padding-inline:8px}
+@media (min-width:700px){
+  .workout-set-actions{display:flex;flex-wrap:wrap}
+  .workout-set-actions .btn{width:auto;flex:1 1 auto}
+}
 
 /* --- rest timer --- */
 #timer{
