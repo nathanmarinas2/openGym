@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { api } from '../lib/api.js'
-import { getLang, useLang } from '../lib/i18n.js'
+import { getLang, t, useLang } from '../lib/i18n.js'
 import { todayISO } from '../lib/format.js'
 import { buildLongitudinalCoachContext } from '../lib/coach.js'
 import {
@@ -90,7 +90,8 @@ const EN = {
   proteinLow: 'Protein is below 80% of your target. Consider adding a protein-rich serving.', caloriesHigh: 'Calories are above your target today. Keep the next meal balanced rather than compensating aggressively.',
   waterLow: 'Hydration is still below 60% of your goal. Add a glass of water when convenient.', fastingActive: 'Your fast is running. Stop it if you feel unwell; training and health come first.',
   proteinOnTrack: 'Protein target reached. Keep the rest of the day consistent with your goal.', noAdvice: 'Your current log looks balanced. Keep recording and review the trend over several days.',
-  coachDisclaimer: 'General fitness guidance only — not medical advice.', coachStrengths: 'What you are doing well', coachImprovements: 'What to improve', coachActions: 'Next 7 days', coachWatchouts: 'Watch-outs', coachQuestions: 'Questions worth answering', coachConfidence: 'Confidence', coachNoReview: 'Ask the coach to generate a review from your full history.', coachAnalysisSize: 'Longitudinal context prepared from your history.', confirmAction: 'Confirm', sourceOFF: 'Data from Open Food Facts.', sourceUSDA: 'Data from USDA FoodData Central.'
+  coachDisclaimer: 'General fitness guidance only — not medical advice.', coachStrengths: 'What you are doing well', coachImprovements: 'What to improve', coachActions: 'Next 7 days', coachWatchouts: 'Watch-outs', coachQuestions: 'Questions worth answering', coachConfidence: 'Confidence', coachNoReview: 'Ask the coach to generate a review from your full history.', coachAnalysisSize: 'Longitudinal context prepared from your history.', confirmAction: 'Confirm', sourceOFF: 'Data from Open Food Facts.', sourceUSDA: 'Data from USDA FoodData Central.',
+  coachPlanTitle: 'Create a plan draft', coachPlanHint: 'Coach can propose routines and cycles; nothing changes until you confirm it.', coachPlanButton: 'Generate draft', coachApply: 'Apply selected changes', coachRevert: 'Reversible plan snapshots', coachUndo: 'Revert'
 }
 
 const ES = {
@@ -133,10 +134,18 @@ const ES = {
   proteinLow: 'La proteína está por debajo del 80% de tu objetivo. Valora añadir una ración rica en proteína.', caloriesHigh: 'Hoy superas tu objetivo calórico. Mantén equilibrada la siguiente comida y evita compensaciones agresivas.',
   waterLow: 'La hidratación está por debajo del 60% de tu objetivo. Añade un vaso de agua cuando te venga bien.', fastingActive: 'Tu ayuno está activo. Termínalo si te encuentras mal; la salud y el entrenamiento van primero.',
   proteinOnTrack: 'Has alcanzado la proteína objetivo. Mantén el resto del día alineado con tu objetivo.', noAdvice: 'Tu registro actual parece equilibrado. Sigue registrando y revisa la tendencia durante varios días.',
-  coachDisclaimer: 'Orientación general de fitness; no es consejo médico.', coachStrengths: 'Lo que estás haciendo bien', coachImprovements: 'Qué mejorar', coachActions: 'Próximos 7 días', coachWatchouts: 'A tener en cuenta', coachQuestions: 'Preguntas que conviene responder', coachConfidence: 'Confianza', coachNoReview: 'Pregunta al coach para generar una revisión usando todo tu historial.', coachAnalysisSize: 'Contexto longitudinal preparado a partir de tu historial.', confirmAction: 'Confirmar', sourceOFF: 'Datos de Open Food Facts.', sourceUSDA: 'Datos de USDA FoodData Central.'
+  coachDisclaimer: 'Orientación general de fitness; no es consejo médico.', coachStrengths: 'Lo que estás haciendo bien', coachImprovements: 'Qué mejorar', coachActions: 'Próximos 7 días', coachWatchouts: 'A tener en cuenta', coachQuestions: 'Preguntas que conviene responder', coachConfidence: 'Confianza', coachNoReview: 'Pregunta al coach para generar una revisión usando todo tu historial.', coachAnalysisSize: 'Contexto longitudinal preparado a partir de tu historial.', confirmAction: 'Confirmar', sourceOFF: 'Datos de Open Food Facts.', sourceUSDA: 'Datos de USDA FoodData Central.',
+  coachPlanTitle: 'Crear un borrador de plan', coachPlanHint: 'Coach puede proponer rutinas y ciclos; nada cambia hasta que lo confirmes.', coachPlanButton: 'Generar borrador', coachApply: 'Aplicar cambios seleccionados', coachRevert: 'Snapshots de plan reversibles', coachUndo: 'Revertir'
 }
 
-export const labels = () => getLang() === 'es' ? ES : EN
+export const labels = () => {
+  const base = getLang() === 'es' ? ES : EN
+  if (getLang() === 'en' || getLang() === 'es') return base
+  return new Proxy(base, { get(target, property) {
+    const value = target[property]
+    return typeof value === 'string' ? t(value) : value
+  } })
+}
 const nice = value => roundNutrition(value).toLocaleString(getLang() === 'es' ? 'es-ES' : 'en-GB', { maximumFractionDigits: 1 })
 const percent = (value, goal) => goal > 0 ? Math.min(100, Math.max(0, value / goal * 100)) : 0
 const idOf = prefix => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`

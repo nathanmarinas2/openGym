@@ -4,6 +4,7 @@
 // Exercise instructions come from separately generated packs in src/instr/ (one per
 // language, from the upstream dataset) — also lazy-loaded on language switch.
 import { useSyncExternalStore } from 'react'
+import featureLocales from '../locales/feature-locales.js'
 
 // UI languages. de/pt have no instruction pack upstream — instructions fall back to English.
 export const LANGS = {
@@ -44,7 +45,8 @@ export async function setLang(l) {
   if (l === lang && version > 0) return
   lang = l
   try {
-    dict = l === 'en' ? {} : (await localePacks['../locales/' + l + '.js']()).default
+    const base = l === 'en' ? {} : (await localePacks['../locales/' + l + '.js']()).default
+    dict = { ...(featureLocales[l] || {}), ...base }
     instr = l === 'en' || !INSTR_LANGS.includes(l) ? null : (await instrPacks['../instr/' + l + '.js']()).default
   } catch (e) { dict = {}; instr = null }
   notify()
