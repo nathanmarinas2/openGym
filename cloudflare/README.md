@@ -89,6 +89,10 @@ Las notificaciones locales del móvil siguen funcionando. El envío Web Push
 remoto queda desactivado en esta primera versión de Workers; no afecta al
 temporizador local ni a la barra de notificaciones del dispositivo.
 
+El workflow de GitHub Actions comprueba primero los secretos y el
+`database_id`. Hasta que estén configurados, omite el despliegue con un aviso
+en lugar de producir un fallo engañoso.
+
 ## Importante
 
 La base D1 comienza vacía. Los datos de `data/db.json` y los ficheros de estado

@@ -86,6 +86,8 @@ The first deployment is usually easier from Wrangler because it creates the
 database and lets you copy its ID into the configuration. Later changes can be
 deployed from the workflow. That workflow builds `frontend/dist` and deploys
 the web/API Worker whenever `cloudflare/**` or `frontend/**` changes.
+Until the secrets and `database_id` are configured, it exits cleanly with a
+notice and does not attempt a partial deployment.
 
 ## Notes
 
