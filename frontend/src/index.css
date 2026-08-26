@@ -16,6 +16,10 @@
       140–220ms on an ease-out curve. Nothing bounces or slides for decoration.
    ========================================================================== */
 
+/* Barlow gives the interface a more athletic, premium silhouette while the
+   system fallbacks keep first paint and offline use reliable on mobile. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap');
+
 /* ---------------------------------------------------------------- tokens -- */
 :root {
   /* surfaces — dark is the default; the small tonal steps create hierarchy */
@@ -120,7 +124,7 @@ html{
 }
 body{
   background:var(--bg);color:var(--label);
-  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Roboto,system-ui,sans-serif;
+  font-family:'Barlow',-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Roboto,system-ui,sans-serif;
   font-size:17px;line-height:1.35;letter-spacing:-.01em;
   min-height:100vh;overscroll-behavior-y:none;overflow-x:clip;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
@@ -131,6 +135,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;let
 input,select,textarea{font:inherit;color:var(--label);letter-spacing:inherit}
 img{max-width:100%}
 a{color:var(--acc-text);text-decoration:none}
+h1,h2,h3,h4,.big,.ttl,.nutrition-calorie-number,.nutrition-wellness-number,.home-balance-metric strong,.briefing-primary-value{
+  font-family:'Barlow Condensed','Arial Narrow',-apple-system,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
 :focus{outline:none}
 :focus-visible{outline:2.5px solid var(--acc);outline-offset:2px;border-radius:6px}
 button,input,select,textarea{touch-action:manipulation}
@@ -184,7 +192,7 @@ body.resting #app{padding-bottom:calc(250px + var(--sab))}
 
 /* large title, the way a nav bar does it */
 .hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 18px}
-.hdr h1{font-size:36px;line-height:1.04;font-weight:750;letter-spacing:-.035em}
+.hdr h1{font-size:38px;line-height:1.02;font-weight:700;letter-spacing:-.012em}
 .hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
 
 .iconbtn{
@@ -202,7 +210,7 @@ h4.sec{
   text-transform:uppercase;margin:24px 0 9px;padding:0 4px;
 }
 .card h2{
-  font-size:14px;font-weight:650;letter-spacing:-.004em;color:var(--label-2);
+  font-size:16px;font-weight:600;letter-spacing:.005em;color:var(--label-2);
   text-transform:none;margin:0 0 12px;
 }
 .divider{height:var(--hair);background:var(--sep);margin:14px 0;border:0}
@@ -964,6 +972,11 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-goal-input{position:relative}
 .nutrition-goal-input .num{padding-right:27px;text-align:right;width:100%}
 .nutrition-goal-input i{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-style:normal;color:var(--label-3)}
+.nutrition-goal-readonly{margin-top:14px}
+.nutrition-goal-readonly-item{display:flex;flex-direction:column;gap:5px;min-width:0;padding:11px 10px;border:1px solid var(--field-line);border-radius:12px;background:var(--field-bg)}
+.nutrition-goal-readonly-item>span{font-size:12px;color:var(--label-2)}
+.nutrition-goal-readonly-item strong{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:21px;line-height:1;font-weight:600;color:var(--label)}
+.nutrition-goal-readonly-item i{font-family:'Barlow',sans-serif;font-size:11px;font-style:normal;font-weight:500;color:var(--label-3);margin-left:3px}
 .nutrition-search-row{display:flex;align-items:center;gap:8px}
 .nutrition-search-row .searchf{flex:1;min-width:0}
 .nutrition-meal-chips{display:flex;gap:7px;overflow:auto;margin:10px 0 14px;padding-bottom:2px;scrollbar-width:none}
@@ -1118,18 +1131,19 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .home-steps-quick::-webkit-scrollbar{display:none}
 .home-steps-quick .btn{flex:none;padding-inline:9px}
 .home-steps-input{display:flex;align-items:center;gap:5px;color:var(--label-2);font-size:12px;flex:none}
-.home-steps-input .num,.home-steps-goal .num{
+.home-steps-input .num{
   min-height:44px;background:var(--field-bg);color:var(--label);border:1px solid var(--field-line);
   border-radius:10px;outline:none;caret-color:var(--acc);font-variant-numeric:tabular-nums;
   -webkit-appearance:none;appearance:none;transition:background var(--fast),box-shadow var(--fast),border-color var(--fast)
 }
 .home-steps-input .num{width:78px;text-align:right;padding:8px 9px}
-.home-steps-input .num:focus,.home-steps-goal .num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),inset 0 0 0 1px var(--acc)}
-.home-steps-goal{display:flex;align-items:center;gap:7px;margin-top:11px;padding-top:10px;border-top:var(--hair) solid var(--sep);color:var(--label-2);font-size:12px}
-.home-steps-goal span:first-child{margin-right:auto}
-.home-steps-goal .num{width:86px;text-align:right;padding:7px 8px;font-size:13px}
-:root[data-theme="light"] .home-steps-input .num,
-:root[data-theme="light"] .home-steps-goal .num{background:var(--field-bg);border-color:var(--field-line)}
+.home-steps-input .num:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft),inset 0 0 0 1px var(--acc)}
+.home-goals-hint{display:flex;align-items:center;gap:7px;width:100%;min-height:44px;margin-top:11px;padding:9px 10px;border-top:var(--hair) solid var(--sep);color:var(--acc-text);font-size:13px;text-align:left;transition:background var(--fast),transform var(--fast)}
+.home-goals-hint .icn:first-child{font-size:15px}
+.home-goals-hint .icn:last-child{margin-left:auto;color:var(--label-3);font-size:14px}
+.home-goals-hint:hover{background:var(--acc-soft)}
+.home-goals-hint:active{transform:scale(.99)}
+:root[data-theme="light"] .home-steps-input .num{background:var(--field-bg);border-color:var(--field-line)}
 .nutrition-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border:1px solid var(--surface-line);border-radius:var(--r-card);padding:5px;margin-bottom:14px;box-shadow:var(--shadow-card)}
 .nutrition-tabs button{min-height:52px;border-radius:10px;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;line-height:1.15}
 .nutrition-tabs button .icn{font-size:19px}
@@ -1183,12 +1197,10 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-wellness-number{font-size:31px;font-weight:650;letter-spacing:-.035em;line-height:1.15;margin:9px 0 11px}
 .nutrition-wellness-number span{font-size:14px;font-weight:400;color:var(--label-2);letter-spacing:0}
 .nutrition-wellness-copy{margin-top:8px}
-.nutrition-water-goal{margin-top:12px}
-.nutrition-water-goal label{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.nutrition-water-goal label>span{font-size:12px;color:var(--label-2)}
-.nutrition-water-goal label>div{position:relative;width:130px}
-.nutrition-water-goal .num{width:100%;padding-right:30px;text-align:right}
-.nutrition-water-goal i{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;color:var(--label-2)}
+.nutrition-water-goal{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:11px;border-top:var(--hair) solid var(--sep)}
+.nutrition-water-goal>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.nutrition-water-goal>div>span{font-size:12px;color:var(--label-2)}
+.nutrition-water-goal>div>strong{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:21px;font-weight:600;line-height:1}
 .nutrition-water-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px}
 .nutrition-water-actions .btn{width:100%}
 .nutrition-custom-water{display:flex;align-items:center;gap:8px;margin-top:9px}
@@ -1308,6 +1320,34 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .home-action-card>div{min-width:0;flex:1}
 .home-action-card .ttl{font-size:14px;line-height:1.25;overflow-wrap:anywhere}
 .home-action-card .chev{width:16px;color:var(--label-3);flex:none}
+.goals-header{align-items:center}
+.goals-header-mark{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border:1px solid var(--acc-line);border-radius:14px;background:var(--acc-soft);color:var(--acc);font-size:21px;flex:none}
+.goals-hero{display:flex;align-items:flex-start;gap:13px;padding:17px 18px;border-left:3px solid var(--acc)}
+.goals-hero-icon{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:13px;background:var(--acc);color:var(--on-acc);font-size:21px;flex:none}
+.goals-hero strong{display:block;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:22px;font-weight:600;line-height:1.1}
+.goals-hero p{margin-top:5px;color:var(--label-2);font-size:13px;line-height:1.4}
+.goals-view .sect{margin-bottom:17px}
+.goals-view .sect-t{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:14px;letter-spacing:.035em}
+.goals-view .sect-f{font-size:12px}
+.goals-view .lrow-t,.goals-view .lrow-v{font-family:'Barlow',sans-serif}
+.goals-single-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px}
+.goals-number-field{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.goals-number-field>span{font-size:12px;color:var(--label-2)}
+.goals-number-control{position:relative;width:100%}
+.goals-number-control .num{width:100%;padding:10px 38px 10px 11px;text-align:right;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:20px;font-weight:600}
+.goals-number-control i{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;font-style:normal;color:var(--label-3);pointer-events:none}
+.goals-field-hint{max-width:48%;color:var(--label-3);font-size:12px;line-height:1.35;text-align:right}
+.goals-grid{display:grid;gap:9px}
+.goals-grid-four{grid-template-columns:repeat(4,1fr)}
+.goals-grid-two{grid-template-columns:repeat(2,1fr)}
+.goals-plan-row{display:flex;align-items:center;gap:11px;min-height:58px;padding:8px 15px}
+.goals-plan-row .lrow-i{--tint:var(--blue);background:color-mix(in srgb,var(--tint) 18%,var(--surface-2));color:var(--tint)}
+.goals-plan-row>div{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.goals-plan-row strong{font-size:15px;font-weight:600;line-height:1.25}
+.goals-plan-row>div>span{color:var(--label-2);font-size:13px}
+.goals-footnote{display:flex;align-items:flex-start;gap:7px;margin:2px 4px 16px;color:var(--label-3);font-size:12px;line-height:1.4}
+.goals-footnote .icn{flex:none;margin-top:1px}
+.nutrition-coach-goal-value{margin-top:-5px;color:var(--acc-text);font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:22px;font-weight:600}
 .briefing-view .hdr{margin-bottom:15px}
 .briefing-recommendation{border-left:3px solid var(--blue);padding:16px}
 .briefing-recommendation.good{border-left-color:var(--acc)}
@@ -1364,6 +1404,9 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 
 @media (max-width:430px){
   .home-action-grid{grid-template-columns:1fr}
+  .goals-grid-four{grid-template-columns:repeat(2,1fr)}
+  .goals-single-card{align-items:stretch;flex-direction:column}
+  .goals-field-hint{max-width:none;text-align:left}
   .nutrition-preference-grid{grid-template-columns:1fr}
   .briefing-metric-grid{gap:6px}
   .briefing-metric-grid>div{padding:9px 7px}

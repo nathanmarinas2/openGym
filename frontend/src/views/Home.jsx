@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore.js'
 import { effectiveRoutine, effectiveRoutineId, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, isoOf, weekKey, DAYS } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
-import { bwSheet, goalSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan, bwDeltaColor } from '../sheets.jsx'
+import { bwSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan, bwDeltaColor } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, NumberField, Tappable } from '../components/ui.jsx'
@@ -141,7 +141,7 @@ export default function Home() {
           </div>
           <label className="home-steps-input"><span>{S.lang === 'es' ? 'Total' : 'Total'}</span><NumberField nullable value={steps} decimal={false} aria-label={S.lang === 'es' ? 'Pasos de hoy' : 'Today’s steps'} onChange={setSteps} /></label>
         </div>
-        <div className="home-steps-goal"><span>{S.lang === 'es' ? 'Objetivo diario' : 'Daily goal'}</span><NumberField value={stepsGoal} decimal={false} aria-label={S.lang === 'es' ? 'Objetivo diario de pasos' : 'Daily steps goal'} onChange={value => update(s => { s.stepsGoal = Math.max(500, Math.min(100000, Math.round(value || 10000))) })} /><span>{S.lang === 'es' ? 'pasos' : 'steps'}</span></div>
+        <button type="button" className="home-goals-hint" onClick={() => nav('/goals')}><Icon name="target" />{S.lang === 'es' ? 'Objetivos centralizados' : 'Manage all goals'}<Icon name="chevronRight" /></button>
       </div>
       <div className="home-balance-note"><Icon name="info" />{includesActivity
         ? (S.lang === 'es' ? 'Las kcal de actividad son orientativas y no se suman a tu objetivo de comida.' : 'Activity kcal are estimates and are not added to your food target.')
@@ -164,7 +164,7 @@ export default function Home() {
       <div className="row between" style={{ marginBottom: 6 }}>
         <h2 style={{ margin: 0 }}>{t('Body weight')}</h2>
         <div className="row" style={{ gap: 8 }}>
-          <Button size="sm" icon="target" style={S.targetW ? { color: 'var(--yellow)' } : undefined} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
+          <Button size="sm" icon="target" style={S.targetW ? { color: 'var(--yellow)' } : undefined} onClick={() => nav('/goals')}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
           <Button size="sm" icon="plus" onClick={() => bwSheet()}>{t('Log')}</Button>
         </div>
       </div>
