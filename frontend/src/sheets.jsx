@@ -24,6 +24,7 @@ import { MOBILE, shareExport } from './lib/mobile.js'
 import { copyPlanLink } from './lib/plan-share.js'
 import { createApiToken, listApiTokens, revokeApiToken } from './lib/api.js'
 import { equipmentCatalog, activeProfile, profileWithItems, newProfile, availableExercise, substitutionsFor } from './lib/equipment.js'
+import { replaceActiveEntry, substitutionCandidates } from './lib/substitutions.js'
 import { MEASURE_FIELDS, createMeasurement } from './lib/body.js'
 import { currentCyclePhase, applyPhaseAdjustment } from './lib/periodization.js'
 import { normalizeRecoveryCheckin } from './lib/recovery.js'
@@ -462,6 +463,24 @@ function ExerciseDetail({ ex, close }) {
   </>
 }
 export const exerciseDetailSheet = ex => ui().openSheet(close => <ExerciseDetail ex={ex} close={close} />)
+
+function SubstitutionSheet({ entryIdx, close }) {
+  const st = useStore(s => s.S)
+  const entry = st.active?.entries?.[entryIdx]
+  const source = entry ? exOr(entry.id) : null
+  const alternatives = source ? substitutionCandidates(st, source, 6) : []
+  const choose = replacement => {
+    update(s => { const current = s.active?.entries?.[entryIdx]; if (current) s.active.entries[entryIdx] = replaceActiveEntry(s, current, replacement) })
+    close(); toast(t('Exercise swapped for this session'))
+  }
+  if (!entry || !source) return null
+  return <>
+    <h3>{t('Substitute exercise')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>{t('Keep {0}, the movement pattern, available equipment and any superset link. The routine template is unchanged.', source.n)}</div>
+    {alternatives.length ? <div className="list">{alternatives.map(exercise => <Tappable key={exercise.id} className="item" onClick={() => choose(exercise)}><div className="grow"><div className="tt capitalize">{exercise.n}</div><div className="ss">{t(exercise.eq)} · {t(exercise.bp)} · {t('same pattern or muscle group')}</div></div><Icon name="chevronRight" className="chev" /></Tappable>)}</div> : <div className="progline warn"><Icon name="info" /><span>{t('No suitable alternative is available with the current equipment profile. You decide whether to rest or continue.')}</span></div>}
+  </>
+}
+export const substitutionSheet = entryIdx => ui().openSheet(close => <SubstitutionSheet entryIdx={entryIdx} close={close} />)
 
 /* ============================ add to routine ============================ */
 function AddToRoutine({ ex, close }) {
@@ -1148,7 +1167,7 @@ function doFinishWorkout() {
     // `target` (what the session prescribed) is kept alongside the sets: without it a
     // finished workout cannot say whether it hit its reps, and a timed session reads back
     // as "0 reps". It is what the progression engine works from.
-    entries: A.entries.map(e => ({ id: e.id, sets: e.sets, topW: e.topW || null, target: e.target || null })).filter(e => e.sets.some(s => s.done)),
+    entries: A.entries.map(e => ({ id: e.id, sets: e.sets, topW: e.topW || null, target: e.target || null, ...(e.substitutionOf ? { substitutionOf: e.substitutionOf, substitutionReason: e.substitutionReason || 'pain-or-fatigue' } : {}) })).filter(e => e.sets.some(s => s.done)),
     prs,
     restLog: (A.restLog || []).map(rest => ({ ...rest })),
   }
