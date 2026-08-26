@@ -1733,3 +1733,60 @@ body{
   .nutrition-saved-remove{grid-column:2;grid-row:1}
   .nutrition-saved-food>.btn{grid-column:1 / -1;width:100%;margin-top:3px}
 }
+
+/* -------------------------------------------------------------------------
+   Mobile action and reading pass
+   Keep actions inside their card at every narrow width. Long composition
+   entries stay scannable and expand only when the user asks for the full text.
+   ------------------------------------------------------------------------- */
+.nutrition-food-result > *,
+.nutrition-saved-food > *,
+.nutrition-score-row > *{min-width:0;max-width:100%}
+.nutrition-food-result .nutrition-food-open{overflow:visible}
+.nutrition-saved-copy{min-width:0;overflow-wrap:anywhere}
+.nutrition-saved-food>.btn{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.nutrition-amount{display:flex;align-items:center;gap:4px;min-width:0;width:100%}
+.nutrition-amount .num{width:100%;min-width:0}
+.nutrition-amount>span{flex:none;color:var(--label-2);font-size:13px}
+.nutrition-score-group-hint{margin:-2px 0 9px;color:var(--label-2);font-size:13px;line-height:1.4}
+.nutrition-score-ingredient-detail{display:block;padding:0}
+.nutrition-score-ingredient-detail>summary{display:flex;align-items:flex-start;gap:12px;min-height:72px;padding:13px 12px;cursor:pointer;list-style:none}
+.nutrition-score-ingredient-detail>summary::-webkit-details-marker{display:none}
+.nutrition-score-ingredient-detail[open]>summary{border-bottom:var(--hair) solid var(--sep)}
+.nutrition-score-ingredient-detail .nutrition-score-row-copy strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.nutrition-ingredient-chevron{width:17px;height:17px;flex:none;margin-top:4px;color:var(--label-3);transition:transform var(--fast) var(--ease)}
+.nutrition-score-ingredient-detail[open] .nutrition-ingredient-chevron{transform:rotate(180deg)}
+.nutrition-ingredient-full{padding:12px 14px 14px 66px;color:var(--label-2);font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.nutrition-more-ingredients{border-top:var(--hair) solid var(--sep)}
+.nutrition-more-ingredients>summary{padding:13px 14px;color:var(--acc-text);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
+.nutrition-more-ingredients>summary::-webkit-details-marker{display:none}
+.nutrition-more-ingredients>summary::after{content:'＋';float:right;color:var(--acc);font-size:17px;line-height:1}
+.nutrition-more-ingredients[open]>summary::after{content:'−'}
+.nutrition-more-ingredients>div .nutrition-score-row:first-child{border-top:var(--hair) solid var(--sep)}
+.nutrition-ai-result{margin-top:14px;padding-top:13px;border-top:var(--hair) solid var(--sep)}
+.nutrition-ai-status{display:flex;align-items:center;gap:8px;color:var(--acc-text);font-size:14px}
+.nutrition-ai-status .icn{width:18px;height:18px;flex:none}
+.nutrition-ai-status.local{color:var(--label-2)}
+.nutrition-ai-notice{display:flex;align-items:flex-start;gap:10px;margin-top:10px;padding:11px 12px;border:var(--hair) solid var(--surface-line);border-radius:12px;background:var(--surface-2);color:var(--label-2);font-size:13px;line-height:1.4}
+.nutrition-ai-notice>span{flex:1;min-width:0}
+.nutrition-ai-notice .btn{flex:none;min-height:44px}
+.nutrition-coach-action{align-items:stretch}
+.nutrition-coach-action .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+
+@media (max-width:519px){
+  .nutrition-food-result{grid-template-columns:minmax(0,1fr);width:100%;overflow:visible}
+  .nutrition-food-result .nutrition-food-open{grid-column:1;grid-row:1;width:100%;max-width:100%}
+  .nutrition-food-result .nutrition-add-controls{grid-column:1;grid-row:2;display:grid;grid-template-columns:44px minmax(0,1fr) minmax(96px,1.15fr);align-items:center;gap:7px;width:100%;max-width:100%;margin-top:12px;padding:0}
+  .nutrition-food-result .nutrition-add-controls .nutrition-favorite{width:44px;min-width:44px}
+  .nutrition-food-result .nutrition-add-controls .btn{width:100%;min-width:0;max-width:100%;padding-inline:7px;font-size:12px}
+  .nutrition-score-ingredient-detail>summary{gap:9px;padding-inline:10px}
+  .nutrition-ingredient-full{padding-left:54px;padding-right:10px}
+  .nutrition-ai-notice{flex-direction:column}
+  .nutrition-ai-notice .btn{width:100%}
+  .nutrition-coach-action{flex-direction:column}
+  .nutrition-coach-action .btn{width:100%}
+  .nutrition-recipe-builder .nutrition-food{grid-template-columns:minmax(0,1fr);gap:10px}
+  .nutrition-recipe-builder .nutrition-food>.btn{grid-column:1;grid-row:2;width:100%;max-width:100%}
+  .nutrition-meal .row.between{align-items:flex-start;gap:10px}
+  .nutrition-meal .row.between>.row{flex-wrap:wrap;justify-content:flex-end;min-width:0}
+}

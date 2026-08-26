@@ -22,7 +22,7 @@ const EN = {
   grade: 'Nutrition grade', all: 'All', maxSugar: 'Max sugar / 100g', minProtein: 'Min protein / 100g', category: 'Category', brand: 'Brand', country: 'Country',
   healthScore: 'LiftNex score', scoreGood: 'Good', scoreModerate: 'Moderate', scoreLow: 'Low', scoreNoData: 'Not enough data', scoreWhy: 'Why this score',
   scoreExplainer: 'Orientative composition score based on nutrition, declared additives and processing signals. Not medical advice.', scoreNutri: 'Nutri-Score', additiveCount: 'declared additives', novaGroup: 'processing group', scoreNoFlags: 'No major signals detected in the available data.', viewProduct: 'View full analysis', productAnalysis: 'Product analysis', fullAnalysis: 'Full analysis', healthierAlternatives: 'Healthier alternatives', healthierAlternativesHint: 'Better-scoring products from this same search.', noAlternatives: 'No higher-scoring alternative was found in this search.', back: 'Back', openAnalysis: 'Open analysis', productPer100: 'Nutrition per 100g',
-  scoreBreakdown: 'Full breakdown', scoreNegative: 'Worth checking', scorePositive: 'What helps', scoreContext: 'At a glance', scoreIngredients: 'Ingredients', scoreNoIngredients: 'No ingredient list available.', scoreNoAdditives: 'No declared additives', additives: 'Additives', saturatedFat: 'Saturated fat', energy: 'Energy density', processing: 'Processing', scorePer100: 'Per 100g', scoreNeutral: 'Informative', scoreRiskHigh: 'High signal', scoreRiskMedium: 'Moderate signal', scoreNoRisk: 'No significant signal', additiveIngredient: 'Declared additive', watchIngredient: 'Ingredient to watch', listedIngredient: 'Listed ingredient', confidence: 'Data confidence', confidenceHigh: 'High', confidenceMedium: 'Medium', confidenceLow: 'Low', missingData: 'Unknown fields are shown as —, not as zero.', personalFit: 'Personal fit', noPersonalWarnings: 'No conflicts with your preferences detected.', personalWarnings: 'Preference warnings', compare: 'Compare products', compareHint: 'Differences per 100g from this product', sourceMeta: 'Data provenance', countryLabel: 'Country', fetchedLabel: 'Fetched', cacheLabel: 'Cached', moreProtein: 'more protein', lessSugar: 'less sugar', lessSalt: 'less salt', lessSaturatedFat: 'less saturated fat', moreFiber: 'more fibre',
+  scoreBreakdown: 'Full breakdown', scoreNegative: 'Worth checking', scorePositive: 'What helps', scoreContext: 'At a glance', scoreIngredients: 'Ingredients', scoreNoIngredients: 'No ingredient list available.', ingredientsHint: 'Long entries are shortened for readability. Open one to see the complete text.', moreIngredients: 'Show {0} more ingredients', scoreNoAdditives: 'No declared additives', additives: 'Additives', saturatedFat: 'Saturated fat', energy: 'Energy density', processing: 'Processing', scorePer100: 'Per 100g', scoreNeutral: 'Informative', scoreRiskHigh: 'High signal', scoreRiskMedium: 'Moderate signal', scoreNoRisk: 'No significant signal', additiveIngredient: 'Declared additive', watchIngredient: 'Ingredient to watch', listedIngredient: 'Listed ingredient', confidence: 'Data confidence', confidenceHigh: 'High', confidenceMedium: 'Medium', confidenceLow: 'Low', missingData: 'Unknown fields are shown as —, not as zero.', personalFit: 'Personal fit', noPersonalWarnings: 'No conflicts with your preferences detected.', personalWarnings: 'Preference warnings', compare: 'Compare products', compareHint: 'Differences per 100g from this product', sourceMeta: 'Data provenance', countryLabel: 'Country', fetchedLabel: 'Fetched', cacheLabel: 'Cached', moreProtein: 'more protein', lessSugar: 'less sugar', lessSalt: 'less salt', lessSaturatedFat: 'less saturated fat', moreFiber: 'more fibre',
   apply: 'Apply filters', results: 'Results', grams: 'grams', add: 'Add', noResults: 'Search for a food to see results.',
   noEntries: 'Nothing logged yet.', breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack',
   quickAdd: 'Add manually', quickAddHint: 'Useful for recipes or when the database has no match.', name: 'Food name',
@@ -47,8 +47,8 @@ const EN = {
   water: 'Hydration', waterGoal: 'Daily water goal', waterHint: 'Quick log in millilitres.', addWater: 'Add water',
   customWater: 'Custom amount', waterDone: 'goal reached', fast: 'Fasting timer', fastGoal: 'Target hours', startFast: 'Start fast',
   stopFast: 'End fast', fastingNow: 'Fasting now', fastHistory: 'Recent fasts', noFasts: 'No completed fasts yet.',
-  hours: 'hours', localCoach: 'Daily check-in', askCoach: 'Ask AI coach', coachTitle: 'Personal longitudinal coach', coachSubtitle: 'Uses your complete training, nutrition, weight and progress history.', coachObjective: 'Main objective', objectivePerformance: 'Improve performance', objectiveBuild: 'Build muscle', objectiveCut: 'Lose fat', objectiveMaintain: 'Maintain weight', objectiveHealth: 'General health', coachNotes: 'Optional context', coachNotesPlaceholder: 'Schedule, limitations or preferences you want the coach to consider', coachScope: 'All historical records are summarized locally before analysis. Body photos stay on this device.', coachDataCoverage: 'Data coverage', coachSessions: 'sessions', coachMeals: 'food entries', coachWeight: 'weight logs', coachProteinDays: 'protein target days', coachHealthDays: 'health days', coachConsent: 'Send this longitudinal summary to the configured AI provider.',
-  coachPrivacy: 'No provider is called until you ask. Local insights work offline.', geminiCoach: 'Gemini coach',
+  hours: 'hours', localCoach: 'Daily check-in', askCoach: 'Ask AI coach', coachRefresh: 'Refresh review', coachGenerating: 'Generating review…', coachTitle: 'Personal longitudinal coach', coachSubtitle: 'Uses your complete training, nutrition, weight and progress history.', coachObjective: 'Main objective', objectivePerformance: 'Improve performance', objectiveBuild: 'Build muscle', objectiveCut: 'Lose fat', objectiveMaintain: 'Maintain weight', objectiveHealth: 'General health', coachNotes: 'Optional context', coachNotesPlaceholder: 'Schedule, limitations or preferences you want the coach to consider', coachScope: 'All historical records are summarized locally before analysis. Body photos stay on this device.', coachDataCoverage: 'Data coverage', coachSessions: 'sessions', coachMeals: 'food entries', coachWeight: 'weight logs', coachProteinDays: 'protein target days', coachHealthDays: 'health days', coachConsent: 'Send this longitudinal summary to the configured AI provider.',
+  coachPrivacy: 'No provider is called until you ask. Local insights work offline.', coachProviderGemini: 'Gemini review', coachProviderConnected: 'Connected AI review', coachProviderLocal: 'Local LiftNex review', coachLocalSummary: 'Local review based on {0} training sessions, {1} food-tracked days and {2} weigh-ins.', coachLocalFallback: 'No AI provider was available. This local review uses your logged history and stays on this device.', coachRequestError: 'The coach request could not be completed. The local review is shown instead.', coachSignIn: 'Sign in to use the connected coach. The local review is still available above.', coachEmpty: 'The coach returned no content. Try again.', coachTryAgain: 'Try again', geminiCoach: 'Gemini coach',
   startLogging: 'Start by logging one meal so your targets become more useful.',
   proteinLow: 'Protein is below 80% of your target. Consider adding a protein-rich serving.', caloriesHigh: 'Calories are above your target today. Keep the next meal balanced rather than compensating aggressively.',
   waterLow: 'Hydration is still below 60% of your goal. Add a glass of water when convenient.', fastingActive: 'Your fast is running. Stop it if you feel unwell; training and health come first.',
@@ -65,7 +65,7 @@ const ES = {
   grade: 'Calidad nutricional', all: 'Todos', maxSugar: 'Máx. azúcar / 100g', minProtein: 'Mín. proteína / 100g', category: 'Categoría',
   healthScore: 'Puntuación LiftNex', scoreGood: 'Buena', scoreModerate: 'Moderada', scoreLow: 'Baja', scoreNoData: 'Datos insuficientes', scoreWhy: 'Por qué esta puntuación',
   scoreExplainer: 'Puntuación orientativa de composición basada en nutrición, aditivos declarados y señales de procesado. No es consejo médico.', scoreNutri: 'Nutri-Score', additiveCount: 'aditivos declarados', novaGroup: 'grupo de procesado', scoreNoFlags: 'No se detectan señales relevantes en los datos disponibles.', viewProduct: 'Ver análisis completo', productAnalysis: 'Análisis del producto', fullAnalysis: 'Análisis completo', healthierAlternatives: 'Alternativas más saludables', healthierAlternativesHint: 'Productos con mejor puntuación dentro de esta misma búsqueda.', noAlternatives: 'No se ha encontrado una alternativa con mayor puntuación en esta búsqueda.', back: 'Volver', openAnalysis: 'Abrir análisis', productPer100: 'Nutrición por 100g', confidence: 'Confianza de los datos', confidenceHigh: 'Alta', confidenceMedium: 'Media', confidenceLow: 'Baja', missingData: 'Los campos desconocidos aparecen como —, no como cero.', personalFit: 'Encaje personal', noPersonalWarnings: 'No se han detectado conflictos con tus preferencias.', personalWarnings: 'Avisos de preferencias', compare: 'Comparar productos', compareHint: 'Diferencias por 100g respecto a este producto',
-  scoreBreakdown: 'Desglose completo', scoreNegative: 'A tener en cuenta', scorePositive: 'Lo que suma', scoreContext: 'Resumen del producto', scoreIngredients: 'Ingredientes', scoreNoIngredients: 'No hay lista de ingredientes disponible.', scoreNoAdditives: 'No hay aditivos declarados', additives: 'Aditivos', saturatedFat: 'Grasas saturadas', energy: 'Densidad energética', processing: 'Procesado', scorePer100: 'Por 100g', scoreNeutral: 'Informativa', scoreRiskHigh: 'Señal alta', scoreRiskMedium: 'Señal moderada', scoreNoRisk: 'Sin señal relevante', additiveIngredient: 'Aditivo declarado', watchIngredient: 'Ingrediente a revisar', listedIngredient: 'Ingrediente declarado', sourceMeta: 'Origen de los datos', countryLabel: 'País', fetchedLabel: 'Consultado', cacheLabel: 'En caché', moreProtein: 'más proteína', lessSugar: 'menos azúcar', lessSalt: 'menos sal', lessSaturatedFat: 'menos grasas saturadas', moreFiber: 'más fibra',
+  scoreBreakdown: 'Desglose completo', scoreNegative: 'A tener en cuenta', scorePositive: 'Lo que suma', scoreContext: 'Resumen del producto', scoreIngredients: 'Ingredientes', scoreNoIngredients: 'No hay lista de ingredientes disponible.', ingredientsHint: 'Las entradas largas se acortan para facilitar la lectura. Abre una para ver el texto completo.', moreIngredients: 'Ver {0} ingredientes más', scoreNoAdditives: 'No hay aditivos declarados', additives: 'Aditivos', saturatedFat: 'Grasas saturadas', energy: 'Densidad energética', processing: 'Procesado', scorePer100: 'Por 100g', scoreNeutral: 'Informativa', scoreRiskHigh: 'Señal alta', scoreRiskMedium: 'Señal moderada', scoreNoRisk: 'Sin señal relevante', additiveIngredient: 'Aditivo declarado', watchIngredient: 'Ingrediente a revisar', listedIngredient: 'Ingrediente declarado', sourceMeta: 'Origen de los datos', countryLabel: 'País', fetchedLabel: 'Consultado', cacheLabel: 'En caché', moreProtein: 'más proteína', lessSugar: 'menos azúcar', lessSalt: 'menos sal', lessSaturatedFat: 'menos grasas saturadas', moreFiber: 'más fibra',
   apply: 'Aplicar filtros', results: 'Resultados', grams: 'gramos', add: 'Añadir', noResults: 'Busca un alimento para ver resultados.',
   noEntries: 'Todavía no hay registros.', breakfast: 'Desayuno', lunch: 'Comida', dinner: 'Cena', snack: 'Snack',
   quickAdd: 'Añadir manualmente', quickAddHint: 'Útil para recetas o cuando la base de datos no tiene coincidencias.', name: 'Nombre del alimento',
@@ -90,8 +90,8 @@ const ES = {
   water: 'Hidratación', waterGoal: 'Objetivo diario de agua', waterHint: 'Registro rápido en mililitros.', addWater: 'Añadir agua',
   customWater: 'Cantidad personalizada', waterDone: 'objetivo alcanzado', fast: 'Temporizador de ayuno', fastGoal: 'Horas objetivo', startFast: 'Empezar ayuno',
   stopFast: 'Terminar ayuno', fastingNow: 'Ayunando ahora', fastHistory: 'Ayunos recientes', noFasts: 'Todavía no hay ayunos terminados.',
-  hours: 'horas', localCoach: 'Revisión diaria', askCoach: 'Preguntar al coach IA', coachTitle: 'Coach personal longitudinal', coachSubtitle: 'Usa todo tu historial de entrenamiento, nutrición, peso y progreso.', coachObjective: 'Objetivo principal', objectivePerformance: 'Mejorar rendimiento', objectiveBuild: 'Ganar músculo', objectiveCut: 'Perder grasa', objectiveMaintain: 'Mantener peso', objectiveHealth: 'Salud general', coachNotes: 'Contexto opcional', coachNotesPlaceholder: 'Horario, limitaciones o preferencias que quieras que tenga en cuenta', coachScope: 'Todos los registros históricos se resumen localmente antes del análisis. Las fotos corporales permanecen en este dispositivo.', coachDataCoverage: 'Cobertura de datos', coachSessions: 'sesiones', coachMeals: 'registros de comida', coachWeight: 'pesajes', coachProteinDays: 'días con proteína objetivo', coachHealthDays: 'días de salud', coachConsent: 'Enviar este resumen longitudinal al proveedor IA configurado.',
-  coachPrivacy: 'No se llama a ningún proveedor hasta que lo pidas. Las recomendaciones locales funcionan sin conexión.', geminiCoach: 'Coach Gemini',
+  hours: 'horas', localCoach: 'Revisión diaria', askCoach: 'Preguntar al coach IA', coachRefresh: 'Actualizar revisión', coachGenerating: 'Generando revisión…', coachTitle: 'Coach personal longitudinal', coachSubtitle: 'Usa todo tu historial de entrenamiento, nutrición, peso y progreso.', coachObjective: 'Objetivo principal', objectivePerformance: 'Mejorar rendimiento', objectiveBuild: 'Ganar músculo', objectiveCut: 'Perder grasa', objectiveMaintain: 'Mantener peso', objectiveHealth: 'Salud general', coachNotes: 'Contexto opcional', coachNotesPlaceholder: 'Horario, limitaciones o preferencias que quieras que tenga en cuenta', coachScope: 'Todos los registros históricos se resumen localmente antes del análisis. Las fotos corporales permanecen en este dispositivo.', coachDataCoverage: 'Cobertura de datos', coachSessions: 'sesiones', coachMeals: 'registros de comida', coachWeight: 'pesajes', coachProteinDays: 'días con proteína objetivo', coachHealthDays: 'días de salud', coachConsent: 'Enviar este resumen longitudinal al proveedor IA configurado.',
+  coachPrivacy: 'No se llama a ningún proveedor hasta que lo pidas. Las recomendaciones locales funcionan sin conexión.', coachProviderGemini: 'Revisión de Gemini', coachProviderConnected: 'Revisión de IA conectada', coachProviderLocal: 'Revisión local de LiftNex', coachLocalSummary: 'Revisión local basada en {0} sesiones de entrenamiento, {1} días con comidas y {2} pesajes.', coachLocalFallback: 'No había ningún proveedor de IA disponible. Esta revisión local usa tu historial registrado y permanece en este dispositivo.', coachRequestError: 'No se ha podido completar la petición al coach. Se muestra la revisión local como alternativa.', coachSignIn: 'Inicia sesión para usar el coach conectado. La revisión local sigue disponible arriba.', coachEmpty: 'El coach no ha devuelto contenido. Inténtalo de nuevo.', coachTryAgain: 'Reintentar', geminiCoach: 'Coach Gemini',
   startLogging: 'Empieza registrando una comida para que tus objetivos sean más útiles.',
   proteinLow: 'La proteína está por debajo del 80% de tu objetivo. Valora añadir una ración rica en proteína.', caloriesHigh: 'Hoy superas tu objetivo calórico. Mantén equilibrada la siguiente comida y evita compensaciones agresivas.',
   waterLow: 'La hidratación está por debajo del 60% de tu objetivo. Añade un vaso de agua cuando te venga bien.', fastingActive: 'Tu ayuno está activo. Termínalo si te encuentras mal; la salud y el entrenamiento van primero.',
@@ -169,9 +169,33 @@ function ScoreGroup({ C, title, items }) {
   return <section className="nutrition-score-group"><h4>{title}</h4><div className="nutrition-score-list">{items.map(item => <ScoreMetric C={C} item={item} key={item.key} />)}</div></section>
 }
 
+const ingredientPreview = value => {
+  const clean = String(value || '').replace(/\s+/g, ' ').trim()
+  if (clean.length <= 92) return clean
+  return `${clean.slice(0, 88).replace(/\s+\S*$/, '').trim()}…`
+}
+
+function ScoreIngredientRow({ C, item }) {
+  const long = String(item.name || '').length > 92
+  const content = <>
+    <span className={`nutrition-score-row-icon ${item.tone}`}><Icon name="plate" /></span>
+    <span className="nutrition-score-row-copy"><strong>{long ? ingredientPreview(item.name) : item.name}</strong><small>{scoreToneLabel(C, item.tone, item.kind)} · {C[item.key]}</small></span>
+    <span className={`nutrition-score-dot ${item.tone}`} />
+    <Icon name="info" className="nutrition-score-info" />
+    {long && <Icon name="chevronDown" className="nutrition-ingredient-chevron" />}
+  </>
+  if (!long) return <div className="nutrition-score-row nutrition-score-ingredient" key={item.name}>{content}</div>
+  return <details className={`nutrition-score-row nutrition-score-ingredient nutrition-score-ingredient-detail ${item.tone}`} key={item.name}>
+    <summary className="nutrition-score-row-summary">{content}</summary>
+    <div className="nutrition-ingredient-full">{item.name}</div>
+  </details>
+}
+
 function ScoreIngredients({ C, ingredients }) {
   if (!ingredients.length) return <section className="nutrition-score-group"><h4>{C.scoreIngredients}</h4><p className="nutrition-score-empty">{C.scoreNoIngredients}</p></section>
-  return <section className="nutrition-score-group"><h4>{C.scoreIngredients}</h4><div className="nutrition-score-list">{ingredients.map(item => <div className="nutrition-score-row nutrition-score-ingredient" key={item.name}><span className={`nutrition-score-row-icon ${item.tone}`}><Icon name="plate" /></span><span className="nutrition-score-row-copy"><strong>{item.name}</strong><small>{scoreToneLabel(C, item.tone, item.kind)} · {C[item.key]}</small></span><span className={`nutrition-score-dot ${item.tone}`} /><Icon name="info" className="nutrition-score-info" /></div>)}</div></section>
+  const firstIngredients = ingredients.slice(0, 10)
+  const remainingIngredients = ingredients.slice(10)
+  return <section className="nutrition-score-group"><h4>{C.scoreIngredients}</h4><p className="nutrition-score-group-hint">{C.ingredientsHint}</p><div className="nutrition-score-list">{firstIngredients.map(item => <ScoreIngredientRow C={C} item={item} key={item.name} />)}{remainingIngredients.length > 0 && <details className="nutrition-more-ingredients"><summary>{C.moreIngredients.replace('{0}', remainingIngredients.length)}</summary><div>{remainingIngredients.map(item => <ScoreIngredientRow C={C} item={item} key={item.name} />)}</div></details>}</div></section>
 }
 
 function ScorePanel({ C, score, title = C.scoreBreakdown }) {
@@ -198,7 +222,7 @@ function FoodResults({ C, results, grams, setGrams, addFood, openProduct, prefer
   const visibleFavoriteIds = favoriteIds(visibleFavorites)
   const onToggleFavorite = toggleFavorite || (food => update(s => toggleFavoriteInState(s, food)))
   if (!results.length) return null
-  return <div className="nutrition-results" aria-live="polite"><div className="small muted nutrition-results-title">{C.results}</div>{results.map(food => { const score = healthScore(food, preferences); const label = score ? (score.tone === 'good' ? C.scoreGood : score.tone === 'moderate' ? C.scoreModerate : C.scoreLow) : C.scoreNoData; const favorite = visibleFavoriteIds.has(food.id); return <article className="nutrition-food nutrition-food-result" key={food.id}><button type="button" className="nutrition-food-open" onClick={() => openProduct(food, results)} aria-label={`${C.viewProduct}: ${food.name}`}><span className="nutrition-food-icon">{food.image ? <img src={food.image} alt="" loading="lazy" /> : <Icon name="plate" />}</span><span className="nutrition-food-main"><span className="nutrition-food-name">{food.name}</span><span className="small muted">{food.brand ? `${food.brand} · ` : ''}{nice(food.per100.calories)} {C.caloriesShort} · {nice(food.per100.protein)}g {C.proteinShort}{food.grade ? ` · ${food.grade.toUpperCase()}` : ''}</span><span className="nutrition-food-score-preview">{score && <span className={`nutrition-score-pill ${score.tone}`}>{score.score}</span>}<span>{C.healthScore} · {label}</span><Icon name="chevronRight" /></span></span></button><div className="nutrition-add-controls"><button type="button" className={'iconbtn nutrition-favorite' + (favorite ? ' on' : '')} onClick={() => onToggleFavorite(food)} aria-label={favorite ? C.unfavorite : C.favorite}><Icon name={favorite ? 'starFill' : 'star'} /></button><NumberField value={grams[food.id] || 100} decimal={false} aria-label={`${C.grams} ${food.name}`} onChange={value => setGrams(g => ({ ...g, [food.id]: value }))} /><span>g</span><Button size="xs" variant="primary" icon="plus" onClick={() => addFood(food)}>{C.add}</Button></div></article> })}</div>
+  return <div className="nutrition-results" aria-live="polite"><div className="small muted nutrition-results-title">{C.results}</div>{results.map(food => { const score = healthScore(food, preferences); const label = score ? (score.tone === 'good' ? C.scoreGood : score.tone === 'moderate' ? C.scoreModerate : C.scoreLow) : C.scoreNoData; const favorite = visibleFavoriteIds.has(food.id); return <article className="nutrition-food nutrition-food-result" key={food.id}><button type="button" className="nutrition-food-open" onClick={() => openProduct(food, results)} aria-label={`${C.viewProduct}: ${food.name}`}><span className="nutrition-food-icon">{food.image ? <img src={food.image} alt="" loading="lazy" /> : <Icon name="plate" />}</span><span className="nutrition-food-main"><span className="nutrition-food-name">{food.name}</span><span className="small muted">{food.brand ? `${food.brand} · ` : ''}{nice(food.per100.calories)} {C.caloriesShort} · {nice(food.per100.protein)}g {C.proteinShort}{food.grade ? ` · ${food.grade.toUpperCase()}` : ''}</span><span className="nutrition-food-score-preview">{score && <span className={`nutrition-score-pill ${score.tone}`}>{score.score}</span>}<span>{C.healthScore} · {label}</span><Icon name="chevronRight" /></span></span></button><div className="nutrition-add-controls"><button type="button" className={'iconbtn nutrition-favorite' + (favorite ? ' on' : '')} onClick={() => onToggleFavorite(food)} aria-label={favorite ? C.unfavorite : C.favorite}><Icon name={favorite ? 'starFill' : 'star'} /></button><div className="nutrition-amount"><NumberField value={grams[food.id] || 100} decimal={false} aria-label={`${C.grams} ${food.name}`} onChange={value => setGrams(g => ({ ...g, [food.id]: value }))} /><span>g</span></div><Button size="xs" variant="primary" icon="plus" onClick={() => addFood(food)}>{C.add}</Button></div></article> })}</div>
 }
 
 function SavedFoods({ C, foods = [], recentFoods = [], addFood, openProduct, toggleFavorite }) {
@@ -440,7 +464,7 @@ function NutritionInsights({ C, S, date, setDate, entries, goal }) {
   </>
 }
 
-function CoachReview({ C, review, update }) {
+function CoachReview({ C, review, update, source = 'ai' }) {
   if (!review) return null
   const groups = [
     ['strengths', C.coachStrengths, 'acc'],
@@ -449,13 +473,33 @@ function CoachReview({ C, review, update }) {
     ['questions', C.coachQuestions, 'neutral']
   ]
   const actions = (review.actions || []).map(item => typeof item === 'string' ? { type: 'review_week', title: item, description: '', payload: {}, requiresConfirmation: true } : item).filter(Boolean)
-  const confirmAction = action => update(s => { s.coachActionHistory = [...(s.coachActionHistory || []), { ...action, confirmedAt: new Date().toISOString(), source: 'ai' }] })
+  const confirmAction = action => update(s => { s.coachActionHistory = [...(s.coachActionHistory || []), { ...action, confirmedAt: new Date().toISOString(), source }] })
   return <section className="nutrition-coach-review" aria-live="polite">
     {review.summary && <div className="nutrition-coach-summary-text"><strong>{C.coachTitle}</strong><p>{review.summary}</p></div>}
     {groups.map(([key, title, tone]) => Array.isArray(review[key]) && review[key].length > 0 && <div className={`nutrition-coach-review-group ${tone}`} key={key}><h3>{title}</h3><ul>{review[key].map((item, index) => <li key={`${key}-${index}`}>{item}</li>)}</ul></div>)}
     {actions.length > 0 && <div className="nutrition-coach-review-group blue"><h3>{C.coachActions}</h3><div className="nutrition-coach-action-list">{actions.map((action, index) => <article className="nutrition-coach-action" key={`${action.type}-${index}`}><div><strong>{action.title}</strong>{action.description && <p>{action.description}</p>}</div><Button size="xs" variant="tinted" onClick={() => confirmAction(action)}>{C.confirmAction}</Button></article>)}</div></div>}
     {review.confidence && <div className="nutrition-coach-confidence"><span>{C.coachConfidence}</span><strong>{review.confidence}</strong></div>}
   </section>
+}
+
+function localCoachReview(context, C) {
+  const coverage = context.coverage || {}
+  const local = context.localAnalysis || {}
+  const strengths = [
+    coverage.workoutSessions ? `${coverage.workoutSessions} ${C.coachSessions} available for comparison.` : '',
+    coverage.nutritionDays ? `${coverage.nutritionDays} ${C.coachMeals} with food records.` : ''
+  ].filter(Boolean)
+  const improvements = (local.findings || []).map(item => `${item.title}: ${item.detail}`).slice(0, 6)
+  const actions = (local.actions || []).map(title => ({ type: 'review_week', title, description: '', payload: {}, requiresConfirmation: true })).slice(0, 5)
+  const summary = C.coachLocalSummary
+    .replace('{0}', coverage.workoutSessions || 0)
+    .replace('{1}', coverage.nutritionDays || 0)
+    .replace('{2}', coverage.weightEntries || 0)
+  return { summary, strengths, improvements, actions, watchouts: [], questions: [], confidence: 'low' }
+}
+
+function coachProviderLabel(C, source) {
+  return source === 'gemini' ? C.coachProviderGemini : source === 'provider' ? C.coachProviderConnected : C.coachProviderLocal
 }
 
 export function NutritionCoach({ C, S, date, totals, goal, update }) {
@@ -471,19 +515,32 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
   const [consent, setConsent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [answer, setAnswer] = useState('')
+  const [source, setSource] = useState(null)
+  const [requestError, setRequestError] = useState('')
   useEffect(() => { setNotes(storedProfile.notes || '') }, [storedProfile.notes])
   const context = useMemo(() => buildLongitudinalCoachContext(S, { date, objective, notes, goal }), [S, date, objective, notes, goal])
   const saveProfile = patch => update(s => { s.coachProfile = { ...(s.coachProfile || {}), ...patch } })
   const ask = async () => {
-    if (!consent) return
+    if (!consent || loading) return
     setLoading(true)
+    setReview(null); setAnswer(''); setSource(null); setRequestError('')
     try {
       const response = await api('/api/nutrition/coach', { method: 'POST', body: JSON.stringify({ context }) })
-      setReview(response.coach || null)
-      setAnswer(response.answer || '')
-    } catch {
-      setReview(null)
-      setAnswer('')
+      if (response.coach) {
+        setReview(response.coach)
+        setSource(response.source || 'provider')
+      } else if (response.answer) {
+        setAnswer(response.answer)
+        setSource(response.source || 'provider')
+      } else {
+        setReview(localCoachReview(context, C))
+        setSource('local')
+        setRequestError(response.configured === false ? C.coachLocalFallback : C.coachEmpty)
+      }
+    } catch (error) {
+      setReview(localCoachReview(context, C))
+      setSource('local')
+      setRequestError(error?.status === 401 ? C.coachSignIn : C.coachRequestError)
     }
     finally { setLoading(false) }
   }
@@ -503,7 +560,7 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
     <section className="card nutrition-coach-coverage"><div className="row between"><h2>{C.coachDataCoverage}</h2><span className="tag acc">{context.scope}</span></div><div className="nutrition-coach-coverage-grid"><div><strong>{coverage.workoutSessions}</strong><span>{C.coachSessions}</span></div><div><strong>{coverage.nutritionEntries}</strong><span>{C.coachMeals}</span></div><div><strong>{coverage.weightEntries}</strong><span>{C.coachWeight}</span></div><div><strong>{context.nutrition.proteinDays}</strong><span>{C.coachProteinDays}</span></div><div><strong>{coverage.healthMetricDays}</strong><span>{C.coachHealthDays}</span></div></div><p className="nutrition-source"><Icon name="info" /> {C.coachAnalysisSize}</p></section>
     <section className="card nutrition-coach-findings"><h2>{C.coachImprovements}</h2>{context.localAnalysis.findings.length ? context.localAnalysis.findings.map((item, index) => <div className={`nutrition-coach-finding ${item.tone}`} key={`${item.title}-${index}`}><Icon name={item.tone === 'orange' ? 'warning' : item.tone === 'neutral' ? 'info' : 'sparkles'} /><div><strong>{item.title}</strong><span>{item.detail}</span></div></div>) : <div className="nutrition-insight acc"><Icon name="checkCircle" /><span>{C.noAdvice}</span></div>}<div className="nutrition-coach-local-actions"><strong>{C.coachActions}</strong>{context.localAnalysis.actions.map((item, index) => <span key={index}>{item}</span>)}</div></section>
     <section className="card nutrition-insights" aria-live="polite"><h2>{C.localCoach}</h2>{local.length ? local.map(item => <div className={`nutrition-insight ${item.tone}`} key={item.key}><Icon name={item.tone === 'neutral' ? 'info' : item.tone === 'blue' ? 'droplet' : item.tone === 'violet' ? 'timer' : 'sparkles'} /><span>{insightText(item.key)}</span></div>) : <div className="nutrition-insight acc"><Icon name="checkCircle" /><span>{C.noAdvice}</span></div>}</section>
-    <section className="card nutrition-ai-card"><h2>{C.askCoach}</h2><p className="muted small">{C.coachConsent}</p><div className="nutrition-consent"><Check checked={consent} onChange={setConsent} ariaLabel={C.coachConsent} /><span>{C.coachConsent}</span></div><Button variant="primary" icon="sparkles" disabled={!consent || loading} onClick={ask}>{loading ? C.searching : C.askCoach}</Button>{review ? <CoachReview C={C} review={review} update={update} /> : answer && <div className="nutrition-ai-answer"><p>{answer}</p></div>}<p className="nutrition-source"><Icon name="info" /> {C.coachDisclaimer}</p></section>
+    <section className="card nutrition-ai-card"><h2>{C.askCoach}</h2><p className="muted small">{C.coachConsent}</p><div className="nutrition-consent"><Check checked={consent} onChange={setConsent} ariaLabel={C.coachConsent} /><span>{C.coachConsent}</span></div><Button variant="primary" icon="sparkles" disabled={!consent || loading} onClick={ask}>{loading ? C.coachGenerating : review || answer ? C.coachRefresh : C.askCoach}</Button>{(review || answer || requestError) && <div className="nutrition-ai-result" aria-live="polite"><div className={`nutrition-ai-status ${source === 'local' ? 'local' : 'connected'}`}><Icon name={source === 'local' ? 'info' : 'sparkles'} /><strong>{coachProviderLabel(C, source)}</strong></div>{requestError && <div className="nutrition-ai-notice"><span>{requestError}</span><Button size="sm" variant="tinted" onClick={ask}>{C.coachTryAgain}</Button></div>}{review ? <CoachReview C={C} review={review} update={update} source={source} /> : answer && <div className="nutrition-ai-answer"><p>{answer}</p></div>}</div>}<p className="nutrition-source"><Icon name="info" /> {C.coachDisclaimer}</p></section>
   </>
 }
 
