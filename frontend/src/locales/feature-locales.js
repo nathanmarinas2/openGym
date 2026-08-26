@@ -46,7 +46,7 @@ const K = {
   noRecoveryData: 'No training or recovery data is available yet.', painReason: 'Pain was marked manually; consider an alternative or rest.',
   detrainingReason: 'No completed session recorded for at least three weeks.', recoveringReason: 'The last exposure was recent; allow recovery before repeating it hard.',
   preparedReason: 'No elevated fatigue signal was found in the available data.', prepared: 'Prepared', recovering: 'Recovering', fatigued: 'Fatigued',
-  detraining: 'Detraining estimated', insufficient: 'Not enough data', hypertrophy: 'Hypertrophy', strength: 'Strength', power: 'Power', endurance: 'Endurance', deload: 'Deload'
+  detraining: 'Detraining estimated', insufficient: 'Not enough data', hypertrophy: 'hypertrophy', strength: 'strength', power: 'power', endurance: 'endurance', deload: 'deload'
 }
 
 const es = {
