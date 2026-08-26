@@ -770,8 +770,8 @@ routes.set('POST /api/admin/user/role', async (request, env) => {
   if (!user) return json(request, env, { error: 'no such user' }, 404)
   if (user.id === admin.id && role !== 'admin') return json(request, env, { error: 'cannot remove your own admin role' }, 400)
   const managedAdmin = role === 'admin' ? 1 : 0
-  await env.DB.prepare('UPDATE users SET role = ?, admin = CASE WHEN ? = 1 THEN 1 ELSE admin END WHERE id = ?').bind(role, managedAdmin, user.id).run()
-  const updated = { ...user, role, admin: role === 'admin' ? 1 : user.admin }
+  await env.DB.prepare('UPDATE users SET role = ?, admin = ? WHERE id = ?').bind(role, managedAdmin, user.id).run()
+  const updated = { ...user, role, admin: managedAdmin }
   return json(request, env, { ok: true, user: publicUser(updated, env) })
 })
 
