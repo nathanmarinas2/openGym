@@ -194,5 +194,131 @@ const compactCommon = {
   }
 }
 
-export const UI_KEYS = Object.keys(es)
-export default { en: {}, es, de, fr, it: { ...compact.it, ...compactCommon.it }, pt: { ...compact.pt, ...compactCommon.pt }, pl: { ...compact.pl, ...compactCommon.pl }, tr: { ...compact.tr, ...compactCommon.tr }, ru: { ...compact.ru, ...compactCommon.ru }, zh: { ...compact.zh, ...compactCommon.zh }, ko: { ...compact.ko, ...compactCommon.ko }, hi: { ...compact.hi, ...compactCommon.hi } }
+const settingsExtras = {
+  es: {
+    'You’re in the demo': 'Estás en la demo',
+    'Example data, stored only in this browser — change anything you like.': 'Datos de ejemplo, guardados solo en este navegador; puedes cambiar lo que quieras.',
+    'Reset demo data': 'Restablecer datos de demo', 'Reset demo data?': '¿Restablecer los datos de demo?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'Devuelve el plan, los entrenamientos y los pesos de ejemplo a su estado inicial.',
+    Reset: 'Restablecer', 'Demo data reset': 'Datos de demo restablecidos', 'Self-host LiftNex': 'Aloja LiftNex tú mismo',
+    'Passkey sign-in, sync across your devices, your own data.': 'Inicio de sesión con passkey, sincronización entre dispositivos y control de tus datos.',
+    'Training context': 'Contexto de entrenamiento', 'Gym equipment': 'Equipamiento del gimnasio',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Perfiles para casa, gimnasio o viaje. Se usan para filtrar ejercicios realistas.'
+  },
+  de: {
+    'You’re in the demo': 'Du bist in der Demo',
+    'Example data, stored only in this browser — change anything you like.': 'Beispieldaten, nur in diesem Browser gespeichert – ändere, was du möchtest.',
+    'Reset demo data': 'Demodaten zurücksetzen', 'Reset demo data?': 'Demodaten zurücksetzen?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'Setzt den Beispielplan, die Trainings und die Gewichtseinträge auf den Anfangszustand zurück.',
+    Reset: 'Zurücksetzen', 'Demo data reset': 'Demodaten zurückgesetzt', 'Self-host LiftNex': 'LiftNex selbst hosten',
+    'Passkey sign-in, sync across your devices, your own data.': 'Anmeldung per Passkey, Synchronisierung auf allen Geräten, deine Daten bleiben bei dir.',
+    'Training context': 'Trainingskontext', 'Gym equipment': 'Trainingsausrüstung',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profile für zu Hause, Studio oder unterwegs. Sie filtern realistische Übungen.'
+  },
+  fr: {
+    'You’re in the demo': 'Vous êtes dans la démo',
+    'Example data, stored only in this browser — change anything you like.': 'Données d’exemple, stockées uniquement dans ce navigateur — modifiez-les comme vous voulez.',
+    'Reset demo data': 'Réinitialiser les données de démo', 'Reset demo data?': 'Réinitialiser les données de démo ?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'Restaure le plan, les entraînements et les pesées d’exemple à leur état initial.',
+    Reset: 'Réinitialiser', 'Demo data reset': 'Données de démo réinitialisées', 'Self-host LiftNex': 'Héberger LiftNex soi-même',
+    'Passkey sign-in, sync across your devices, your own data.': 'Connexion par passkey, synchronisation sur vos appareils et maîtrise de vos données.',
+    'Training context': 'Contexte d’entraînement', 'Gym equipment': 'Équipement de sport',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profils maison, salle ou voyage. Ils servent à filtrer les exercices réalistes.'
+  },
+  it: {
+    'You’re in the demo': 'Sei nella demo',
+    'Example data, stored only in this browser — change anything you like.': 'Dati di esempio, salvati solo in questo browser: puoi cambiarli come vuoi.',
+    'Reset demo data': 'Reimposta dati demo', 'Reset demo data?': 'Reimpostare i dati demo?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'Riporta il piano, gli allenamenti e le pesate di esempio allo stato iniziale.',
+    Reset: 'Reimposta', 'Demo data reset': 'Dati demo reimpostati', 'Self-host LiftNex': 'Ospita LiftNex autonomamente',
+    'Passkey sign-in, sync across your devices, your own data.': 'Accesso con passkey, sincronizzazione sui tuoi dispositivi e controllo dei tuoi dati.',
+    'Training context': 'Contesto di allenamento', 'Gym equipment': 'Attrezzatura',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profili per casa, palestra o viaggio. Servono a filtrare gli esercizi realistici.'
+  },
+  pt: {
+    'You’re in the demo': 'Está na demonstração',
+    'Example data, stored only in this browser — change anything you like.': 'Dados de exemplo, guardados apenas neste navegador — altere o que quiser.',
+    'Reset demo data': 'Repor dados de demonstração', 'Reset demo data?': 'Repor os dados de demonstração?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'Repõe o plano, os treinos e os registos de peso de exemplo ao estado inicial.',
+    Reset: 'Repor', 'Demo data reset': 'Dados de demonstração repostos', 'Self-host LiftNex': 'Alojar o LiftNex',
+    'Passkey sign-in, sync across your devices, your own data.': 'Acesso com passkey, sincronização entre dispositivos e controlo dos seus dados.',
+    'Training context': 'Contexto de treino', 'Gym equipment': 'Equipamento de treino',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Perfis para casa, ginásio ou viagem. Usados para filtrar exercícios realistas.'
+  },
+  pl: {
+    'You’re in the demo': 'Jesteś w wersji demonstracyjnej',
+    'Example data, stored only in this browser — change anything you like.': 'Dane przykładowe zapisane tylko w tej przeglądarce — możesz je dowolnie zmieniać.',
+    'Reset demo data': 'Zresetuj dane demonstracyjne', 'Reset demo data?': 'Zresetować dane demonstracyjne?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'Przywraca przykładowy plan, treningi i pomiary masy do stanu początkowego.',
+    Reset: 'Resetuj', 'Demo data reset': 'Zresetowano dane demonstracyjne', 'Self-host LiftNex': 'Hostuj LiftNex samodzielnie',
+    'Passkey sign-in, sync across your devices, your own data.': 'Logowanie passkey, synchronizacja między urządzeniami i własne dane.',
+    'Training context': 'Kontekst treningu', 'Gym equipment': 'Sprzęt treningowy',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profile do domu, siłowni lub podróży. Służą do filtrowania realistycznych ćwiczeń.'
+  },
+  tr: {
+    'You’re in the demo': 'Demo sürümündesiniz',
+    'Example data, stored only in this browser — change anything you like.': 'Örnek veriler yalnızca bu tarayıcıda saklanır; istediğiniz gibi değiştirebilirsiniz.',
+    'Reset demo data': 'Demo verilerini sıfırla', 'Reset demo data?': 'Demo verileri sıfırlansın mı?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'Örnek planı, antrenmanları ve kilo kayıtlarını başlangıç durumuna döndürür.',
+    Reset: 'Sıfırla', 'Demo data reset': 'Demo verileri sıfırlandı', 'Self-host LiftNex': 'LiftNex’i kendiniz barındırın',
+    'Passkey sign-in, sync across your devices, your own data.': 'Passkey ile giriş, cihazlarınız arasında senkronizasyon ve verilerinizin kontrolü.',
+    'Training context': 'Antrenman bağlamı', 'Gym equipment': 'Antrenman ekipmanı',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Ev, spor salonu veya seyahat profilleri. Gerçekçi egzersizleri filtrelemek için kullanılır.'
+  },
+  ru: {
+    'You’re in the demo': 'Вы находитесь в демоверсии',
+    'Example data, stored only in this browser — change anything you like.': 'Примерные данные хранятся только в этом браузере — меняйте их как хотите.',
+    'Reset demo data': 'Сбросить данные демоверсии', 'Reset demo data?': 'Сбросить данные демоверсии?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'Возвращает примерный план, тренировки и записи веса к исходному состоянию.',
+    Reset: 'Сбросить', 'Demo data reset': 'Данные демоверсии сброшены', 'Self-host LiftNex': 'Разместить LiftNex самостоятельно',
+    'Passkey sign-in, sync across your devices, your own data.': 'Вход по passkey, синхронизация между устройствами и полный контроль над данными.',
+    'Training context': 'Контекст тренировок', 'Gym equipment': 'Тренировочное оборудование',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Профили для дома, зала или поездок. Используются для фильтрации реалистичных упражнений.'
+  },
+  zh: {
+    'You’re in the demo': '你正在使用演示版',
+    'Example data, stored only in this browser — change anything you like.': '示例数据仅保存在此浏览器中——你可以随意修改。',
+    'Reset demo data': '重置演示数据', 'Reset demo data?': '要重置演示数据吗？',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': '将示例计划、训练和称重记录恢复到初始状态。',
+    Reset: '重置', 'Demo data reset': '演示数据已重置', 'Self-host LiftNex': '自行托管 LiftNex',
+    'Passkey sign-in, sync across your devices, your own data.': '使用 passkey 登录，在设备间同步，数据由你掌控。',
+    'Training context': '训练环境', 'Gym equipment': '训练器械',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': '家庭、健身房或旅行配置，用于筛选适合的真实动作。'
+  },
+  ko: {
+    'You’re in the demo': '데모를 사용 중입니다',
+    'Example data, stored only in this browser — change anything you like.': '예시 데이터는 이 브라우저에만 저장됩니다. 자유롭게 변경하세요.',
+    'Reset demo data': '데모 데이터 초기화', 'Reset demo data?': '데모 데이터를 초기화할까요?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': '예시 플랜, 운동 및 체중 기록을 처음 상태로 되돌립니다.',
+    Reset: '초기화', 'Demo data reset': '데모 데이터를 초기화했습니다', 'Self-host LiftNex': 'LiftNex 직접 호스팅',
+    'Passkey sign-in, sync across your devices, your own data.': '패스키 로그인, 기기 간 동기화, 데이터는 직접 관리합니다.',
+    'Training context': '운동 환경', 'Gym equipment': '운동 장비',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': '집, 헬스장 또는 여행 프로필입니다. 현실적인 운동을 필터링하는 데 사용됩니다.'
+  },
+  hi: {
+    'You’re in the demo': 'आप डेमो में हैं',
+    'Example data, stored only in this browser — change anything you like.': 'उदाहरण डेटा केवल इसी ब्राउज़र में सेव है — आप इसे अपनी तरह बदल सकते हैं।',
+    'Reset demo data': 'डेमो डेटा रीसेट करें', 'Reset demo data?': 'डेमो डेटा रीसेट करें?',
+    'Puts the example plan, workouts and weigh-ins back the way they started.': 'उदाहरण प्लान, वर्कआउट और वजन रिकॉर्ड को शुरुआती स्थिति में लौटाता है।',
+    Reset: 'रीसेट करें', 'Demo data reset': 'डेमो डेटा रीसेट हो गया', 'Self-host LiftNex': 'LiftNex को खुद होस्ट करें',
+    'Passkey sign-in, sync across your devices, your own data.': 'Passkey से साइन इन, डिवाइसों के बीच सिंक और अपने डेटा पर नियंत्रण।',
+    'Training context': 'ट्रेनिंग संदर्भ', 'Gym equipment': 'ट्रेनिंग उपकरण',
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'घर, जिम या यात्रा के प्रोफ़ाइल। वास्तविक व्यायामों को फ़िल्टर करने के लिए उपयोग किए जाते हैं।'
+  }
+}
+
+export const UI_KEYS = [...new Set([...Object.keys(es), ...Object.keys(settingsExtras.es)])]
+export default {
+  en: {},
+  es: { ...es, ...settingsExtras.es },
+  de: { ...de, ...settingsExtras.de },
+  fr: { ...fr, ...settingsExtras.fr },
+  it: { ...compact.it, ...compactCommon.it, ...settingsExtras.it },
+  pt: { ...compact.pt, ...compactCommon.pt, ...settingsExtras.pt },
+  pl: { ...compact.pl, ...compactCommon.pl, ...settingsExtras.pl },
+  tr: { ...compact.tr, ...compactCommon.tr, ...settingsExtras.tr },
+  ru: { ...compact.ru, ...compactCommon.ru, ...settingsExtras.ru },
+  zh: { ...compact.zh, ...compactCommon.zh, ...settingsExtras.zh },
+  ko: { ...compact.ko, ...compactCommon.ko, ...settingsExtras.ko },
+  hi: { ...compact.hi, ...compactCommon.hi, ...settingsExtras.hi }
+}
