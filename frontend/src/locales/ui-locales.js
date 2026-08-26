@@ -203,7 +203,9 @@ const settingsExtras = {
     Reset: 'Restablecer', 'Demo data reset': 'Datos de demo restablecidos', 'Self-host LiftNex': 'Aloja LiftNex tú mismo',
     'Passkey sign-in, sync across your devices, your own data.': 'Inicio de sesión con passkey, sincronización entre dispositivos y control de tus datos.',
     'Training context': 'Contexto de entrenamiento', 'Gym equipment': 'Equipamiento del gimnasio',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Perfiles para casa, gimnasio o viaje. Se usan para filtrar ejercicios realistas.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Perfiles para casa, gimnasio o viaje. Se usan para filtrar ejercicios realistas.',
+    'Low energy check-in.': 'Chequeo de energía baja.', 'Short sleep in the latest check-in.': 'Pocas horas de sueño en el último chequeo.', 'High soreness in the latest check-in.': 'Molestias altas en el último chequeo.',
+    'Resting heart rate is above the recorded baseline.': 'La frecuencia cardiaca en reposo supera la referencia registrada.', 'Recent volume is above the four-week average.': 'El volumen reciente supera la media de cuatro semanas.', 'Recent rated sets were close to failure.': 'Las últimas series valoradas estuvieron cerca del fallo.'
   },
   de: {
     'You’re in the demo': 'Du bist in der Demo',
@@ -213,7 +215,9 @@ const settingsExtras = {
     Reset: 'Zurücksetzen', 'Demo data reset': 'Demodaten zurückgesetzt', 'Self-host LiftNex': 'LiftNex selbst hosten',
     'Passkey sign-in, sync across your devices, your own data.': 'Anmeldung per Passkey, Synchronisierung auf allen Geräten, deine Daten bleiben bei dir.',
     'Training context': 'Trainingskontext', 'Gym equipment': 'Trainingsausrüstung',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profile für zu Hause, Studio oder unterwegs. Sie filtern realistische Übungen.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profile für zu Hause, Studio oder unterwegs. Sie filtern realistische Übungen.',
+    'Low energy check-in.': 'Check-in mit niedriger Energie.', 'Short sleep in the latest check-in.': 'Kurzer Schlaf im letzten Check-in.', 'High soreness in the latest check-in.': 'Starker Muskelkater im letzten Check-in.',
+    'Resting heart rate is above the recorded baseline.': 'Die Ruheherzfrequenz liegt über dem erfassten Ausgangswert.', 'Recent volume is above the four-week average.': 'Das aktuelle Volumen liegt über dem Vierwochenmittel.', 'Recent rated sets were close to failure.': 'Die zuletzt bewerteten Sätze waren nahe am Muskelversagen.'
   },
   fr: {
     'You’re in the demo': 'Vous êtes dans la démo',
@@ -223,7 +227,9 @@ const settingsExtras = {
     Reset: 'Réinitialiser', 'Demo data reset': 'Données de démo réinitialisées', 'Self-host LiftNex': 'Héberger LiftNex soi-même',
     'Passkey sign-in, sync across your devices, your own data.': 'Connexion par passkey, synchronisation sur vos appareils et maîtrise de vos données.',
     'Training context': 'Contexte d’entraînement', 'Gym equipment': 'Équipement de sport',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profils maison, salle ou voyage. Ils servent à filtrer les exercices réalistes.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profils maison, salle ou voyage. Ils servent à filtrer les exercices réalistes.',
+    'Low energy check-in.': 'Bilan avec une énergie faible.', 'Short sleep in the latest check-in.': 'Sommeil court lors du dernier bilan.', 'High soreness in the latest check-in.': 'Courbatures importantes lors du dernier bilan.',
+    'Resting heart rate is above the recorded baseline.': 'La fréquence cardiaque au repos dépasse la référence enregistrée.', 'Recent volume is above the four-week average.': 'Le volume récent dépasse la moyenne des quatre dernières semaines.', 'Recent rated sets were close to failure.': 'Les dernières séries évaluées étaient proches de l’échec.'
   },
   it: {
     'You’re in the demo': 'Sei nella demo',
@@ -233,7 +239,9 @@ const settingsExtras = {
     Reset: 'Reimposta', 'Demo data reset': 'Dati demo reimpostati', 'Self-host LiftNex': 'Ospita LiftNex autonomamente',
     'Passkey sign-in, sync across your devices, your own data.': 'Accesso con passkey, sincronizzazione sui tuoi dispositivi e controllo dei tuoi dati.',
     'Training context': 'Contesto di allenamento', 'Gym equipment': 'Attrezzatura',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profili per casa, palestra o viaggio. Servono a filtrare gli esercizi realistici.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profili per casa, palestra o viaggio. Servono a filtrare gli esercizi realistici.',
+    'Low energy check-in.': 'Check-in con energia bassa.', 'Short sleep in the latest check-in.': 'Poco sonno nell’ultimo check-in.', 'High soreness in the latest check-in.': 'Indolenzimento elevato nell’ultimo check-in.',
+    'Resting heart rate is above the recorded baseline.': 'La frequenza cardiaca a riposo è sopra il valore di riferimento registrato.', 'Recent volume is above the four-week average.': 'Il volume recente è sopra la media delle ultime quattro settimane.', 'Recent rated sets were close to failure.': 'Le ultime serie valutate erano vicine al cedimento.'
   },
   pt: {
     'You’re in the demo': 'Está na demonstração',
@@ -243,7 +251,9 @@ const settingsExtras = {
     Reset: 'Repor', 'Demo data reset': 'Dados de demonstração repostos', 'Self-host LiftNex': 'Alojar o LiftNex',
     'Passkey sign-in, sync across your devices, your own data.': 'Acesso com passkey, sincronização entre dispositivos e controlo dos seus dados.',
     'Training context': 'Contexto de treino', 'Gym equipment': 'Equipamento de treino',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Perfis para casa, ginásio ou viagem. Usados para filtrar exercícios realistas.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Perfis para casa, ginásio ou viagem. Usados para filtrar exercícios realistas.',
+    'Low energy check-in.': 'Check-in com pouca energia.', 'Short sleep in the latest check-in.': 'Poucas horas de sono no último check-in.', 'High soreness in the latest check-in.': 'Dores musculares elevadas no último check-in.',
+    'Resting heart rate is above the recorded baseline.': 'A frequência cardíaca em repouso está acima da referência registada.', 'Recent volume is above the four-week average.': 'O volume recente está acima da média de quatro semanas.', 'Recent rated sets were close to failure.': 'As últimas séries avaliadas estiveram perto da falha.'
   },
   pl: {
     'You’re in the demo': 'Jesteś w wersji demonstracyjnej',
@@ -253,7 +263,9 @@ const settingsExtras = {
     Reset: 'Resetuj', 'Demo data reset': 'Zresetowano dane demonstracyjne', 'Self-host LiftNex': 'Hostuj LiftNex samodzielnie',
     'Passkey sign-in, sync across your devices, your own data.': 'Logowanie passkey, synchronizacja między urządzeniami i własne dane.',
     'Training context': 'Kontekst treningu', 'Gym equipment': 'Sprzęt treningowy',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profile do domu, siłowni lub podróży. Służą do filtrowania realistycznych ćwiczeń.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Profile do domu, siłowni lub podróży. Służą do filtrowania realistycznych ćwiczeń.',
+    'Low energy check-in.': 'Check-in z niską energią.', 'Short sleep in the latest check-in.': 'Krótki sen w ostatnim check-inie.', 'High soreness in the latest check-in.': 'Silna bolesność w ostatnim check-inie.',
+    'Resting heart rate is above the recorded baseline.': 'Tętno spoczynkowe jest powyżej zapisanej wartości bazowej.', 'Recent volume is above the four-week average.': 'Ostatnia objętość jest powyżej średniej z czterech tygodni.', 'Recent rated sets were close to failure.': 'Ostatnie ocenione serie były blisko upadku mięśniowego.'
   },
   tr: {
     'You’re in the demo': 'Demo sürümündesiniz',
@@ -263,7 +275,9 @@ const settingsExtras = {
     Reset: 'Sıfırla', 'Demo data reset': 'Demo verileri sıfırlandı', 'Self-host LiftNex': 'LiftNex’i kendiniz barındırın',
     'Passkey sign-in, sync across your devices, your own data.': 'Passkey ile giriş, cihazlarınız arasında senkronizasyon ve verilerinizin kontrolü.',
     'Training context': 'Antrenman bağlamı', 'Gym equipment': 'Antrenman ekipmanı',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Ev, spor salonu veya seyahat profilleri. Gerçekçi egzersizleri filtrelemek için kullanılır.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Ev, spor salonu veya seyahat profilleri. Gerçekçi egzersizleri filtrelemek için kullanılır.',
+    'Low energy check-in.': 'Düşük enerji check-in’i.', 'Short sleep in the latest check-in.': 'Son check-in’de kısa uyku.', 'High soreness in the latest check-in.': 'Son check-in’de yüksek kas ağrısı.',
+    'Resting heart rate is above the recorded baseline.': 'Dinlenik kalp atış hızı kaydedilen taban değerin üzerinde.', 'Recent volume is above the four-week average.': 'Son hacim dört haftalık ortalamanın üzerinde.', 'Recent rated sets were close to failure.': 'Son değerlendirilen setler tükenişe yakındı.'
   },
   ru: {
     'You’re in the demo': 'Вы находитесь в демоверсии',
@@ -273,7 +287,9 @@ const settingsExtras = {
     Reset: 'Сбросить', 'Demo data reset': 'Данные демоверсии сброшены', 'Self-host LiftNex': 'Разместить LiftNex самостоятельно',
     'Passkey sign-in, sync across your devices, your own data.': 'Вход по passkey, синхронизация между устройствами и полный контроль над данными.',
     'Training context': 'Контекст тренировок', 'Gym equipment': 'Тренировочное оборудование',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Профили для дома, зала или поездок. Используются для фильтрации реалистичных упражнений.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'Профили для дома, зала или поездок. Используются для фильтрации реалистичных упражнений.',
+    'Low energy check-in.': 'Низкая энергия по последнему чек-ину.', 'Short sleep in the latest check-in.': 'Недостаток сна по последнему чек-ину.', 'High soreness in the latest check-in.': 'Сильная болезненность по последнему чек-ину.',
+    'Resting heart rate is above the recorded baseline.': 'Пульс в покое выше записанного базового значения.', 'Recent volume is above the four-week average.': 'Недавний объём выше среднего за четыре недели.', 'Recent rated sets were close to failure.': 'Последние оценённые подходы были близки к отказу.'
   },
   zh: {
     'You’re in the demo': '你正在使用演示版',
@@ -283,7 +299,9 @@ const settingsExtras = {
     Reset: '重置', 'Demo data reset': '演示数据已重置', 'Self-host LiftNex': '自行托管 LiftNex',
     'Passkey sign-in, sync across your devices, your own data.': '使用 passkey 登录，在设备间同步，数据由你掌控。',
     'Training context': '训练环境', 'Gym equipment': '训练器械',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': '家庭、健身房或旅行配置，用于筛选适合的真实动作。'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': '家庭、健身房或旅行配置，用于筛选适合的真实动作。',
+    'Low energy check-in.': '最近一次打卡显示精力较低。', 'Short sleep in the latest check-in.': '最近一次打卡显示睡眠时间较短。', 'High soreness in the latest check-in.': '最近一次打卡显示肌肉酸痛较明显。',
+    'Resting heart rate is above the recorded baseline.': '静息心率高于记录的基线。', 'Recent volume is above the four-week average.': '近期训练量高于四周平均值。', 'Recent rated sets were close to failure.': '最近评估的组数接近力竭。'
   },
   ko: {
     'You’re in the demo': '데모를 사용 중입니다',
@@ -293,7 +311,9 @@ const settingsExtras = {
     Reset: '초기화', 'Demo data reset': '데모 데이터를 초기화했습니다', 'Self-host LiftNex': 'LiftNex 직접 호스팅',
     'Passkey sign-in, sync across your devices, your own data.': '패스키 로그인, 기기 간 동기화, 데이터는 직접 관리합니다.',
     'Training context': '운동 환경', 'Gym equipment': '운동 장비',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': '집, 헬스장 또는 여행 프로필입니다. 현실적인 운동을 필터링하는 데 사용됩니다.'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': '집, 헬스장 또는 여행 프로필입니다. 현실적인 운동을 필터링하는 데 사용됩니다.',
+    'Low energy check-in.': '최근 체크인에서 에너지가 낮습니다.', 'Short sleep in the latest check-in.': '최근 체크인에서 수면 시간이 짧습니다.', 'High soreness in the latest check-in.': '최근 체크인에서 근육통이 심합니다.',
+    'Resting heart rate is above the recorded baseline.': '안정시 심박수가 기록된 기준보다 높습니다.', 'Recent volume is above the four-week average.': '최근 운동량이 4주 평균보다 높습니다.', 'Recent rated sets were close to failure.': '최근 평가한 세트가 실패 지점에 가까웠습니다.'
   },
   hi: {
     'You’re in the demo': 'आप डेमो में हैं',
@@ -303,7 +323,9 @@ const settingsExtras = {
     Reset: 'रीसेट करें', 'Demo data reset': 'डेमो डेटा रीसेट हो गया', 'Self-host LiftNex': 'LiftNex को खुद होस्ट करें',
     'Passkey sign-in, sync across your devices, your own data.': 'Passkey से साइन इन, डिवाइसों के बीच सिंक और अपने डेटा पर नियंत्रण।',
     'Training context': 'ट्रेनिंग संदर्भ', 'Gym equipment': 'ट्रेनिंग उपकरण',
-    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'घर, जिम या यात्रा के प्रोफ़ाइल। वास्तविक व्यायामों को फ़िल्टर करने के लिए उपयोग किए जाते हैं।'
+    'Profiles for home, gym or travel. Used to filter realistic exercises.': 'घर, जिम या यात्रा के प्रोफ़ाइल। वास्तविक व्यायामों को फ़िल्टर करने के लिए उपयोग किए जाते हैं।',
+    'Low energy check-in.': 'कम ऊर्जा वाला चेक-इन।', 'Short sleep in the latest check-in.': 'नवीनतम चेक-इन में कम नींद।', 'High soreness in the latest check-in.': 'नवीनतम चेक-इन में अधिक मांसपेशी दर्द।',
+    'Resting heart rate is above the recorded baseline.': 'आराम की हृदय गति दर्ज आधार से अधिक है।', 'Recent volume is above the four-week average.': 'हाल का वॉल्यूम चार सप्ताह के औसत से अधिक है।', 'Recent rated sets were close to failure.': 'हाल के आकलन किए गए सेट विफलता के करीब थे।'
   }
 }
 
