@@ -1281,6 +1281,16 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-coach-coverage-grid>div{display:flex;flex-direction:column;gap:3px;min-width:0;padding:10px 8px;border-radius:11px;background:var(--surface-2)}
 .nutrition-coach-coverage-grid strong{font-size:20px;font-weight:650}
 .nutrition-coach-coverage-grid span{font-size:11px;line-height:1.25;color:var(--label-2)}
+.nutrition-coach-data-quality{display:flex;flex-direction:column;gap:5px;margin-top:10px;padding:10px 11px;border:var(--hair) solid var(--surface-line);border-radius:11px;background:var(--surface-2)}
+.nutrition-coach-data-quality>div{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.nutrition-coach-data-quality strong{font-size:13px;color:var(--label)}
+.nutrition-coach-data-quality span,.nutrition-coach-data-quality small{font-size:12px;color:var(--label-2)}
+.nutrition-coach-data-quality.high{border-color:var(--acc)}
+.nutrition-coach-data-quality.high span{color:var(--acc-text)}
+.nutrition-coach-data-quality.medium{border-color:var(--orange)}
+.nutrition-coach-data-quality.medium span{color:var(--orange)}
+.nutrition-coach-data-quality.low{border-color:var(--surface-line)}
+.nutrition-ai-diagnostic{display:block;margin-top:6px;font-size:11px;color:var(--label-2);font-variant-numeric:tabular-nums}
 .nutrition-coach-finding{display:flex;align-items:flex-start;gap:9px;padding:11px 0;border-top:var(--hair) solid var(--sep)}
 .nutrition-coach-finding .icn{flex:none;font-size:18px;margin-top:1px}
 .nutrition-coach-finding>div{display:flex;flex-direction:column;gap:3px;min-width:0}

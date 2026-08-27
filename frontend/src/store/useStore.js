@@ -46,6 +46,7 @@ export const DEF = {
   activeEquipmentProfile: 'home'
 }
 const clone = o => JSON.parse(JSON.stringify(o))
+const STATE_ARRAY_FIELDS = ['routines', 'workouts', 'bodyweight', 'customEx', 'bodyMeasurements', 'bodyPhotos', 'nutritionEntries', 'nutritionFavorites', 'nutritionFavoriteFoods', 'recipes', 'waterEntries', 'equipmentProfiles', 'coachActionHistory', 'healthMetrics', 'recoveryCheckins', 'trainerLinks', 'signedPlanPackages', 'coachDrafts', 'coachSnapshots', 'planCycles']
 export const migrateState = input => {
   const source = clone(input || {})
   const state = Object.assign(clone(DEF), source)
@@ -53,7 +54,7 @@ export const migrateState = input => {
   state.nutritionSettings = { ...DEF.nutritionSettings, ...(source.nutritionSettings || {}) }
   state.coachProfile = { ...DEF.coachProfile, ...(source.coachProfile || {}) }
   state.hrProfile = { ...DEF.hrProfile, ...(source.hrProfile || {}) }
-  for (const key of ['nutritionFavorites', 'nutritionFavoriteFoods', 'coachActionHistory', 'healthMetrics', 'recoveryCheckins', 'trainerLinks', 'signedPlanPackages', 'coachDrafts', 'coachSnapshots', 'planCycles']) if (!Array.isArray(state[key])) state[key] = []
+  for (const key of STATE_ARRAY_FIELDS) if (!Array.isArray(state[key])) state[key] = []
   state.role = ['athlete', 'trainer', 'admin'].includes(state.role) ? state.role : 'athlete'
   state.coachMode = state.coachMode === 'trainer' ? 'trainer' : 'athlete'
   // Legacy workouts were all effective sets. Canonicalising them makes exports explicit while

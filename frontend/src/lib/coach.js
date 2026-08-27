@@ -1,5 +1,5 @@
 import { EXIDX } from './exercises.js'
-import { entryNutrients, roundNutrition } from './nutrition.js'
+import { entryNutrients, nutritionDataQuality, roundNutrition } from './nutrition.js'
 import { isWorkingSet } from './history.js'
 
 const number = value => {
@@ -178,6 +178,7 @@ const nutritionHistory = (entries, waterEntries, goal) => {
     },
     targetDays,
     proteinDays,
+    dataQuality: nutritionDataQuality(entries),
     topFoods: [...foods.values()].sort((a, b) => b.count - a.count || b.protein - a.protein).slice(0, 25).map(food => ({ ...food, grams: round(food.grams), protein: round(food.protein), calories: round(food.calories) }))
   }
 }
@@ -230,6 +231,15 @@ const localFindings = ({ objective, workouts, training, nutrition, weight, goal,
   }
   if (workouts.length && objective === 'performance' && training.some(item => item.sessions >= 3 && item.weightDelta < 0)) {
     findings.push({ tone: 'orange', title: 'Hay ejercicios con retroceso reciente', detail: 'La caída de carga no demuestra un problema por sí sola; hay que cruzarla con volumen, esfuerzo, peso y días sin registrar.' })
+  }
+  if (nutrition.dataQuality?.incompleteEntries > 0) {
+    const quality = nutrition.dataQuality
+    findings.push({
+      tone: 'neutral',
+      title: 'Hay comidas con datos incompletos',
+      detail: quality.incompleteEntries + ' registros no tienen todos los nutrientes principales. El coach baja su confianza y no los interpreta como ceros.'
+    })
+    actions.push('Revisa la etiqueta o completa los nutrientes de los alimentos con campos desconocidos.')
   }
   if (!actions.length) actions.push('Mantén el plan actual una semana más y revisa la tendencia con datos completos.')
   return { findings: findings.slice(0, 6), actions: actions.slice(0, 5), data }
@@ -315,6 +325,7 @@ export function buildLongitudinalCoachContext(S = {}, { date, objective = 'perfo
       loggedDays: nutrition.loggedDays,
       targetDays: nutrition.targetDays,
       proteinDays: nutrition.proteinDays,
+      dataQuality: nutrition.dataQuality,
       topFoods: nutrition.topFoods,
       waterGoal: round(S.waterGoal || 2000),
       preferences: S.nutritionPreferences || { diet: 'none', allergens: '', avoidAdditives: false },

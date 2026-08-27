@@ -15,6 +15,7 @@ import {
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField, SearchField, TextField } from '../components/ui.jsx'
 import { validateCoachAction } from '../lib/coach-draft.js'
+import { normalizeCoachReview } from '../lib/coach-contract.js'
 
 const NUTRITION_SEARCH_STORAGE_KEY = 'liftnex:nutrition-search:v1'
 const NUTRITION_SEARCH_TTL = 30 * 60 * 1000
@@ -86,7 +87,7 @@ const EN = {
   water: 'Hydration', waterGoal: 'Daily water goal', waterHint: 'Quick log in millilitres.', addWater: 'Add water',
   customWater: 'Custom amount', waterDone: 'goal reached', fast: 'Fasting timer', fastGoal: 'Target hours', startFast: 'Start fast',
   stopFast: 'End fast', fastingNow: 'Fasting now', fastHistory: 'Recent fasts', noFasts: 'No completed fasts yet.',
-  hours: 'hours', localCoach: 'Daily check-in', askCoach: 'Ask AI coach', coachRefresh: 'Refresh review', coachGenerating: 'Generating review…', coachTitle: 'Personal longitudinal coach', coachSubtitle: 'Uses your complete training, nutrition, weight and progress history.', coachObjective: 'Main objective', objectivePerformance: 'Improve performance', objectiveBuild: 'Build muscle', objectiveCut: 'Lose fat', objectiveMaintain: 'Maintain weight', objectiveHealth: 'General health', coachNotes: 'Optional context', coachNotesPlaceholder: 'Schedule, limitations or preferences you want the coach to consider', coachScope: 'All historical records are summarized locally before analysis. Body photos stay on this device.', coachDataCoverage: 'Data coverage', coachSessions: 'sessions', coachMeals: 'food entries', coachWeight: 'weight logs', coachProteinDays: 'protein target days', coachHealthDays: 'health days', coachConsent: 'Send this longitudinal summary to the configured AI provider.',
+  hours: 'hours', localCoach: 'Daily check-in', askCoach: 'Ask AI coach', coachRefresh: 'Refresh review', coachGenerating: 'Generating review…', coachTitle: 'Personal longitudinal coach', coachSubtitle: 'Uses your complete training, nutrition, weight and progress history.', coachObjective: 'Main objective', objectivePerformance: 'Improve performance', objectiveBuild: 'Build muscle', objectiveCut: 'Lose fat', objectiveMaintain: 'Maintain weight', objectiveHealth: 'General health', coachNotes: 'Optional context', coachNotesPlaceholder: 'Schedule, limitations or preferences you want the coach to consider', coachScope: 'All historical records are summarized locally before analysis. Body photos stay on this device.', coachDataCoverage: 'Data coverage', coachSessions: 'sessions', coachMeals: 'food entries', coachWeight: 'weight logs', coachProteinDays: 'protein target days', coachHealthDays: 'health days', coachDataQuality: 'Nutrition data quality', coachQualityHigh: 'High', coachQualityMedium: 'Medium', coachQualityLow: 'Low', coachDataQualityHint: 'Missing nutrient fields lower confidence; they are not treated as zero.', coachConsent: 'Send this longitudinal summary to the configured AI provider.',
   coachPrivacy: 'No provider is called until you ask. Local insights work offline.', coachProviderGemini: 'Gemini review', coachProviderConnected: 'Connected AI review', coachProviderLocal: 'Local LiftNex review', coachLocalSummary: 'Local review based on {0} training sessions, {1} food-tracked days and {2} weigh-ins.', coachLocalFallback: 'No AI provider was available. This local review uses your logged history and stays on this device.', coachRequestError: 'The coach request could not be completed. The local review is shown instead.', coachSignIn: 'Sign in to use the connected coach. The local review is still available above.', coachEmpty: 'The coach returned no content. Try again.', coachTryAgain: 'Try again', geminiCoach: 'Gemini coach', coachOffline: 'Connected AI is not available in this offline build. This local review stays on this device. Deploy LiftNex with its API configured to use the connected coach.', coachProviderError: 'The connected AI provider is temporarily unavailable. The local review is shown instead.', coachModelError: 'The AI model configured on the server is not available. Check GEMINI_MODEL on the API.', coachKeyError: 'The AI provider rejected the server key. Check the provider secret on the API.', coachRateError: 'The AI provider is rate-limiting requests. Try again in a moment.', coachNetworkError: 'The API could not reach the AI provider. Check its network connection and try again.',
   startLogging: 'Start by logging one meal so your targets become more useful.',
   proteinLow: 'Protein is below 80% of your target. Consider adding a protein-rich serving.', caloriesHigh: 'Calories are above your target today. Keep the next meal balanced rather than compensating aggressively.',
@@ -130,7 +131,7 @@ const ES = {
   water: 'Hidratación', waterGoal: 'Objetivo diario de agua', waterHint: 'Registro rápido en mililitros.', addWater: 'Añadir agua',
   customWater: 'Cantidad personalizada', waterDone: 'objetivo alcanzado', fast: 'Temporizador de ayuno', fastGoal: 'Horas objetivo', startFast: 'Empezar ayuno',
   stopFast: 'Terminar ayuno', fastingNow: 'Ayunando ahora', fastHistory: 'Ayunos recientes', noFasts: 'Todavía no hay ayunos terminados.',
-  hours: 'horas', localCoach: 'Revisión diaria', askCoach: 'Preguntar al coach IA', coachRefresh: 'Actualizar revisión', coachGenerating: 'Generando revisión…', coachTitle: 'Coach personal longitudinal', coachSubtitle: 'Usa todo tu historial de entrenamiento, nutrición, peso y progreso.', coachObjective: 'Objetivo principal', objectivePerformance: 'Mejorar rendimiento', objectiveBuild: 'Ganar músculo', objectiveCut: 'Perder grasa', objectiveMaintain: 'Mantener peso', objectiveHealth: 'Salud general', coachNotes: 'Contexto opcional', coachNotesPlaceholder: 'Horario, limitaciones o preferencias que quieras que tenga en cuenta', coachScope: 'Todos los registros históricos se resumen localmente antes del análisis. Las fotos corporales permanecen en este dispositivo.', coachDataCoverage: 'Cobertura de datos', coachSessions: 'sesiones', coachMeals: 'registros de comida', coachWeight: 'pesajes', coachProteinDays: 'días con proteína objetivo', coachHealthDays: 'días de salud', coachConsent: 'Enviar este resumen longitudinal al proveedor IA configurado.',
+  hours: 'horas', localCoach: 'Revisión diaria', askCoach: 'Preguntar al coach IA', coachRefresh: 'Actualizar revisión', coachGenerating: 'Generando revisión…', coachTitle: 'Coach personal longitudinal', coachSubtitle: 'Usa todo tu historial de entrenamiento, nutrición, peso y progreso.', coachObjective: 'Objetivo principal', objectivePerformance: 'Mejorar rendimiento', objectiveBuild: 'Ganar músculo', objectiveCut: 'Perder grasa', objectiveMaintain: 'Mantener peso', objectiveHealth: 'Salud general', coachNotes: 'Contexto opcional', coachNotesPlaceholder: 'Horario, limitaciones o preferencias que quieras que tenga en cuenta', coachScope: 'Todos los registros históricos se resumen localmente antes del análisis. Las fotos corporales permanecen en el dispositivo.', coachDataCoverage: 'Cobertura de datos', coachSessions: 'sesiones', coachMeals: 'registros de comida', coachWeight: 'pesajes', coachProteinDays: 'días con proteína objetivo', coachHealthDays: 'días de salud', coachDataQuality: 'Calidad de los datos nutricionales', coachQualityHigh: 'Alta', coachQualityMedium: 'Media', coachQualityLow: 'Baja', coachDataQualityHint: 'Los nutrientes ausentes reducen la confianza; no se interpretan como cero.', coachConsent: 'Enviar este resumen longitudinal al proveedor IA configurado.',
   coachPrivacy: 'No se llama a ningún proveedor hasta que lo pidas. Las recomendaciones locales funcionan sin conexión.', coachProviderGemini: 'Revisión de Gemini', coachProviderConnected: 'Revisión de IA conectada', coachProviderLocal: 'Revisión local de LiftNex', coachLocalSummary: 'Revisión local basada en {0} sesiones de entrenamiento, {1} días con comidas y {2} pesajes.', coachLocalFallback: 'No había ningún proveedor de IA disponible. Esta revisión local usa tu historial registrado y permanece en este dispositivo.', coachRequestError: 'No se ha podido completar la petición al coach. Se muestra la revisión local como alternativa.', coachSignIn: 'Inicia sesión para usar el coach conectado. La revisión local sigue disponible arriba.', coachEmpty: 'El coach no ha devuelto contenido. Inténtalo de nuevo.', coachTryAgain: 'Reintentar', geminiCoach: 'Coach Gemini', coachOffline: 'La IA conectada no está disponible en esta versión sin backend. Esta revisión local permanece en el dispositivo. Despliega LiftNex con la API configurada para usar el coach conectado.', coachProviderError: 'El proveedor de IA conectado no está disponible temporalmente. Se muestra la revisión local como alternativa.', coachModelError: 'El modelo de IA configurado en el servidor no está disponible. Revisa GEMINI_MODEL en la API.', coachKeyError: 'El proveedor de IA ha rechazado la clave del servidor. Revisa el secreto configurado en la API.', coachRateError: 'El proveedor de IA está limitando las peticiones. Inténtalo de nuevo en un momento.', coachNetworkError: 'La API no puede llegar al proveedor de IA. Comprueba la conexión de red del servidor.',
   startLogging: 'Empieza registrando una comida para que tus objetivos sean más útiles.',
   proteinLow: 'La proteína está por debajo del 80% de tu objetivo. Valora añadir una ración rica en proteína.', caloriesHigh: 'Hoy superas tu objetivo calórico. Mantén equilibrada la siguiente comida y evita compensaciones agresivas.',
@@ -574,14 +575,16 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
   const [answer, setAnswer] = useState('')
   const [source, setSource] = useState(null)
   const [requestError, setRequestError] = useState('')
+  const [requestId, setRequestId] = useState('')
   useEffect(() => { setNotes(storedProfile.notes || '') }, [storedProfile.notes])
   useEffect(() => { setConsent(!!S.aiConsent) }, [S.aiConsent])
   const context = useMemo(() => buildLongitudinalCoachContext(S, { date, objective, notes, goal }), [S, date, objective, notes, goal])
   const saveProfile = patch => update(s => { s.coachProfile = { ...(s.coachProfile || {}), ...patch } })
-  const showLocalReview = message => {
+  const showLocalReview = (message, diagnosticId = '') => {
     setReview(localCoachReview(context, C))
     setSource('local')
     setRequestError(message)
+    setRequestId(diagnosticId || '')
   }
   const providerErrorMessage = error => {
     const code = error?.data?.code
@@ -596,7 +599,7 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
   const ask = async () => {
     if (!consent || loading) return
     setLoading(true)
-    setReview(null); setAnswer(''); setSource(null); setRequestError('')
+    setReview(null); setAnswer(''); setSource(null); setRequestError(''); setRequestId('')
     if (DEMO || MOBILE) {
       showLocalReview(C.coachOffline)
       setLoading(false)
@@ -605,8 +608,14 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
     try {
       const response = await api('/api/coach', { method: 'POST', body: JSON.stringify({ mode: 'review', context, consent: true }) })
       if (response.coach) {
-        setReview(response.coach)
+        const normalized = normalizeCoachReview(response.coach)
+        if (!normalized) {
+          showLocalReview(C.coachEmpty, response.requestId)
+          return
+        }
+        setReview(normalized)
         setSource(response.source || 'provider')
+        setRequestId(response.requestId || '')
       } else if (response.answer) {
         setAnswer(response.answer)
         setSource(response.source || 'provider')
@@ -614,12 +623,15 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
         showLocalReview(response.configured === false ? C.coachLocalFallback : C.coachEmpty)
       }
     } catch (error) {
-      showLocalReview(providerErrorMessage(error))
+      showLocalReview(providerErrorMessage(error), error?.data?.requestId)
     }
     finally { setLoading(false) }
   }
   const insightText = key => C[key] || C.noAdvice
   const coverage = context.coverage
+  const quality = context.nutrition.dataQuality || {}
+  const qualityLabel = quality.confidence === 'high' ? C.coachQualityHigh : quality.confidence === 'medium' ? C.coachQualityMedium : C.coachQualityLow
+  C.coachDiagnosticId = C.coachDiagnosticId || (getLang() === 'es' ? 'ID de diagnóstico' : 'Diagnostic ID')
   const objectiveOptions = [
     ['performance', C.objectivePerformance],
     ['build', C.objectiveBuild],
@@ -631,10 +643,10 @@ export function NutritionCoach({ C, S, date, totals, goal, update }) {
   return <>
     <section className="card nutrition-coach-hero"><div className="row"><span className="nutrition-coach-orb"><Icon name="brain" /></span><div><h2>{C.coachTitle}</h2><p className="muted small">{C.coachSubtitle}</p></div></div><p className="nutrition-coach-scope"><Icon name="info" /> {C.coachScope}</p></section>
     <section className="card nutrition-coach-profile"><div className="row between"><div><h2>{C.coachObjective}</h2><p className="nutrition-coach-goal-value">{objectiveLabel}</p></div><Button size="sm" variant="tinted" icon="target" onClick={() => nav('/goals')}>{C.goals || 'Goals'}</Button></div><label className="nutrition-coach-notes"><span>{C.coachNotes}</span><TextField value={notes} placeholder={C.coachNotesPlaceholder} maxLength={500} onChange={event => { setNotes(event.target.value); saveProfile({ notes: event.target.value }) }} /></label></section>
-    <section className="card nutrition-coach-coverage"><div className="row between"><h2>{C.coachDataCoverage}</h2><span className="tag acc">{context.scope}</span></div><div className="nutrition-coach-coverage-grid"><div><strong>{coverage.workoutSessions}</strong><span>{C.coachSessions}</span></div><div><strong>{coverage.nutritionEntries}</strong><span>{C.coachMeals}</span></div><div><strong>{coverage.weightEntries}</strong><span>{C.coachWeight}</span></div><div><strong>{context.nutrition.proteinDays}</strong><span>{C.coachProteinDays}</span></div><div><strong>{coverage.healthMetricDays}</strong><span>{C.coachHealthDays}</span></div></div><p className="nutrition-source"><Icon name="info" /> {C.coachAnalysisSize}</p></section>
+    <section className="card nutrition-coach-coverage"><div className="row between"><h2>{C.coachDataCoverage}</h2><span className="tag acc">{context.scope}</span></div><div className="nutrition-coach-coverage-grid"><div><strong>{coverage.workoutSessions}</strong><span>{C.coachSessions}</span></div><div><strong>{coverage.nutritionEntries}</strong><span>{C.coachMeals}</span></div><div><strong>{coverage.weightEntries}</strong><span>{C.coachWeight}</span></div><div><strong>{context.nutrition.proteinDays}</strong><span>{C.coachProteinDays}</span></div><div><strong>{coverage.healthMetricDays}</strong><span>{C.coachHealthDays}</span></div></div>{quality.validEntries > 0 && <div className={'nutrition-coach-data-quality ' + (quality.confidence || 'low')} role="status"><div><strong>{C.coachDataQuality}</strong><span>{quality.coverage}% · {qualityLabel}</span></div><small>{C.coachDataQualityHint}</small></div>}<p className="nutrition-source"><Icon name="info" /> {C.coachAnalysisSize}</p></section>
     <section className="card nutrition-coach-findings"><h2>{C.coachImprovements}</h2>{context.localAnalysis.findings.length ? context.localAnalysis.findings.map((item, index) => <div className={`nutrition-coach-finding ${item.tone}`} key={`${item.title}-${index}`}><Icon name={item.tone === 'orange' ? 'warning' : item.tone === 'neutral' ? 'info' : 'sparkles'} /><div><strong>{item.title}</strong><span>{item.detail}</span></div></div>) : <div className="nutrition-insight acc"><Icon name="checkCircle" /><span>{C.noAdvice}</span></div>}<div className="nutrition-coach-local-actions"><strong>{C.coachActions}</strong>{context.localAnalysis.actions.map((item, index) => <span key={index}>{item}</span>)}</div></section>
     <section className="card nutrition-insights" aria-live="polite"><h2>{C.localCoach}</h2>{local.length ? local.map(item => <div className={`nutrition-insight ${item.tone}`} key={item.key}><Icon name={item.tone === 'neutral' ? 'info' : item.tone === 'blue' ? 'droplet' : item.tone === 'violet' ? 'timer' : 'sparkles'} /><span>{insightText(item.key)}</span></div>) : <div className="nutrition-insight acc"><Icon name="checkCircle" /><span>{C.noAdvice}</span></div>}</section>
-    <section className="card nutrition-ai-card"><h2>{C.askCoach}</h2><p className="muted small">{C.coachConsent}</p><div className="nutrition-consent"><Check checked={consent} onChange={value => { setConsent(value); update(s => { s.aiConsent = value }) }} ariaLabel={C.coachConsent} /><span>{C.coachConsent}</span></div><Button variant="primary" icon="sparkles" disabled={!consent || loading} onClick={ask}>{loading ? C.coachGenerating : review || answer ? C.coachRefresh : C.askCoach}</Button>{(review || answer || requestError) && <div className="nutrition-ai-result" aria-live="polite"><div className={`nutrition-ai-status ${source === 'local' ? 'local' : 'connected'}`}><Icon name={source === 'local' ? 'info' : 'sparkles'} /><strong>{coachProviderLabel(C, source)}</strong></div>{requestError && <div className="nutrition-ai-notice"><span>{requestError}</span>{!DEMO && !MOBILE && <Button size="sm" variant="tinted" onClick={ask}>{C.coachTryAgain}</Button>}</div>}{review ? <CoachReview C={C} review={review} update={update} source={source} /> : answer && <div className="nutrition-ai-answer"><p>{answer}</p></div>}</div>}<p className="nutrition-source"><Icon name="info" /> {C.coachDisclaimer}</p></section>
+    <section className="card nutrition-ai-card"><h2>{C.askCoach}</h2><p className="muted small">{C.coachConsent}</p><div className="nutrition-consent"><Check checked={consent} onChange={value => { setConsent(value); update(s => { s.aiConsent = value }) }} ariaLabel={C.coachConsent} /><span>{C.coachConsent}</span></div><Button variant="primary" icon="sparkles" disabled={!consent || loading} onClick={ask}>{loading ? C.coachGenerating : review || answer ? C.coachRefresh : C.askCoach}</Button>{(review || answer || requestError) && <div className="nutrition-ai-result" aria-live="polite"><div className={`nutrition-ai-status ${source === 'local' ? 'local' : 'connected'}`}><Icon name={source === 'local' ? 'info' : 'sparkles'} /><strong>{coachProviderLabel(C, source)}</strong></div>{requestError && <div className="nutrition-ai-notice"><span>{requestError}{requestId && <small className="nutrition-ai-diagnostic">{C.coachDiagnosticId}: {requestId}</small>}</span>{!DEMO && !MOBILE && <Button size="sm" variant="tinted" onClick={ask}>{C.coachTryAgain}</Button>}</div>}{review ? <CoachReview C={C} review={review} update={update} source={source} /> : answer && <div className="nutrition-ai-answer"><p>{answer}</p></div>}</div>}<p className="nutrition-source"><Icon name="info" /> {C.coachDisclaimer}</p></section>
   </>
 }
 

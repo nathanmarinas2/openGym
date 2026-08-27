@@ -257,7 +257,7 @@ export function normalizeFood(product, source = 'Open Food Facts', meta = {}) {
 
 const SCORE_GRADE_BASE = { a: 84, b: 73, c: 61, d: 47, e: 32 }
 
-const nutrientKnown = (food, key) => food?.availableNutrients
+export const nutrientKnown = (food, key) => food?.availableNutrients
   ? food.availableNutrients[key] === true
   : food?.per100?.[key] != null
 const displayValue = (food, key) => nutrientKnown(food, key) ? number(food?.per100?.[key]) : '—'
@@ -399,6 +399,45 @@ export function scaleNutrients(food, grams = 100) {
 
 export function entryNutrients(entry) {
   return scaleNutrients(entry?.food, entry?.grams)
+}
+
+// Existing totals stay numeric for the diary UI. This companion report preserves the
+// difference between an actual zero and a provider field that was not supplied.
+export function nutritionDataQuality(entries = [], date = null) {
+  const coreFields = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt']
+  const relevant = entries.filter(entry => !date || entry?.date === date)
+  const valid = relevant.filter(entry => entry?.food && Number(entry?.grams) > 0)
+  const missingByField = Object.fromEntries(coreFields.map(key => [key, 0]))
+  let knownCells = 0
+  for (const entry of valid) {
+    for (const key of coreFields) {
+      if (nutrientKnown(entry.food, key)) knownCells += 1
+      else missingByField[key] += 1
+    }
+  }
+  const possibleCells = valid.length * coreFields.length
+  const coverage = possibleCells ? Math.round(knownCells / possibleCells * 100) : 0
+  const missingFields = Object.entries(missingByField)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, count]) => ({ key, count }))
+  const sourceCounts = {}
+  for (const entry of valid) {
+    const source = String(entry.food.sourceMeta?.provider || entry.food.source || 'Unknown').trim() || 'Unknown'
+    sourceCounts[source] = (sourceCounts[source] || 0) + 1
+  }
+  return {
+    entries: relevant.length,
+    validEntries: valid.length,
+    invalidEntries: Math.max(0, relevant.length - valid.length),
+    completeEntries: valid.filter(entry => coreFields.every(key => nutrientKnown(entry.food, key))).length,
+    incompleteEntries: valid.filter(entry => coreFields.some(key => !nutrientKnown(entry.food, key))).length,
+    coreFields,
+    coverage,
+    confidence: !valid.length ? 'low' : coverage >= 95 ? 'high' : coverage >= 70 ? 'medium' : 'low',
+    missingFields,
+    sources: Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]).map(([source, count]) => ({ source, count }))
+  }
 }
 
 export function dailyTotals(entries = [], date) {

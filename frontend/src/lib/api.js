@@ -12,7 +12,7 @@ export const apiUrl = path => API_ORIGIN ? API_ORIGIN + path : path
 export async function api(path, opts) {
   const r = await fetch(apiUrl(path), Object.assign({ credentials: API_ORIGIN ? 'include' : 'same-origin', headers: { 'Content-Type': 'application/json' } }, opts))
   const data = await r.json().catch(() => ({}))
-  if (!r.ok) { const e = new Error(data.error || ('HTTP ' + r.status)); e.status = r.status; e.data = data; throw e }
+  if (!r.ok) { const e = new Error(data.error || ('HTTP ' + r.status)); e.status = r.status; e.data = data; e.requestId = data.requestId || r.headers.get('x-request-id') || ''; throw e }
   return data
 }
 
