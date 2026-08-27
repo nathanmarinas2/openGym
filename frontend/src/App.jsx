@@ -7,7 +7,6 @@ import { ACCENTS } from './lib/format.js'
 import { setLang, useLang } from './lib/i18n.js'
 import { setNav } from './lib/nav.js'
 import { useWakeLock } from './lib/wakelock.js'
-import { startFlow } from './sheets.jsx'
 import Icon from './components/Icon.jsx'
 import TabBar from './components/TabBar.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
@@ -20,15 +19,12 @@ const Plan = lazy(() => import('./views/Plan.jsx'))
 const RoutineEdit = lazy(() => import('./views/RoutineEdit.jsx'))
 const Workout = lazy(() => import('./views/Workout.jsx'))
 const Stats = lazy(() => import('./views/Stats.jsx'))
-const History = lazy(() => import('./views/History.jsx'))
-const Library = lazy(() => import('./views/Library.jsx'))
 const Settings = lazy(() => import('./views/Settings.jsx'))
 const Admin = lazy(() => import('./views/Admin.jsx'))
 const Share = lazy(() => import('./views/Share.jsx'))
 const Nutrition = lazy(() => import('./views/Nutrition.jsx'))
 const NutritionProduct = lazy(() => import('./views/Nutrition.jsx').then(module => ({ default: module.NutritionProduct })))
 const Coach = lazy(() => import('./views/Coach.jsx'))
-const Briefing = lazy(() => import('./views/Briefing.jsx'))
 const Goals = lazy(() => import('./views/Goals.jsx'))
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
@@ -93,10 +89,11 @@ function Shell() {
                 <Route path="/nutrition/product/:code" element={<NutritionProduct />} />
                 <Route path="/nutrition" element={<Nutrition />} />
                 <Route path="/coach" element={<Coach />} />
-                <Route path="/briefing" element={<Briefing />} />
                 <Route path="/goals" element={<Goals />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/library" element={<Library />} />
+                {/* Keep old deep links alive without maintaining duplicate product screens. */}
+                <Route path="/briefing" element={<Navigate to="/home" replace />} />
+                <Route path="/history" element={<Navigate to="/stats" replace />} />
+                <Route path="/library" element={<Navigate to="/plan" replace state={{ tab: 'exercises' }} />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
@@ -105,7 +102,7 @@ function Shell() {
           )}
         </ErrorBoundary>
       </div>
-      {!publicShare && <TabBar onStart={startFlow} />}
+      {!publicShare && <TabBar />}
       <RestTimer />
       <Modals />
       <Toast />

@@ -147,6 +147,36 @@ export function bwSheet(opts = {}) {
   return h
 }
 
+function StepsSheet({ close }) {
+  const st = useStore(s => s.S)
+  const row = (st.healthMetrics || []).find(item => item?.d === todayISO() && item.steps != null)
+  const [value, setValue] = useState(row ? Math.max(0, Math.round(+row.steps || 0)) : null)
+  const save = () => {
+    update(s => {
+      const date = todayISO()
+      const rows = [...(s.healthMetrics || [])]
+      const index = rows.findIndex(item => item?.d === date)
+      const current = index >= 0 ? { ...rows[index] } : { d: date, source: 'Manual' }
+      if (value == null) delete current.steps
+      else current.steps = Math.max(0, Math.min(200000, Math.round(value)))
+      current.source = current.source || 'Manual'
+      const hasValue = Object.keys(current).some(key => !['d', 'source'].includes(key))
+      if (!hasValue) { if (index >= 0) rows.splice(index, 1) }
+      else if (index >= 0) rows[index] = current
+      else rows.push(current)
+      s.healthMetrics = rows.sort((a, b) => a.d.localeCompare(b.d))
+    })
+    close()
+  }
+  return <>
+    <h3>{t('Log steps')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{t('Today’s steps')}</div>
+    <label className="field-label"><span>{t('Total')}</span><NumberField autoFocus nullable decimal={false} value={value} aria-label={t('Today’s steps')} onChange={setValue} /></label>
+    <Button variant="primary" icon="check" onClick={save}>{t('Save')}</Button>
+  </>
+}
+export const stepsSheet = () => ui().openSheet(close => <StepsSheet close={close} />)
+
 /* ============================ daily recovery check-in ============================ */
 function RecoveryCheckin({ close }) {
   const st = useStore(s => s.S)
@@ -1062,6 +1092,19 @@ function WorkoutDetail({ w, close }) {
   </>
 }
 export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w={w} close={close} />)
+
+function WorkoutHistory({ close }) {
+  const st = useStore(s => s.S)
+  return <>
+    <div className="row between" style={{ marginBottom: 12 }}>
+      <div><h3 style={{ margin: 0 }}>{t('History')}</h3><div className="small muted">{t('{0} workouts', st.workouts.length)}</div></div>
+      <button className="iconbtn" onClick={close} aria-label={t('Close')}><Icon name="xmark" /></button>
+    </div>
+    {st.workouts.length ? <div className="list">{[...st.workouts].reverse().map(w => <WorkoutRow key={w.id} w={w} onClick={() => { close(); workoutDetailSheet(w) }} />)}</div>
+      : <div className="empty"><div className="ico"><Icon name="history" /></div>{t('No workouts yet.')}</div>}
+  </>
+}
+export const workoutHistorySheet = () => ui().openSheet(close => <WorkoutHistory close={close} />)
 
 /* ============================ calendar ============================ */
 function Calendar({ start, close }) {

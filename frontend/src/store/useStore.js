@@ -10,6 +10,7 @@ const KEY = 'gym_state_v1'
 export const STATE_SCHEMA_VERSION = 5
 export const DEF = {
   unit: 'kg', restSec: 90, exerciseRestSec: 120, stepsGoal: 10000, sound: true, keepAwake: true, focusMode: false, lang: 'en',
+  onboardingComplete: false, trainingDaysPerWeek: 3,
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
   bodyweight: [], routines: [], week: {}, dayPlan: {},
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
@@ -50,6 +51,8 @@ const STATE_ARRAY_FIELDS = ['routines', 'workouts', 'bodyweight', 'customEx', 'b
 export const migrateState = input => {
   const source = clone(input || {})
   const state = Object.assign(clone(DEF), source)
+  // Existing profiles already know the product; only a new profile gets first-run setup.
+  if (source.onboardingComplete == null && source.schemaVersion != null) state.onboardingComplete = true
   state.nutritionPreferences = { ...DEF.nutritionPreferences, ...(source.nutritionPreferences || {}) }
   state.nutritionSettings = { ...DEF.nutritionSettings, ...(source.nutritionSettings || {}) }
   state.coachProfile = { ...DEF.coachProfile, ...(source.coachProfile || {}) }

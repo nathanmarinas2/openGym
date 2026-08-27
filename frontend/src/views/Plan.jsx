@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { DAYN, uid, exCount, todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
@@ -8,6 +8,8 @@ import Icon from '../components/Icon.jsx'
 import { Button, NumberField, SelectRow, Tappable, TextField } from '../components/ui.jsx'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
 import { CYCLE_GOALS, currentCyclePhase, normalizeCycle } from '../lib/periodization.js'
+import { EXDB } from '../lib/exercises.js'
+import Library from './Library.jsx'
 
 function CyclePlanner({ S, update }) {
   const [open, setOpen] = useState(false)
@@ -55,8 +57,10 @@ function CyclePlanner({ S, update }) {
 
 export default function Plan() {
   const nav = useNavigate()
+  const loc = useLocation()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
+  const [section, setSection] = useState(loc.state?.tab === 'exercises' ? 'exercises' : 'week')
 
   const addRoutine = () => {
     const r = { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] }
@@ -66,11 +70,16 @@ export default function Plan() {
 
   return <>
     <div className="hdr">
-      <div><h1>{t('Plan')}</h1><div className="sub">{t('Your weekly routine')}</div></div>
-      <div className="row" style={{ gap: 4 }}><button className="iconbtn" onClick={() => nav('/library')} aria-label={t('Exercises')} title={t('Exercises')}><Icon name="list" /></button><button className="iconbtn" onClick={planToolsSheet} aria-label={t('Share your plan')} title={t('Share your plan')}><Icon name="upload" /></button></div>
+      <div><h1>{t('Plan')}</h1><div className="sub">{section === 'exercises' ? t('{0} exercises with animations', EXDB.length) : t('Your weekly routine')}</div></div>
+      <button className="iconbtn" onClick={planToolsSheet} aria-label={t('Share your plan')} title={t('Share your plan')}><Icon name="upload" /></button>
     </div>
-    <CyclePlanner S={S} update={update} />
-    <div className="cols"><div>
+    <div className="plan-tabs" role="tablist" aria-label={t('Plan')}>
+      <button type="button" role="tab" aria-selected={section === 'week'} className={section === 'week' ? 'on' : ''} onClick={() => setSection('week')}><Icon name="calendar" />{t('Week')}</button>
+      <button type="button" role="tab" aria-selected={section === 'exercises'} className={section === 'exercises' ? 'on' : ''} onClick={() => setSection('exercises')}><Icon name="list" />{t('Exercises')}</button>
+    </div>
+    {section === 'exercises' ? <Library embedded /> : <>
+      <CyclePlanner S={S} update={update} />
+      <div className="cols"><div>
       <h4 className="sec">{t('Week schedule')}</h4>
       <div className="list" style={{ display: 'flex', flexDirection: 'column' }}>
         {[1, 2, 3, 4, 5, 6, 0].map(d => {
@@ -93,6 +102,7 @@ export default function Plan() {
         <div className="empty"><div className="ico"><Icon name="clipboard" /></div>{t('No routines yet.')}<br />{t('Create one or load the starter plan.')}</div>
         <Button icon="sparkles" onClick={loadStarterPlan}>{t('Load starter plan (Push / Pull / Legs)')}</Button>
       </>}
-    </div></div>
+      </div></div>
+    </>}
   </>
 }

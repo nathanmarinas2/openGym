@@ -5,7 +5,7 @@ import { EXIDX } from '../lib/exercises.js'
 import { lastBW, streakWeeks, setLabel, modeOf, effortOf, isWorkingSet } from '../lib/history.js'
 import { fmtNum, fmtDate, fmtVol, todayISO, weekKey, uid } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { bwSheet, bodyMeasurementSheet, calendarSheet, workoutDetailSheet, WorkoutRow, bwDeltaColor } from '../sheets.jsx'
+import { bwSheet, bodyMeasurementSheet, calendarSheet, workoutDetailSheet, workoutHistorySheet, WorkoutRow, bwDeltaColor } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
@@ -279,9 +279,20 @@ export default function Stats() {
   if (showE1) exOpts.push({ value: 'e1rm', label: t('Est. 1RM') })
   if (showEff) exOpts.push({ value: 'effort', label: t('Effort') })
 
+  if (!S.workouts.length) return <>
+    <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
+      <button className="iconbtn" onClick={workoutHistorySheet} aria-label={t('History')}><Icon name="history" /></button></div>
+    <section className="card stats-empty-state" aria-labelledby="stats-empty-title">
+      <span className="stats-empty-icon"><Icon name="chartLine" /></span>
+      <h2 id="stats-empty-title">{t('Finish your first workout to see progress curves here.')}</h2>
+      <p>{t('Your training data will appear here as you log sessions.')}</p>
+      <Button variant="primary" icon="dumbbell" onClick={() => nav('/workout')}>{t('Start workout')}</Button>
+    </section>
+  </>
+
   return <>
     <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
-      <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div>
+      <button className="iconbtn" onClick={workoutHistorySheet} aria-label={t('History')}><Icon name="history" /></button></div>
 
     <div className="tiles">
       <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{S.workouts.length}</div></div>
@@ -292,6 +303,16 @@ export default function Stats() {
 
     <div className="cols"><RecoveryCard S={S} /><HeartRateCard S={S} /></div>
     <PhaseAnalysis S={S} />
+
+    <section className="card stats-coach-card" aria-labelledby="stats-coach-title">
+      <div className="row between" style={{ gap: 12 }}>
+        <div className="row" style={{ gap: 10, minWidth: 0 }}>
+          <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="brain" /></span>
+          <div><h2 id="stats-coach-title" style={{ margin: 0 }}>{t('Personal coach')}</h2><div className="small muted">{t('Review your full history')}</div></div>
+        </div>
+        <Button size="sm" variant="tinted" trailingIcon="chevronRight" onClick={() => nav('/coach')}>{t('Review coach')}</Button>
+      </div>
+    </section>
 
     <div className="card">
       <h2>{t('Activity — last 12 months')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {t('by time trained')}</span></h2>
@@ -348,6 +369,7 @@ export default function Stats() {
     {S.workouts.length > 0 && <>
       <div className="row between" style={{ marginBottom: 10 }}>
         <h4 className="sec" style={{ margin: 0 }}>{t('Recent workouts')}</h4>
+        <Button size="sm" variant="ghost" onClick={workoutHistorySheet}>{t('History')}</Button>
       </div>
       <div className="list">{[...S.workouts].reverse().slice(0, 6).map(w => <WorkoutRow key={w.id} w={w} onClick={() => workoutDetailSheet(w)} />)}</div>
     </>}

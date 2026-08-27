@@ -1,11 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { effectiveRoutine } from '../lib/history.js'
-import { todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
 
-export default function TabBar({ onStart }) {
+export default function TabBar() {
   const nav = useNavigate()
   const loc = useLocation()
   const S = useStore(s => s.S)
@@ -13,13 +11,11 @@ export default function TabBar({ onStart }) {
   const isGuest = useStore(s => s.isGuest())
   if (!user && !isGuest) return null
   const cur = loc.pathname.split('/')[1] || 'home'
-  const on = k => cur === k || (cur === 'history' && k === 'stats') || (cur === 'settings' && k === 'home')
+  const on = k => cur === k || (cur === 'settings' && k === 'home')
 
   const startWorkout = () => {
-    if (!S.active) {
-      const r = effectiveRoutine(S, todayISO())
-      if (r && r.ex.length) { onStart(r.id); return }
-    }
+    // One primary action, one predictable destination. Workout decides whether to
+    // resume, start today's routine or choose another one.
     nav('/workout')
   }
   const Tab = ({ k, icon, to, label }) => (
@@ -32,12 +28,12 @@ export default function TabBar({ onStart }) {
     <nav id="tabbar">
       <Tab k="home" icon="house" to="/home" label={t('Home')} />
       <Tab k="plan" icon="calendar" to="/plan" label={t('Plan')} />
-      <button className={'start' + (S.active ? ' rec' : '')} onClick={startWorkout} aria-label={S.active ? t('Resume') : S.lang === 'es' ? 'Entrenar' : t('Start')}>
+      <button className={'start' + (S.active ? ' rec' : '')} onClick={startWorkout} aria-label={S.active ? t('Resume') : t('Start')}>
         <span className="cir"><Icon name={S.active ? 'play' : 'dumbbell'} /></span>
-        <span>{S.active ? t('Resume') : S.lang === 'es' ? 'Entrenar' : t('Start')}</span>
+        <span>{S.active ? t('Resume') : t('Start')}</span>
       </button>
       <Tab k="stats" icon="chart" to="/stats" label={t('Stats')} />
-      <Tab k="nutrition" icon="forkKnife" to="/nutrition" label={S.lang === 'es' ? 'Nutrición' : t('Nutrition')} />
+      <Tab k="nutrition" icon="forkKnife" to="/nutrition" label={t('Nutrition')} />
     </nav>
   )
 }

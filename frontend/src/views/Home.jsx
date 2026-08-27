@@ -1,16 +1,64 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { effectiveRoutine, effectiveRoutineId, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
-import { fmtNum, fmtDate, todayISO, isoOf, weekKey, DAYS } from '../lib/format.js'
+import { effectiveRoutine, effectiveRoutineId, streakWeeks, lastBW } from '../lib/history.js'
+import { fmtNum, todayISO, isoOf, weekKey, DAYS } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
-import { bwSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan, bwDeltaColor } from '../sheets.jsx'
-import LineChart from '../components/LineChart.jsx'
+import { bwSheet, stepsSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
-import { Button, NumberField, Tappable } from '../components/ui.jsx'
+import { Button, Tappable } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import { DEFAULT_NUTRITION_GOAL, roundNutrition } from '../lib/nutrition.js'
 import { buildDailyBriefing } from '../lib/briefing.js'
+
+const ONBOARDING_EQUIPMENT = {
+  home: ['body weight', 'dumbbell', 'resistance band', 'bench'],
+  gym: ['body weight', 'barbell', 'dumbbell', 'cable', 'machine', 'bench', 'kettlebell'],
+  travel: ['body weight', 'resistance band']
+}
+
+function Onboarding({ S, update, nav }) {
+  const [step, setStep] = useState(0)
+  const [unit, setUnit] = useState(S.unit || 'kg')
+  const [place, setPlace] = useState('home')
+  const [days, setDays] = useState(S.trainingDaysPerWeek || 3)
+  const finish = withStarter => {
+    update(s => {
+      s.unit = unit
+      s.trainingDaysPerWeek = days
+      s.onboardingComplete = true
+      const current = (s.equipmentProfiles || []).find(profile => profile.id === 'home') || { id: 'home', name: 'Home' }
+      s.equipmentProfiles = [...(s.equipmentProfiles || []).filter(profile => profile.id !== 'home'), { ...current, items: ONBOARDING_EQUIPMENT[place] }]
+      s.activeEquipmentProfile = 'home'
+    })
+    if (withStarter) loadStarterPlan()
+    else nav('/plan')
+  }
+  const skip = () => update(s => { s.onboardingComplete = true })
+  const choices = step === 0
+    ? [{ value: 'kg', label: 'kg', icon: 'scale' }, { value: 'lb', label: 'lb', icon: 'scale' }]
+    : step === 1
+      ? [{ value: 'home', label: t('Home'), icon: 'house' }, { value: 'gym', label: t('Gym'), icon: 'dumbbell' }, { value: 'travel', label: t('Travel'), icon: 'folder' }]
+      : [{ value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4' }, { value: 5, label: '5+' }]
+  const selected = step === 0 ? unit : step === 1 ? place : days
+
+  return <section className="card onboarding-card" aria-labelledby="onboarding-title">
+    <div className="onboarding-progress"><span style={{ width: `${((step + 1) / 4) * 100}%` }} /></div>
+    <div className="row between onboarding-meta"><span className="small muted">{t('Welcome!')}</span><span className="small dim">{t('Step {0} of {1}', step + 1, 4)}</span></div>
+    <h2 id="onboarding-title">{t(step === 0 ? 'Choose your weight unit' : step === 1 ? 'Where do you train?' : step === 2 ? 'How often do you want to train?' : 'How do you want to start?')}</h2>
+    <p className="muted">{t(step === 0 ? 'This keeps your logs and targets consistent.' : step === 1 ? 'LiftNex will filter realistic exercises and substitutions.' : step === 2 ? 'Use this as a starting point for your weekly routine.' : 'Your choices can be changed later in Settings.')}</p>
+    {step < 3 ? <div className="onboarding-choice-grid">{choices.map(choice => <button key={choice.value} type="button" className={'onboarding-choice' + (selected === choice.value ? ' on' : '')} aria-pressed={selected === choice.value} onClick={() => step === 0 ? setUnit(choice.value) : step === 1 ? setPlace(choice.value) : setDays(choice.value)}>
+      {choice.icon && <Icon name={choice.icon} />}<span>{choice.label}</span>{selected === choice.value && <Icon name="check" className="choice-check" />}
+    </button>)}</div> : <div className="onboarding-start-options">
+      <Button variant="primary" icon="sparkles" onClick={() => finish(true)}>{t('Load starter plan (PPL)')}</Button>
+      <Button icon="list" onClick={() => finish(false)}>{t('Build my own plan')}</Button>
+    </div>}
+    <div className="onboarding-actions">
+      <Button variant="ghost" className="dim" onClick={step === 0 ? skip : () => setStep(value => value - 1)}>{t(step === 0 ? 'Skip' : 'Back')}</Button>
+      {step < 3 && <Button variant="tinted" trailingIcon="chevronRight" onClick={() => setStep(value => value + 1)}>{t('Next')}</Button>}
+    </div>
+  </section>
+}
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -24,8 +72,6 @@ export default function Home() {
   const routine = effectiveRoutine(S, todayISO())
   const todayOvr = S.dayPlan[todayISO()] !== undefined
   const bw = lastBW(S)
-  const prevBW = S.bodyweight.length > 1 ? S.bodyweight[S.bodyweight.length - 2] : null
-  const delta = bw && prevBW ? bw.w - prevBW.w : null
 
   const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + weekOffset * 7)
   const doneDays = new Set(S.workouts.map(w => w.d))
@@ -43,7 +89,6 @@ export default function Home() {
 
   const wThisWeek = S.workouts.filter(w => weekKey(w.d) === weekKey(todayISO())).length
   const plannedPerWeek = Object.keys(S.week).filter(k => S.week[k]).length
-  const bwPoints = S.bodyweight.slice(-30).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
   const briefing = buildDailyBriefing(S, todayISO())
   const activity = briefing.activity
   const dailyWorkout = briefing.workout
@@ -53,21 +98,13 @@ export default function Home() {
   const stepRow = (S.healthMetrics || []).find(item => item?.d === todayISO() && item.steps != null)
   const steps = stepRow ? Math.max(0, Math.round(+stepRow.steps || 0)) : null
   const stepsGoal = Math.max(500, Math.round(+S.stepsGoal || 10000))
-  const setSteps = value => update(s => {
-    const date = todayISO()
-    const rows = [...(s.healthMetrics || [])]
-    const index = rows.findIndex(item => item?.d === date)
-    const current = index >= 0 ? { ...rows[index] } : { d: date, source: 'Manual' }
-    if (value == null) delete current.steps
-    else current.steps = Math.max(0, Math.min(200000, Math.round(value)))
-    current.source = current.source || 'Manual'
-    const hasValue = Object.keys(current).some(key => !['d', 'source'].includes(key))
-    if (!hasValue) { if (index >= 0) rows.splice(index, 1) }
-    else if (index >= 0) rows[index] = current
-    else rows.push(current)
-    s.healthMetrics = rows.sort((a, b) => a.d.localeCompare(b.d))
-  })
-  const addSteps = amount => setSteps((steps || 0) + amount)
+  const recommendationAction = recommendation => recommendation.action === 'Open workout' ? () => nav('/workout')
+    : recommendation.action === 'Log water' || recommendation.action === 'Open nutrition' ? () => nav('/nutrition')
+      : recommendation.action === 'Review coach' ? () => nav('/coach') : () => nav('/stats')
+  const recommendationLabel = recommendation => recommendation.action === 'Open workout' ? t('Open workout')
+    : recommendation.action === 'Log water' ? t('Log water')
+      : recommendation.action === 'Open nutrition' ? t('Open nutrition')
+        : recommendation.action === 'Review coach' ? t('Review coach') : t('Review progress')
 
   // today's session shown right under the week strip
   const onToday = () => { if (S.active) nav('/workout'); else if (routine) startFlow(routine.id); else dayOverrideSheet(todayISO()) }
@@ -77,6 +114,17 @@ export default function Home() {
       <div><h1>{user ? t('Hi {0}', user.name) : 'LiftNex'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>
     </div>
+
+    <section className={`card home-next-card ${briefing.recommendation.tone}`} aria-labelledby="home-next-title">
+      <div className="small muted">{t('One useful next step')}</div>
+      <div className="home-next-body">
+        <span className="home-next-icon"><Icon name="sparkles" /></span>
+        <div className="grow"><h2 id="home-next-title">{t(briefing.recommendation.title)}</h2><p>{briefing.recommendation.detailKey ? t(briefing.recommendation.detailKey, ...(briefing.recommendation.detailArgs || [])) : t(briefing.recommendation.detail)}</p></div>
+      </div>
+      <Button size="sm" variant="tinted" trailingIcon="chevronRight" onClick={recommendationAction(briefing.recommendation)}>{recommendationLabel(briefing.recommendation)}</Button>
+    </section>
+
+    {!S.onboardingComplete && <Onboarding S={S} update={update} nav={nav} />}
 
     <div className="card">
       <div className="row between" style={{ marginBottom: 8 }}>
@@ -101,53 +149,35 @@ export default function Home() {
       </Tappable>
     </div>
 
-    <section className="card home-balance-card" aria-labelledby="home-balance-title">
+    <section className="card home-glance-card" aria-labelledby="home-glance-title">
       <div className="row between home-balance-head">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
           <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="dashboard" /></span>
-          <div><h2 id="home-balance-title" style={{ margin: 0 }}>{t('Today’s balance')}</h2><div className="small muted">{t('Activity, food and goals in one view')}</div></div>
+          <div><h2 id="home-glance-title" style={{ margin: 0 }}>{t('Today’s balance')}</h2><div className="small muted">{t('Activity, food and goals in one view')}</div></div>
         </div>
-        <Button size="sm" variant="tinted" trailingIcon="chevronRight" className="home-balance-detail" onClick={() => nav('/briefing')}>{t('Briefing')}</Button>
+        <span className="home-glance-status">{activity.activeCalories == null ? '—' : `≈ ${roundNutrition(activity.activeCalories)} kcal`}</span>
       </div>
-      <div className="home-balance-grid">
-        <div className="home-balance-metric steps">
-          <div className="home-balance-label"><Icon name="footprints" />{t('Steps')}</div>
+      <div className="home-glance-grid">
+        <Tappable className="home-glance-metric" onClick={stepsSheet} aria-label={t('Log steps')}>
+          <span className="home-balance-label"><Icon name="footprints" />{t('Steps')}</span>
           <strong>{steps == null ? '—' : steps.toLocaleString()}<span> / {stepsGoal.toLocaleString()}</span></strong>
-          <small>{activity.stepsCalories == null ? t('kcal: —') : `≈ ${roundNutrition(activity.stepsCalories)} kcal`}</small>
-        </div>
-        <div className="home-balance-metric workout">
-          <div className="home-balance-label"><Icon name="dumbbell" />{t('Gym')}</div>
-          <strong>{dailyWorkout.completed ? t('{0} session', 1) : '—'}</strong>
-          <small>{activity.workoutCalories == null ? (dailyWorkout.completed ? t('kcal: —') : t('No session')) : `≈ ${roundNutrition(activity.workoutCalories)} kcal`}</small>
-        </div>
-        <div className="home-balance-metric food">
-          <div className="home-balance-label"><Icon name="forkKnife" />{t('Food')}</div>
-          <strong>{roundNutrition(nutrition.calories)}<span> / {roundNutrition(briefing.nutrition.effectiveCaloriesGoal)} kcal</span></strong>
-          <small>{briefing.nutrition.over.calories > 0 ? t('{0} over target', roundNutrition(briefing.nutrition.over.calories)) : t('{0} remaining', roundNutrition(briefing.nutrition.remaining.calories))}</small>
-        </div>
-        <div className="home-balance-metric protein">
-          <div className="home-balance-label"><Icon name="target" />{t('Protein')}</div>
-          <strong>{roundNutrition(nutrition.protein)}<span> / {roundNutrition(nutritionGoal.protein)} g</span></strong>
-          <small>{briefing.nutrition.over.protein > 0 ? t('{0} g over target', roundNutrition(briefing.nutrition.over.protein)) : t('{0} g remaining', roundNutrition(briefing.nutrition.remaining.protein))}</small>
-        </div>
+          <small>{t('Log steps')}</small>
+        </Tappable>
+        <Tappable className="home-glance-metric" onClick={() => nav('/nutrition')} aria-label={t('Open food diary')}>
+          <span className="home-balance-label"><Icon name="forkKnife" />{t('Food')}</span>
+          <strong>{roundNutrition(nutrition.calories)}<span> / {roundNutrition(briefing.nutrition.effectiveCaloriesGoal)}</span></strong>
+          <small>{roundNutrition(nutrition.protein)} g {t('Protein').toLowerCase()}</small>
+        </Tappable>
+        <Tappable className="home-glance-metric" onClick={bwSheet} aria-label={t('Body weight')}>
+          <span className="home-balance-label"><Icon name="scale" />{t('Body weight')}</span>
+          <strong>{bw ? fmtNum(bw.w) : '—'}<span>{bw ? ` ${S.unit}` : ''}</span></strong>
+          <small>{bw ? t('Last logged') : t('Log')}</small>
+        </Tappable>
       </div>
-      <div className="nutrition-track home-balance-track"><span style={{ width: `${stepsGoal ? Math.min(100, (steps || 0) / stepsGoal * 100) : 0}`, background: 'var(--blue)' }} /></div>
-      <div className="home-balance-activity-total"><span>{t('Today’s activity')}</span><strong>{activity.activeCalories == null ? '—' : `≈ ${roundNutrition(activity.activeCalories)} kcal`}</strong><small>{activity.activeCaloriesSource === 'device' ? t('Imported data') : activity.activeCalories == null ? t('Add steps or finish a session') : t('Estimated steps + session')}</small></div>
-      <div className="home-balance-step-editor">
-        <div className="home-balance-step-title"><span>{t('Log steps')}</span><span className="muted">{t('without leaving Home')}</span></div>
-        <div className="home-steps-actions">
-          <div className="home-steps-quick" aria-label={t('Add steps')}>
-            {[500, 1000, 2500].map(amount => <Button key={amount} size="sm" variant="tinted" onClick={() => addSteps(amount)}>+{amount.toLocaleString()}</Button>)}
-          </div>
-          <label className="home-steps-input"><span>{t('Total')}</span><NumberField nullable value={steps} decimal={false} aria-label={t('Today’s steps')} onChange={setSteps} /></label>
-        </div>
-      </div>
-      <div className="home-balance-note"><Icon name="info" />{includesActivity
-        ? t('Activity kcal are estimates and are not added to your food target.')
-        : t('Your target allows estimated activity to extend the available intake when data is available.')}</div>
+      <div className="home-glance-foot"><span>{dailyWorkout.completed ? t('{0} session', 1) : routine ? t('Planned') : t('Rest day')}</span><span>{includesActivity ? t('Activity kcal are estimates and are not added to your food target.') : t('Estimated steps + session')}</span></div>
     </section>
 
-    {!S.routines.length && !S.active && (
+    {S.onboardingComplete && !S.routines.length && !S.active && (
       <div className="card">
         <div className="row" style={{ gap: 10, marginBottom: 6 }}>
           <span className="lrow-i"><Icon name="sparkles" /></span>
@@ -158,35 +188,6 @@ export default function Home() {
         <div style={{ height: 8 }} /><Button onClick={() => nav('/plan')}>{t('Build my own plan')}</Button>
       </div>
     )}
-
-    <div className="card">
-      <div className="row between" style={{ marginBottom: 6 }}>
-        <h2 style={{ margin: 0 }}>{t('Body weight')}</h2>
-        <div className="row" style={{ gap: 8 }}>
-          <Button size="sm" icon="plus" onClick={() => bwSheet()}>{t('Log')}</Button>
-        </div>
-      </div>
-      {bw ? <>
-        <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
-          <div className="big">{fmtNum(bw.w)} <span className="muted" style={{ fontSize: '1rem' }}>{S.unit}</span></div>
-          {/* only when it actually moved — an unchanged weight used to read as "− 0" */}
-          {!!delta && (
-            <span className="small row" style={{ gap: 2, fontWeight: 500, color: bwDeltaColor(delta, bw.w) }}>
-              <Icon name={delta > 0 ? 'arrowUp' : 'arrowDown'} style={{ fontSize: 12 }} />
-              {fmtNum(Math.abs(delta))}
-            </span>
-          )}
-          <span className="dim small" style={{ marginLeft: 'auto' }}>{fmtDate(bw.d, true)}</span>
-        </div>
-        {S.targetW && (
-          <div className="small row" style={{ color: 'var(--yellow)', marginTop: 4, gap: 5 }}>
-            <Icon name="target" style={{ fontSize: 13 }} />
-            <span>{t('Goal')} {fmtNum(S.targetW)} {S.unit} · {Math.abs(S.targetW - bw.w) < 0.05 ? t('reached!') : t(S.targetW > bw.w ? '{0} to gain' : '{0} to lose', fmtNum(Math.abs(S.targetW - bw.w)) + ' ' + S.unit)}</span>
-          </div>
-        )}
-        <div className="chart" style={{ marginTop: 8 }}><LineChart points={bwPoints} h={130} unit={S.unit} goal={S.targetW} /></div>
-      </> : <div className="muted small">{t("No entries yet — log your weight to start the curve. It's also asked before every workout.")}</div>}
-    </div>
 
     <Tappable className="card tappable nutrition-home-card" onClick={() => nav('/nutrition')}>
       <div className="row between">
@@ -199,14 +200,6 @@ export default function Home() {
       <div className="nutrition-track" style={{ marginTop: 12 }}><span style={{ width: `${Math.min(100, nutritionGoal.calories ? nutrition.calories / nutritionGoal.calories * 100 : 0)}%` }} /></div>
       <div className="small muted" style={{ marginTop: 7 }}>{roundNutrition(nutrition.protein)}g {t('Protein').toLowerCase()} · {t('Open food diary')}</div>
     </Tappable>
-
-    <div className="home-action-grid home-action-grid-single">
-      <Tappable className="card tappable home-action-card" onClick={() => nav('/coach')}>
-        <span className="lrow-i solid-icon accent-badge" style={{ background: 'var(--acc)' }}><Icon name="brain" /></span>
-        <div><div className="ttl">{t('Personal coach')}</div><div className="small muted">{t('Review your full history')}</div></div>
-        <Icon name="chevronRight" className="chev" />
-      </Tappable>
-    </div>
 
     <Tappable className="card tappable" style={{ cursor: 'pointer' }} onClick={() => calendarSheet()}>
       <div className="row between">
