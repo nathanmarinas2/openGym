@@ -23,7 +23,7 @@ import Icon from './Icon.jsx'
 // 0). Keeps a local string draft while focused so partial input like "33," survives.
 // `nullable` is for fields where "nothing entered" and 0 mean different things (RIR: a
 // logged 0 is a set taken to failure). Those clear back to null instead of snapping to 0.
-export function NumberField({ value, onChange, decimal = true, nullable = false, className = '', ...rest }) {
+export const NumberField = forwardRef(function NumberField({ value, onChange, decimal = true, nullable = false, className = '', ...rest }, ref) {
   const [draft, setDraft] = useState(null)
   const committed = useRef(null)
   // null and undefined are the same "empty" here — a nullable field's key is dropped once cleared.
@@ -39,6 +39,7 @@ export function NumberField({ value, onChange, decimal = true, nullable = false,
   }
   return (
     <input
+      ref={ref}
       type="text"
       inputMode={decimal ? 'decimal' : 'numeric'}
       className={'num ' + className}
@@ -49,7 +50,7 @@ export function NumberField({ value, onChange, decimal = true, nullable = false,
       {...rest}
     />
   )
-}
+})
 
 // forwardRef so callers can focus it or read its value imperatively
 export const TextField = forwardRef(function TextField({ className = '', ...rest }, ref) {
