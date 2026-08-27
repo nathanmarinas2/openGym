@@ -296,26 +296,32 @@ const splitIngredients = value => {
 
 /**
  * A transparent LiftNex composition score, not a medical judgement or a copy of Yuka's
- * proprietary rating. It uses the public product snapshot: Nutri-Score when available,
- * sugar/salt/saturated fat, fibre/protein, declared additive count and NOVA group.
+ * proprietary rating. It uses the public product snapshot: the official Nutri-Score as
+ * an anchor when available, nutrient thresholds as a fallback, plus fibre/protein,
+ * declared additive count and NOVA group.
  */
 export function healthScore(food, preferences = {}) {
   const values = food?.per100 || {}
-  const hasData = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt'].some(key => nutrientKnown(food, key) && (number(values[key]) > 0 || values[key] === 0)) || /^[a-e]$/.test(food?.grade || '')
+  const grade = String(food?.grade || '').trim().toLowerCase()
+  const hasOfficialGrade = /^[a-e]$/.test(grade)
+  const hasData = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt'].some(key => nutrientKnown(food, key) && (number(values[key]) > 0 || values[key] === 0)) || hasOfficialGrade
   if (!hasData) return null
-  let score = SCORE_GRADE_BASE[food.grade] ?? 58
+  let score = SCORE_GRADE_BASE[grade] ?? 58
   const calories = number(values.calories)
   const sugar = number(values.sugar)
   const salt = number(values.salt)
   const saturatedFat = number(values.saturatedFat)
   const fiber = number(values.fiber)
   const protein = number(values.protein)
-  if (nutrientKnown(food, 'sugar') && sugar > 22) score -= 14
-  else if (nutrientKnown(food, 'sugar') && sugar > 12) score -= 7
-  if (nutrientKnown(food, 'salt') && salt > 1.5) score -= 14
-  else if (nutrientKnown(food, 'salt') && salt > .8) score -= 7
-  if (nutrientKnown(food, 'saturatedFat') && saturatedFat > 10) score -= 10
-  else if (nutrientKnown(food, 'saturatedFat') && saturatedFat > 5) score -= 5
+  // A valid Nutri-Score already incorporates energy, sugar, saturated fat and
+  // salt. Re-applying those penalties made a product rated B look artificially
+  // low. Without an official grade, use the nutrient rules as the fallback.
+  if (!hasOfficialGrade && nutrientKnown(food, 'sugar') && sugar > 22) score -= 14
+  else if (!hasOfficialGrade && nutrientKnown(food, 'sugar') && sugar > 12) score -= 7
+  if (!hasOfficialGrade && nutrientKnown(food, 'salt') && salt > 1.5) score -= 14
+  else if (!hasOfficialGrade && nutrientKnown(food, 'salt') && salt > .8) score -= 7
+  if (!hasOfficialGrade && nutrientKnown(food, 'saturatedFat') && saturatedFat > 10) score -= 10
+  else if (!hasOfficialGrade && nutrientKnown(food, 'saturatedFat') && saturatedFat > 5) score -= 5
   if (nutrientKnown(food, 'fiber') && fiber >= 6) score += 7
   else if (nutrientKnown(food, 'fiber') && fiber >= 3) score += 3
   if (nutrientKnown(food, 'protein') && protein >= 15) score += 5
@@ -357,24 +363,24 @@ export function healthScore(food, preferences = {}) {
       { key: 'energy', kind: 'positive', icon: 'flame', tone: nutrientTone(600 - calories, 0, 200, nutrientKnown(food, 'calories')), value: displayValue(food, 'calories'), unit: 'kcal / 100g' }
     ],
     context: [
-      { key: 'nutriScore', kind: 'context', icon: 'scale', tone: food.grade === 'a' || food.grade === 'b' ? 'good' : food.grade ? 'moderate' : 'neutral', value: food.grade ? food.grade.toUpperCase() : '—', unit: '' },
+      { key: 'nutriScore', kind: 'context', icon: 'scale', tone: grade === 'a' || grade === 'b' ? 'good' : grade ? 'moderate' : 'neutral', value: grade ? grade.toUpperCase() : '—', unit: '' },
       { key: 'processing', kind: 'context', icon: 'plate', tone: food.novaGroup === 4 ? 'low' : food.novaGroup === 3 ? 'moderate' : food.novaGroup ? 'good' : 'neutral', value: food.novaGroup ? `NOVA ${food.novaGroup}/4` : '—', unit: '' }
     ],
     ingredients: ingredientSignals
   }
   const coreFields = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'salt']
   const coreKnown = coreFields.filter(key => nutrientKnown(food, key)).length
-  const confidence = coreKnown >= 5 && food.ingredientsText && food.grade && food.novaGroup ? 'high' : coreKnown >= 3 ? 'medium' : 'low'
+  const confidence = coreKnown >= 5 && food.ingredientsText && grade && food.novaGroup ? 'high' : coreKnown >= 3 ? 'medium' : 'low'
   const confidenceReasons = [
     coreKnown < coreFields.length ? `${coreFields.length - coreKnown} core nutrient fields missing` : '',
     !food.ingredientsText ? 'ingredients not available' : '',
-    !food.grade ? 'Nutri-Score not available' : '',
+    !grade ? 'Nutri-Score not available' : '',
     !food.novaGroup ? 'processing data not available' : ''
   ].filter(Boolean)
   return {
     score,
     tone: score >= 75 ? 'good' : score >= 55 ? 'moderate' : 'low',
-    grade: food.grade || '',
+    grade,
     additives,
     additiveCount,
     novaGroup: food.novaGroup || null,

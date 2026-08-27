@@ -63,6 +63,17 @@ describe('nutrition helpers', () => {
     expect(processed.breakdown.positive.map(item => item.key)).toEqual(['protein', 'fiber', 'energy'])
   })
 
+  it('does not double-count official Nutri-Score nutrition criteria', () => {
+    const product = {
+      grade: 'b',
+      novaGroup: 4,
+      additives: [],
+      per100: { calories: 452, protein: 23.4, carbs: 2, fat: 20, sugar: .6, salt: 1.77, saturatedFat: .4, fiber: 0 },
+      availableNutrients: { calories: true, protein: true, carbs: true, fat: true, sugar: true, salt: true, saturatedFat: true, fiber: true }
+    }
+    expect(healthScore(product)).toMatchObject({ score: 68, tone: 'moderate', grade: 'b' })
+  })
+
   it('calculates recipe servings and hydration independently', () => {
     const recipe = { servings: 2, ingredients: [{ grams: 100, food }, { grams: 50, food }] }
     expect(recipeTotals(recipe).calories).toBe(570)

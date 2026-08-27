@@ -1125,6 +1125,7 @@ button.hm-c{width:24px;height:24px;margin:-6.5px;border-radius:5px}
 .nutrition-score-panel-head{display:flex;flex-direction:column;gap:5px;padding-bottom:11px;border-bottom:var(--hair) solid var(--sep)}
 .nutrition-score-panel-head strong{font-size:15px;color:var(--label)}
 .nutrition-score-panel-head span{font-size:13px;line-height:1.4;color:var(--label-2)}
+.nutrition-score-scale{display:block;margin-top:5px;color:var(--label-3);font-size:12px;line-height:1.35}
 .nutrition-score-group{margin-top:16px}
 .nutrition-score-group h4{margin:0 0 7px;color:var(--label);font-size:14px;font-weight:650}
 .nutrition-score-list{border:var(--hair) solid var(--sep);border-radius:12px;overflow:hidden;background:var(--surface)}
