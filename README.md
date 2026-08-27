@@ -69,6 +69,8 @@ as a home-screen app, simple account sign-in, offline support, sync across your 
 - ↔️ **Reps per side** — for lunges, single-arm rows and the rest. You log the total, the app shows the split ("8 per side"), and the target steps in twos so it never lands on a number one side can't have
 - 🏃 **Cardio** — log time + speed, not just weight × reps
 - 📤 **Share a plan** — send someone your routines and week schedule as a small file (no workouts, no weigh-ins), or print it as a clean PDF. Importing merges, so their plan is never overwritten
+- 📦 **Declarative plan packs** — install curated LiftNex routines, schedules and cycles, or export your own pack. Packs contain data only: no executable code, credentials or private history
+- 🎯 **Focus workout mode** — hide secondary context while training and keep the current exercise, set controls, timer and finish action easy to reach with one hand
 - 🔧 **Gym profiles and substitutions** — keep separate Home, Gym and Travel equipment profiles, filter the library to what is available, and get movement alternatives when a routine uses unavailable equipment
 - 🔗 **Read-only plan links** — share a compact preview link that contains routines only; history, weigh-ins and private settings never leave the device
 - 📏 **Body progress beyond weight** — log waist, chest, arm, thigh and body-fat measurements, plus optional progress photos kept in local IndexedDB storage
@@ -84,6 +86,7 @@ as a home-screen app, simple account sign-in, offline support, sync across your 
 - 📥 **Bring your history with you** — import from **FitNotes** (Android and iOS), **Strong** and **Hevy**, or body weight straight out of an **Apple Health** export. Exercise names are matched against the library and anything unrecognised becomes one of your own exercises, so nothing in the file is dropped
 - 📦 **Yours to keep** — one-tap JSON export/import, guest mode, **no telemetry**, durable IndexedDB snapshots and offline-first recovery
 - 📊 **Personal exports** — signed-in profiles can download a flat CSV history or create revocable read-only API tokens for integrations
+- 🧰 **Private sync diagnostics** — inspect local/sync status and export an aggregate support report without exporting weights, notes, photos or workout history
 - 📱 **Standalone Android app** — the whole tracker as a sideloadable APK: no account, no server, data on the phone, native workout reminders ([download](https://github.com/nathanmarinas2/openGym/releases/latest))
 
 ## Quick start (self-host)
@@ -177,7 +180,7 @@ Rough, community-driven — ideas and PRs welcome:
 - [x] Automatic progression programs (linear, Greyskull LP, double progression) with stalls and deloads
 - [x] Estimated 1RM per exercise
 - [ ] Percentage / training-max programming (5/3/1-style) on top of the progression engine
-- [ ] More starter plans (upper/lower, full-body, 5×5)
+- [x] Declarative starter-plan packs (Push / Pull / Legs and full-body); upper/lower and 5×5 remain open
 - [x] Importers from FitNotes / Strong / Hevy (including the RPE they record), and body weight from Apple Health
 - [x] Effort per set — RIR or RPE, whichever scale you think in
 - [ ] Body measurements (waist, arms…) alongside weight

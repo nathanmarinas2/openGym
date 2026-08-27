@@ -29,6 +29,7 @@ import { MEASURE_FIELDS, createMeasurement } from './lib/body.js'
 import { currentCyclePhase, applyPhaseAdjustment, phaseAppliesToRoutine } from './lib/periodization.js'
 import { normalizeRecoveryCheckin } from './lib/recovery.js'
 import { MUSCLES, MUSCLE_NAME } from './lib/muscles.js'
+import { buildPlanPack, getBuiltinPacks, mergePack, parsePack } from './lib/packs.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -848,6 +849,9 @@ function PlanTools({ close }) {
     <div className="muted small" style={{ marginBottom: 16 }}>{t('Send your routines to a friend, or put your week on paper.')}</div>
     <Button variant="primary" icon="upload" onClick={exportFile} disabled={!hasRoutines}>{t('Export plan file')}</Button>
     <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('A small file a friend imports into their own LiftNex — routines only, none of your workouts or weigh-ins.')}</div>
+    <div style={{ height: 12 }} />
+    <Button variant="tinted" icon="box" onClick={() => { close(); packCenterSheet() }}>{t('Open pack library')}</Button>
+    <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('Install curated data-only routines or package your plan for a future LiftNex catalogue.')}</div>
     {!MOBILE && <>
       <div style={{ height: 12 }} />
       <Button variant="tinted" icon="link" onClick={async () => { try { await copyPlanLink(st, user?.name ? t('{0}’s plan', user.name) : ''); toast(t('Read-only link copied')); close() } catch { toast(t('Could not copy link')) } }} disabled={!hasRoutines}>{t('Copy read-only link')}</Button>
@@ -861,6 +865,87 @@ function PlanTools({ close }) {
     {!hasRoutines && <div className="dim small" style={{ margin: '12px 2px 0' }}>{t('Add an exercise to a routine first — an empty plan has nothing to share.')}</div>}
     <h4 className="sec">{t('Got a plan from a friend?')}</h4>
     <Button variant="ghost" icon="folder" onClick={() => fileRef.current?.click()}>{t('Import a plan file')}</Button>
+    <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
+  </>
+}
+
+/* ============================ declarative pack library ============================ */
+export const packCenterSheet = () => ui().openSheet(close => <PackCenter close={close} />)
+
+function PackCenter({ close }) {
+  const st = useStore(s => s.S)
+  const user = useStore(s => s.user)
+  const fileRef = useRef(null)
+  const [selected, setSelected] = useState(null)
+  const [schedule, setSchedule] = useState(false)
+  const packs = getBuiltinPacks()
+
+  const downloadPack = async () => {
+    const pack = buildPlanPack(st, {
+      id: 'liftnex-user-' + todayISO(),
+      name: user?.name ? t('{0}’s LiftNex pack', user.name) : t('My LiftNex pack'),
+      description: t('A portable, data-only training plan exported from LiftNex.'),
+      author: user?.name || t('LiftNex user'), source: 'local-export', license: t('User-created content')
+    })
+    if (!pack.plan.routines.some(r => r.ex.length)) { toast(t('Add an exercise to a routine before creating a pack.')); return }
+    const json = JSON.stringify(pack, null, 2)
+    const name = 'liftnex-pack-' + todayISO() + '.json'
+    if (MOBILE) { try { await shareExport(json, name) } catch { /* share sheet dismissed */ } close(); return }
+    const blob = new Blob([json], { type: 'application/json' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href)
+    close(); toast(t('Pack exported'))
+  }
+
+  const pickFile = event => {
+    const file = event.target.files[0]
+    event.target.value = ''
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try { setSelected(parsePack(reader.result)); setSchedule(false) }
+      catch (error) { toast(t('Pack import failed: {0}', error.message)) }
+    }
+    reader.readAsText(file)
+  }
+
+  const install = () => {
+    if (!selected) return
+    update(s => mergePack(s, selected, { schedule }))
+    close(); toast(t('Pack installed — {0} routines added', selected.bundle.routineCount)); nav('/plan')
+  }
+
+  if (selected) return <>
+    <h3>{t('Review pack')}</h3>
+    <div className="notice" style={{ marginBottom: 14 }}>
+      <div className="row" style={{ alignItems: 'flex-start', gap: 10 }}><Icon name="box" style={{ color: 'var(--acc)', marginTop: 2 }} /><div className="grow"><b>{selected.name}</b><div className="small dim">{selected.author} · {selected.license}</div></div></div>
+      <div className="small muted" style={{ marginTop: 10, lineHeight: 1.4 }}>{selected.description}</div>
+      <div className="small dim" style={{ marginTop: 8 }}>{t('{0} routines · {1} exercises', selected.bundle.routineCount, selected.bundle.exerciseCount)}{selected.bundle.dropped ? ' · ' + t('{0} exercises skipped', selected.bundle.dropped) : ''}</div>
+    </div>
+    <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', borderBottom: '1px solid var(--sep)', marginBottom: 16, gap: 12 }}>
+      <div><div className="tt" style={{ fontSize: 15 }}>{t('Apply weekly schedule')}</div><div className="small dim">{t('Replaces your Mon–Sun assignments; your history stays untouched.')}</div></div>
+      <Switch checked={schedule} onChange={setSchedule} />
+    </div>
+    <Button variant="primary" icon="download" onClick={install}>{t('Install pack')}</Button>
+    <div style={{ height: 8 }} />
+    <Button variant="ghost" className="dim" onClick={() => setSelected(null)}>{t('Choose another pack')}</Button>
+  </>
+
+  return <>
+    <h3>{t('LiftNex pack library')}</h3>
+    <div className="muted small" style={{ marginBottom: 16, lineHeight: 1.4 }}>{t('Packs are data-only: routines, schedules and cycles. They cannot execute code or access your private history.')}</div>
+    <h4 className="sec">{t('Curated packs')}</h4>
+    <div className="list">
+      {packs.map(pack => <div key={pack.id} className="item" style={{ alignItems: 'flex-start', gap: 10 }}>
+        <span className="lrow-i" style={{ color: 'var(--acc)' }}><Icon name="box" /></span>
+        <div className="grow"><div className="tt">{pack.name}</div><div className="ss">{t('{0} routines · {1} exercises', pack.bundle.routineCount, pack.bundle.exerciseCount)}</div><div className="small dim" style={{ marginTop: 3 }}>{pack.description}</div><div className="small dim" style={{ marginTop: 3 }}>{pack.author} · {pack.license}</div></div>
+        <Button size="sm" variant="tinted" onClick={() => { setSelected(pack); setSchedule(true) }}>{t('Install')}</Button>
+      </div>)}
+    </div>
+    <div style={{ height: 14 }} />
+    <Button variant="primary" icon="upload" onClick={() => fileRef.current?.click()}>{t('Import a pack')}</Button>
+    <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('LiftNex validates the manifest and merges new routines without overwriting your history.')}</div>
+    <div style={{ height: 14 }} />
+    <Button variant="tinted" icon="download" onClick={downloadPack}>{t('Export my plan as a pack')}</Button>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
   </>
 }

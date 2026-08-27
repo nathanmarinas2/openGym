@@ -12,7 +12,8 @@ import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
 import { clearPhotos } from '../lib/offline.js'
 import { decryptBackup, encryptBackup } from '../lib/secure-export.js'
-import { loadStarterPlan, confirmSheet, importFromApp, equipmentSheet, apiTokenSheet } from '../sheets.jsx'
+import { loadStarterPlan, confirmSheet, importFromApp, equipmentSheet, apiTokenSheet, packCenterSheet } from '../sheets.jsx'
+import { buildDiagnosticReport, readDirtyFlag } from '../lib/diagnostics.js'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, NumberField } from '../components/ui.jsx'
 import AccountForm from '../components/AccountForm.jsx'
@@ -38,11 +39,58 @@ function TrainerArea({ user, S, update, toast }) {
   </Section>
 }
 
+function DiagnosticsCard({ S, user, online, syncStatus, pushState, toast }) {
+  const [, refresh] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const dirty = readDirtyFlag()
+  const report = buildDiagnosticReport(S, { user, online, syncStatus, dirty, mobile: MOBILE })
+  const status = syncStatus === 'syncing' ? t('Syncing…')
+    : dirty ? t('Pending upload')
+      : !online ? t('Offline')
+        : user ? syncStatus === 'synced' ? t('Synced') : t('Ready to sync')
+          : t('Local only')
+  const statusClass = dirty || !online ? 'warn' : user ? 'acc' : ''
+  const lastSaved = report.local.lastSavedAt ? new Date(report.local.lastSavedAt).toLocaleString() : t('Not saved yet')
+
+  const checkNow = async () => {
+    setBusy(true)
+    if (user) await pushState()
+    refresh(value => value + 1)
+    setBusy(false)
+    toast(user ? t('Sync check complete') : t('Local storage check complete'))
+  }
+
+  const exportDiagnostics = async () => {
+    const current = useStore.getState()
+    const json = JSON.stringify(buildDiagnosticReport(current.S, {
+      user: current.user, online: current.online, syncStatus: current.syncStatus,
+      dirty: readDirtyFlag(), mobile: MOBILE
+    }), null, 2)
+    const name = 'liftnex-diagnostics-' + todayISO() + '.json'
+    if (MOBILE) { try { await shareExport(json, name) } catch { /* share sheet dismissed */ } }
+    else { const blob = new Blob([json], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href) }
+    toast(t('Private diagnostics exported'))
+  }
+
+  return <Section title={t('Sync & diagnostics')} footer={t('The report contains aggregate technical metadata only — never your weights, notes, photos or workout history.')}>
+    <Row icon="shield" iconTint="var(--teal)" title={t('Data status')} subtitle={t('Last local save: {0}', lastSaved)}>
+      <span className={'tag ' + statusClass}>{status}</span>
+    </Row>
+    <Row icon="chartLine" iconTint="var(--blue)" title={t('Local data footprint')} subtitle={t('{0} routines · {1} workouts · {2} nutrition entries', report.local.counts.routines, report.local.counts.workouts, report.local.counts['nutrition entries'])} />
+    <div className="diagnostic-actions">
+      <Button size="sm" variant="tinted" icon="reset" disabled={busy} onClick={checkNow}>{busy ? t('Checking…') : t('Check now')}</Button>
+      <Button size="sm" icon="download" onClick={exportDiagnostics}>{t('Export private report')}</Button>
+    </div>
+  </Section>
+}
+
 export default function Settings() {
   useLang()
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
+  const online = useStore(s => s.online)
+  const syncStatus = useStore(s => s.syncStatus)
   const { update, replaceState, setUser, pullState, pushState, signOut, signOutAll, resetDemo } = useStore()
   const toast = useUI(s => s.toast)
   const accountStatus = t('Signed in; your data syncs with this account.')
@@ -145,6 +193,7 @@ export default function Settings() {
       </> : <AccountForm compact initialMode="login" onSuccess={onAccountSuccess} />}
     </Section>
     {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
+    <DiagnosticsCard S={S} user={user} online={online} syncStatus={syncStatus} pushState={pushState} toast={toast} />
 
     {/* ---------- general ---------- */}
     <Section title={t('General')} footer={t('Note: switching units only changes the label — logged numbers are not converted.')}>
@@ -214,6 +263,9 @@ export default function Settings() {
       <SelectRow icon="timer" iconTint="var(--purple)" title={t('Exercise transition rest')}
         value={S.exerciseRestSec || S.restSec} onChange={v => update(s => { s.exerciseRestSec = v })}
         options={[60, 90, 120, 150, 180, 240].map(v => ({ value: v, label: v + 's' }))} />
+      <Row icon="expand" iconTint="var(--teal)" title={t('Focus workout mode')} subtitle={t('Keep only the current exercise and essential set controls visible.')}>
+        <Switch checked={!!S.focusMode} ariaLabel={t('Focus workout mode')} onChange={v => update(s => { s.focusMode = v })} />
+      </Row>
       {(wakeOK || !MOBILE) && (
         <Row icon="sun" iconTint="var(--yellow)" title={t('Keep screen awake')}
           subtitle={wakeOK ? null : t('Not supported in this browser.')}>
@@ -269,6 +321,7 @@ export default function Settings() {
     {/* ---------- data: fill it, bring things over, back it up, wipe it ---------- */}
     <Section title={t('Data')}>
       <Row icon="sparkles" iconTint="var(--acc)" title={t('Load starter plan (PPL)')} accessory="chevron" onClick={loadStarterPlan} />
+      <Row icon="box" iconTint="var(--acc)" title={t('LiftNex pack library')} subtitle={t('Install curated data-only plans or export your own.')} accessory="chevron" onClick={packCenterSheet} />
       <Row icon="shuffle" iconTint="var(--teal)" title={t('Import from another app')}
         subtitle={t('FitNotes, Strong, Hevy, Apple Health body weight or daily Health metrics CSV')}
         accessory="chevron" onClick={() => importRef.current.click()} />

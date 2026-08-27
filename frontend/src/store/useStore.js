@@ -9,7 +9,7 @@ import { clearPhotos, readSnapshot, writeSnapshot } from '../lib/offline.js'
 const KEY = 'gym_state_v1'
 export const STATE_SCHEMA_VERSION = 5
 export const DEF = {
-  unit: 'kg', restSec: 90, exerciseRestSec: 120, stepsGoal: 10000, sound: true, keepAwake: true, lang: 'en',
+  unit: 'kg', restSec: 90, exerciseRestSec: 120, stepsGoal: 10000, sound: true, keepAwake: true, focusMode: false, lang: 'en',
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
   bodyweight: [], routines: [], week: {}, dayPlan: {},
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
