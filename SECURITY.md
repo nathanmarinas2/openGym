@@ -16,6 +16,34 @@ Updating a self-hosted instance:
 git pull && docker compose pull && docker compose up -d
 ```
 
+### Runtime secrets and incident response
+
+The `data/` directory is runtime-only. It contains user data, passkeys, session material and
+push-notification keys; it must never be committed or copied into a public image. The repository
+keeps only `data/.gitkeep` so a fresh checkout can create the mount point.
+
+If a runtime file, session cookie signing key, VAPID key or provider key has been exposed:
+
+1. Rotate `LIFTNEX_SESSION_SECRET` in the deployment secret manager with a random value of at
+   least 32 bytes. Changing it invalidates every existing session cookie without deleting users.
+2. Rotate `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` together, then restart the API. Browsers will
+   need to subscribe to push notifications again.
+3. Rotate any exposed `GEMINI_API_KEY`, `AI_API_KEY` or `USDA_API_KEY` at its provider.
+4. Force all production traffic through HTTPS and confirm that the deployment is using the new
+   environment values, not a copied `data/secret` or `data/vapid.json`.
+
+For a local key, these commands generate values without writing them to the repository:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+node --input-type=module -e "import webpush from 'web-push'; console.log(JSON.stringify(webpush.generateVAPIDKeys()))"
+```
+
+Removing a file from the latest commit does not remove old Git objects or invalidate credentials.
+After an exposure, rewrite and force-update every affected public branch, then rotate the keys
+even if the history has been cleaned. Forks, clones and cached copies may still contain the old
+objects.
+
 ## Reporting a vulnerability
 
 Use GitHub's private vulnerability reporting — repo **Security** tab → **Report a vulnerability**:
@@ -79,10 +107,11 @@ Read this before hosting LiftNex for anyone other than yourself.
   `expectedRPID: RP_ID`, and the authenticator's signature counter is stored and updated on every
   login (`api/server.js:292-318`, `api/server.js:338-358`).
 - **Sessions are a signed cookie.** `gymsid` carries `<uid>:<expiry>:<version>` plus an
-  HMAC-SHA256 tag over it, compared in constant time (`api/server.js:148-161`). The key is 32
-  random bytes generated on first run and written to `./data/secret` with mode `0600`
-  (`api/server.js:34-36`). The cookie is `HttpOnly` and `SameSite=Lax`, and gets `Secure` **only
-  when `ORIGIN` starts with `https:`** (`api/server.js:29`, `api/server.js:198-201`).
+  HMAC-SHA256 tag over it, compared in constant time (`api/server.js:148-161`). Production can
+  provide the key through `LIFTNEX_SESSION_SECRET`; local/self-hosted development falls back to
+  32 random bytes generated on first run and written to `./data/secret` with mode `0600`. The
+  cookie is `HttpOnly` and `SameSite=Lax`, and gets `Secure` **only when `ORIGIN` starts with
+  `https:`**.
 - **Any user can end every session they have.** `POST /api/logout/all` increments that account's
   session version, and every authenticated request checks the version in the cookie against the
   one on the user record (`api/server.js:167`, `api/server.js:187-188`), so every cookie ever

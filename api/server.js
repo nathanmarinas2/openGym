@@ -117,8 +117,14 @@ function nutritionCacheSet(key, value) {
 
 /* ---------- secret + db ---------- */
 const secretFile = path.join(DATA, 'secret');
+const configuredSessionSecret = String(process.env.LIFTNEX_SESSION_SECRET || '').trim();
+if (configuredSessionSecret && Buffer.byteLength(configuredSessionSecret, 'utf8') < 32) {
+  throw new Error('LIFTNEX_SESSION_SECRET must contain at least 32 bytes');
+}
 if (!fs.existsSync(secretFile)) fs.writeFileSync(secretFile, crypto.randomBytes(32).toString('hex'), { mode: 0o600 });
-const SECRET = fs.readFileSync(secretFile, 'utf8').trim();
+// Production can keep the signing key in a secret manager/environment variable. The file
+// fallback is intentionally only for local/self-hosted development and is never committed.
+const SECRET = configuredSessionSecret || fs.readFileSync(secretFile, 'utf8').trim();
 
 const dbFile = path.join(DATA, 'db.json');
 let db = { users: [], creds: [], subs: [], invites: [], tokens: [], trainerInvites: [], trainerLinks: [], signedPlanPackages: [] };
@@ -501,9 +507,18 @@ async function handleCoachRequest(req, res) {
 
 /* ---------- push notifications (Web Push / VAPID) ---------- */
 const vapidFile = path.join(DATA, 'vapid.json');
+const configuredVapidPublicKey = String(process.env.VAPID_PUBLIC_KEY || '').trim();
+const configuredVapidPrivateKey = String(process.env.VAPID_PRIVATE_KEY || '').trim();
+if (!!configuredVapidPublicKey !== !!configuredVapidPrivateKey) {
+  throw new Error('VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be configured together');
+}
 let vapid;
-try { vapid = JSON.parse(fs.readFileSync(vapidFile, 'utf8')); }
-catch { vapid = webpush.generateVAPIDKeys(); fs.writeFileSync(vapidFile, JSON.stringify(vapid), { mode: 0o600 }); }
+if (configuredVapidPublicKey && configuredVapidPrivateKey) {
+  vapid = { publicKey: configuredVapidPublicKey, privateKey: configuredVapidPrivateKey };
+} else {
+  try { vapid = JSON.parse(fs.readFileSync(vapidFile, 'utf8')); }
+  catch { vapid = webpush.generateVAPIDKeys(); fs.writeFileSync(vapidFile, JSON.stringify(vapid), { mode: 0o600 }); }
+}
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || (SECURE ? ORIGIN : 'mailto:admin@localhost');
 webpush.setVapidDetails(VAPID_SUBJECT, vapid.publicKey, vapid.privateKey);
 
