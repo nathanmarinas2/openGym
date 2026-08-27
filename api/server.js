@@ -285,6 +285,33 @@ function coachAsText(coach) {
   ].filter(Boolean).join('\n');
 }
 
+async function upstreamError(response, provider) {
+  let detail = '';
+  try {
+    const body = await response.json();
+    detail = body?.error?.message || body?.message || '';
+  } catch { /* the provider did not return JSON */ }
+  const error = new Error(`${provider} request failed (${response.status})${detail ? `: ${detail}` : ''}`);
+  error.status = response.status;
+  return error;
+}
+
+function aiFailure(provider, model, error) {
+  const status = Number(error?.status) || 0;
+  const code = error?.name === 'AbortError' ? 'AI_TIMEOUT'
+    : status === 401 || status === 403 ? 'AI_INVALID_KEY'
+      : status === 404 ? 'AI_MODEL_NOT_FOUND'
+        : status === 429 ? 'AI_RATE_LIMITED'
+          : status === 400 ? 'AI_BAD_REQUEST'
+            : status >= 500 ? 'AI_PROVIDER_ERROR'
+              : 'AI_NETWORK';
+  return {
+    error: provider === 'gemini' ? 'Gemini coach is temporarily unavailable' : 'AI coach is temporarily unavailable',
+    code, provider, model: model || null,
+    retryable: !['AI_INVALID_KEY', 'AI_MODEL_NOT_FOUND', 'AI_BAD_REQUEST'].includes(code)
+  };
+}
+
 async function callGeminiRaw(prompt, maxOutputTokens = 900) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45000);
@@ -299,7 +326,7 @@ async function callGeminiRaw(prompt, maxOutputTokens = 900) {
         generationConfig: { temperature: 0.2, maxOutputTokens, responseMimeType: 'application/json' }
       })
     });
-    if (!upstream.ok) throw new Error(`Gemini request failed (${upstream.status})`);
+    if (!upstream.ok) throw await upstreamError(upstream, 'Gemini');
     const answer = (await upstream.json())?.candidates?.[0]?.content?.parts
       ?.map(part => part.text || '').join('').trim();
     if (!answer) throw new Error('Gemini returned no advice');
@@ -370,7 +397,7 @@ async function callCompatibleCoach(prompt, maxTokens) {
   const timeout = setTimeout(() => controller.abort(), 45000);
   try {
     const upstream = await fetch(`${AI_BASE_URL}/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${AI_API_KEY}` }, signal: controller.signal, body: JSON.stringify({ model: AI_MODEL, temperature: 0.2, max_tokens: maxTokens, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: 'You are a careful LiftNex fitness assistant. Use only supplied data. Never diagnose or prescribe.' }, { role: 'user', content: prompt }] }) });
-    if (!upstream.ok) throw new Error(`AI coach failed (${upstream.status})`);
+    if (!upstream.ok) throw await upstreamError(upstream, 'AI');
     const answer = (await upstream.json())?.choices?.[0]?.message?.content;
     if (!answer) throw new Error('AI coach returned no content');
     return answer;
@@ -410,14 +437,14 @@ async function handleCoachRequest(req, res) {
       if (mode === 'plan') { const draft = parseServerPlanDraft(answer); if (!draft.valid) throw new Error(draft.error); return json(res, 200, { source: 'gemini', configured: true, model: GEMINI_MODEL, draft: draft.value }); }
       const coach = parseCoachJson(answer); if (!coach.summary) throw new Error('empty review');
       return json(res, 200, { source: 'gemini', configured: true, model: GEMINI_MODEL, coach, answer: coachAsText(coach).slice(0, 6000) });
-    } catch (error) { console.error('Gemini coach failed', error.message); return json(res, 502, { error: 'Gemini coach is temporarily unavailable' }); }
+    } catch (error) { const failure = aiFailure('gemini', GEMINI_MODEL, error); console.error('Gemini coach failed', error.message); return json(res, 502, failure); }
   }
   if (AI_BASE_URL && AI_API_KEY) {
     try {
       const answer = await callCompatibleCoach(prompt, mode === 'plan' ? 1400 : 900);
       if (mode === 'plan') { const draft = parseServerPlanDraft(answer); if (!draft.valid) throw new Error(draft.error); return json(res, 200, { source: 'provider', configured: true, draft: draft.value }); }
       const coach = parseCoachJson(answer); return json(res, 200, { source: 'provider', configured: true, coach, answer: coachAsText(coach).slice(0, 6000) });
-    } catch (error) { console.error('Compatible coach failed', error.message); return json(res, 502, { error: 'AI coach is temporarily unavailable' }); }
+    } catch (error) { const failure = aiFailure('provider', AI_MODEL, error); console.error('Compatible coach failed', error.message); return json(res, 502, failure); }
   }
   return json(res, 200, { source: 'local', configured: false, coach: null, draft: null, answer: null });
 }
@@ -701,7 +728,15 @@ async function handleMcp(req, res) {
 
 /* ---------- routes ---------- */
 const routes = {
-  'GET /api/health': async (req, res) => json(res, 200, { ok: true, users: db.users.length }),
+  'GET /api/health': async (req, res) => json(res, 200, {
+    ok: true,
+    users: db.users.length,
+    ai: {
+      configured: !!(GEMINI_API_KEY || (AI_BASE_URL && AI_API_KEY)),
+      provider: GEMINI_API_KEY ? 'gemini' : AI_BASE_URL && AI_API_KEY ? 'compatible' : 'none',
+      model: GEMINI_API_KEY ? GEMINI_MODEL : AI_BASE_URL && AI_API_KEY ? AI_MODEL : null
+    }
+  }),
 
   // Public config the login screen needs before anyone is signed in.
   'GET /api/config': async (req, res) => json(res, 200, { invite_only: INVITE_ONLY }),

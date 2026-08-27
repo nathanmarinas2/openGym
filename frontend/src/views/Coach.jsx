@@ -5,6 +5,8 @@ import { todayISO } from '../lib/format.js'
 import { DEFAULT_NUTRITION_GOAL, dailyTotals } from '../lib/nutrition.js'
 import { t, useLang } from '../lib/i18n.js'
 import { api } from '../lib/api.js'
+import { DEMO } from '../lib/demo.js'
+import { MOBILE } from '../lib/mobile.js'
 import { buildLongitudinalCoachContext } from '../lib/coach.js'
 import { applyPlanDraft, diffPlanDraft, revertPlanSnapshot } from '../lib/coach-draft.js'
 import Icon from '../components/Icon.jsx'
@@ -26,6 +28,11 @@ function CoachPlanBuilder({ S, update, C }) {
   const create = async () => {
     if (!S.aiConsent || loading) return
     setLoading(true)
+    if (DEMO || MOBILE) {
+      const fallback = localPlanDraft(S)
+      setDraft(fallback); setSelected(diffPlanDraft(S, fallback).changes.map(item => item.key)); setSource('local'); setLoading(false)
+      return
+    }
     try {
       const response = await api('/api/coach', { method: 'POST', body: JSON.stringify({ mode: 'plan', context, draft: { requestedGoal: S.coachProfile?.objective || 'performance', weeks: 4 }, consent: true }) })
       const candidate = response.draft || response.plan
