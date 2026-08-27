@@ -272,6 +272,32 @@ h4.sec{
 .lrow-c{color:var(--label);font-size:15px;flex:none;--icon-stroke:2.4}
 .lrow-k{color:var(--acc-text);font-size:17px;flex:none;--icon-stroke:2.4}
 .lrow.danger,.lrow.danger .lrow-t{color:var(--red)}
+
+/* Heart-rate setup uses real field groups instead of squeezing long helper text
+   into a list row beside a native-sized input. The grid keeps labels readable on
+   phones and makes the two choices easy to scan before opening their picker. */
+.hr-profile-panel{display:grid;gap:12px;padding:14px}
+.hr-profile-number-grid,.hr-profile-choice-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.hr-profile-field,.hr-profile-choice{min-width:0;display:grid;grid-template-columns:40px minmax(0,1fr) 104px;align-items:center;gap:10px;padding:12px;border:1px solid var(--surface-line);border-radius:14px;background:var(--surface-2);color:var(--label)}
+.hr-profile-field-icon,.hr-profile-choice-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:color-mix(in srgb,var(--tint) 20%,var(--surface));color:var(--tint);font-size:19px;flex:none}
+.hr-profile-field-copy,.hr-profile-choice-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hr-profile-field-copy label,.hr-profile-choice-title{font-size:16px;line-height:1.22;letter-spacing:-.012em;color:var(--label)}
+.hr-profile-field-copy small,.hr-profile-choice-value{font-size:12px;line-height:1.35;color:var(--label-2);overflow-wrap:anywhere}
+.hr-profile-field .num{width:100%;min-height:48px;padding-inline:10px;text-align:right;font-variant-numeric:tabular-nums}
+.hr-profile-choice{display:flex;grid-template-columns:none;text-align:left;cursor:pointer;transition:background var(--fast),border-color var(--fast),color var(--fast)}
+.hr-profile-choice:hover{background:color-mix(in srgb,var(--acc) 6%,var(--surface-2));border-color:var(--acc-line)}
+.hr-profile-choice:active{background:color-mix(in srgb,var(--acc) 12%,var(--surface-2))}
+.hr-profile-choice-copy{flex:1}
+.hr-profile-choice-value{color:var(--acc-text);font-weight:600}
+.hr-profile-choice-chevron{width:18px;height:18px;flex:none;color:var(--label-3)}
+@media (max-width:430px){
+  .hr-profile-panel{padding:12px}
+  .hr-profile-field{grid-template-columns:38px minmax(0,1fr) 92px;padding:10px}
+  .hr-profile-field-icon,.hr-profile-choice-icon{width:38px;height:38px}
+}
+@media (min-width:650px){
+  .hr-profile-number-grid,.hr-profile-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 /* an (i) before a row's control: painted small and dim so the control stays the loud thing,
    but with a finger-sized target like everything else — the padding is the hit area and the
    vertical negative margin keeps it from making the row taller. The horizontal ones pull the

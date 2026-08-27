@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dailyTotals, filterFoods, healthScore, LOCAL_FOODS, localCoachInsights, normalizeFood, nutritionPeriod, nutritionPeriodSummary, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
+import { dailyTotals, filterFoods, healthScore, LOCAL_FOODS, localCoachInsights, normalizeFood, normalizeFoodGrams, nutritionPeriod, nutritionPeriodSummary, recipePerServing, recipeTotals, scaleNutrients, searchFoods, waterTotal } from './nutrition.js'
 
 describe('nutrition helpers', () => {
   const food = normalizeFood({
@@ -15,6 +15,12 @@ describe('nutrition helpers', () => {
     expect(food.name).toBe('Oats')
     expect(food.grade).toBe('a')
     expect(scaleNutrients(food, 50)).toMatchObject({ calories: 190, protein: 6.5, carbs: 34 })
+  })
+
+  it('preserves small diary amounts instead of falling back to 100 g', () => {
+    expect(normalizeFoodGrams(2)).toBe(2)
+    expect(normalizeFoodGrams('2,5')).toBe(2.5)
+    expect(normalizeFoodGrams('')).toBe(100)
   })
 
   it('sums only entries from the selected day', () => {

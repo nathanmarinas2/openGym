@@ -18,6 +18,25 @@ import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, NumberField } from '../components/ui.jsx'
 import AccountForm from '../components/AccountForm.jsx'
 
+function HeartRateChoice({ icon, iconTint, title, value, options, onChange }) {
+  const current = options.find(option => option.value === value)
+  const open = () => useUI.getState().openSheet(close => <>
+    <h3>{title}</h3>
+    <div className="sect-b">
+      {options.map(option => <button key={option.value} type="button" className="lrow tap" onClick={() => { close(); onChange(option.value) }}>
+        <span className="lrow-m"><span className="lrow-t">{option.label}</span>{option.subtitle && <span className="lrow-s">{option.subtitle}</span>}</span>
+        {option.value === value && <Icon name="check" className="lrow-k" />}
+      </button>)}
+    </div>
+    <div style={{ height: 8 }} />
+  </>)
+  return <button type="button" className="hr-profile-choice" onClick={open}>
+    <span className="hr-profile-choice-icon" style={{ '--tint': iconTint }}><Icon name={icon} /></span>
+    <span className="hr-profile-choice-copy"><span className="hr-profile-choice-title">{title}</span><span className="hr-profile-choice-value">{current?.label || value}</span></span>
+    <Icon name="chevronRight" className="hr-profile-choice-chevron" />
+  </button>
+}
+
 function TrainerArea({ user, S, update, toast }) {
   const [clients, setClients] = useState(null)
   const trainer = user?.admin || user?.role === 'trainer'
@@ -216,15 +235,25 @@ export default function Settings() {
       <Row icon="target" iconTint="var(--acc)" title={t('Centralized goals')} subtitle={t('Weight, nutrition, activity and training in one place.')} accessory="chevron" onClick={() => nav('/goals')} />
     </Section>
 
-    <Section title={t('Heart-rate profile')} footer={t('Manual maximum takes priority. Karvonen uses the latest resting heart rate when available; these are training estimates, not medical advice.')}>
-      <Row icon="person" iconTint="var(--red)" title={t('Age')} subtitle={t('Used for the selected maximum-heart-rate formula')}>
-        <NumberField nullable decimal={false} value={S.hrProfile?.age ?? null} aria-label={t('Age')} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), age: v } })} />
-      </Row>
-      <Row icon="heart" iconTint="var(--red)" title={t('Manual max HR')} subtitle={t('Optional · beats per minute')}>
-        <NumberField nullable decimal={false} value={S.hrProfile?.maxHr ?? null} aria-label={t('Manual max HR')} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), maxHr: v } })} />
-      </Row>
-      <SelectRow icon="target" iconTint="var(--orange)" title={t('Maximum HR method')} value={S.hrProfile?.maxHrMethod || 'tanaka'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), maxHrMethod: v } })} options={[{ value: 'tanaka', label: 'Tanaka' }, { value: 'fox', label: 'Fox' }, { value: 'gulati', label: 'Gulati' }]} />
-      <SelectRow icon="chartLine" iconTint="var(--orange)" title={t('Zone method')} value={S.hrProfile?.zoneMethod || 'percent-max'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), zoneMethod: v } })} options={[{ value: 'percent-max', label: t('Percent of max HR') }, { value: 'karvonen', label: t('Karvonen / heart-rate reserve') }]} />
+    <Section className="hr-profile-section" title={t('Heart-rate profile')} footer={t('Manual maximum takes priority. Karvonen uses the latest resting heart rate when available; these are training estimates, not medical advice.')}>
+      <div className="hr-profile-panel">
+        <div className="hr-profile-number-grid">
+          <div className="hr-profile-field">
+            <span className="hr-profile-field-icon" style={{ '--tint': 'var(--red)' }}><Icon name="person" /></span>
+            <span className="hr-profile-field-copy"><label htmlFor="hr-profile-age">{t('Age')}</label><small>{t('Used for the selected maximum-heart-rate formula')}</small></span>
+            <NumberField id="hr-profile-age" nullable decimal={false} value={S.hrProfile?.age ?? null} aria-label={t('Age')} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), age: v } })} />
+          </div>
+          <div className="hr-profile-field">
+            <span className="hr-profile-field-icon" style={{ '--tint': 'var(--red)' }}><Icon name="heart" /></span>
+            <span className="hr-profile-field-copy"><label htmlFor="hr-profile-max">{t('Manual max HR')}</label><small>{t('Optional · beats per minute')}</small></span>
+            <NumberField id="hr-profile-max" nullable decimal={false} value={S.hrProfile?.maxHr ?? null} aria-label={t('Manual max HR')} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), maxHr: v } })} />
+          </div>
+        </div>
+        <div className="hr-profile-choice-grid">
+          <HeartRateChoice icon="target" iconTint="var(--orange)" title={t('Maximum HR method')} value={S.hrProfile?.maxHrMethod || 'tanaka'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), maxHrMethod: v } })} options={[{ value: 'tanaka', label: 'Tanaka' }, { value: 'fox', label: 'Fox' }, { value: 'gulati', label: 'Gulati' }]} />
+          <HeartRateChoice icon="chartLine" iconTint="var(--orange)" title={t('Zone method')} value={S.hrProfile?.zoneMethod || 'percent-max'} onChange={v => update(s => { s.hrProfile = { ...(s.hrProfile || {}), zoneMethod: v } })} options={[{ value: 'percent-max', label: t('Percent of max HR') }, { value: 'karvonen', label: t('Karvonen / heart-rate reserve') }]} />
+        </div>
+      </div>
     </Section>
 
     <Section title={t('Coach & privacy')} footer={t('AI is optional. Your history is never sent until you give explicit consent. Plans returned by Coach are drafts and require your confirmation.')}>

@@ -565,6 +565,13 @@ export async function lookupBarcode(code, { signal, foods = [] } = {}) {
 
 export const roundNutrition = value => Math.round(number(value) * 10) / 10
 
+// Diary entries use 100 g as the default only when no amount was supplied. Keep
+// a real user-entered amount (including small values such as 2 g) intact.
+export const normalizeFoodGrams = (value, fallback = 100) => {
+  const grams = roundNutrition(value)
+  return grams > 0 ? Math.max(1, grams) : fallback
+}
+
 export function recipeTotals(recipe) {
   const totals = Object.fromEntries(NUTRIENT_KEYS.map(key => [key, 0]))
   for (const ingredient of recipe?.ingredients || []) {
